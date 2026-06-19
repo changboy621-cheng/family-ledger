@@ -1,5 +1,5 @@
 import type { Currency } from '../../types';
-import { getAmountConfig } from '../../lib/currency';
+import { getAmountConfig, sanitizeAmountInput } from '../../lib/currency';
 
 interface AmountInputProps {
   currency: Currency;
@@ -20,7 +20,7 @@ export function AmountInput({ currency, value, onChange }: AmountInputProps) {
         step={config.step}
         placeholder={config.placeholder}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange(sanitizeAmountInput(event.target.value, currency))}
       />
       <span className="text-xs font-normal text-slate-500">
         {currency === 'TWD' ? '新台幣會自動取整數' : '美金支援兩位小數'}

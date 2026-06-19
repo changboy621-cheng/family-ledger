@@ -167,4 +167,21 @@ describe('analyzeLedgerTransactions', () => {
       totals: { TWD: 1300, USD: 120 }
     });
   });
+
+  it('skips invalid transaction dates instead of crashing the ledger page', () => {
+    const analysis = analyzeLedgerTransactions(
+      [
+        ...transactions,
+        {
+          ...transactions[0],
+          id: 'bad-date',
+          transaction_date: 'not-a-date'
+        }
+      ],
+      '2026-06'
+    );
+
+    expect(analysis.summary.expense).toEqual({ TWD: 1300, USD: 120 });
+    expect(analysis.dailyExpenseTrend.find((point) => point.day === 1)?.totals.TWD).toBe(500);
+  });
 });

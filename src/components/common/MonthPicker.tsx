@@ -6,7 +6,8 @@ interface MonthPickerProps {
 }
 
 export function MonthPicker({ value, onChange }: MonthPickerProps) {
-  const current = new Date(`${value}-01T00:00:00`);
+  const [year, month] = value.split('-').map(Number);
+  const current = new Date(year, (month || 1) - 1, 1);
 
   function move(months: number) {
     onChange(format(addMonths(current, months), 'yyyy-MM'));

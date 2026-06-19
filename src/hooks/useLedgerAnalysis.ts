@@ -1,4 +1,4 @@
-import { addMonths, eachDayOfInterval, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { addMonths, eachDayOfInterval, endOfMonth, format, isValid, parseISO, startOfMonth } from 'date-fns';
 import { useMemo } from 'react';
 import type {
   CategoryExpenseSummary,
@@ -32,8 +32,20 @@ function calculateRatio(amount: number, total: number) {
   return amount / total;
 }
 
+function parseYearMonthStart(yearMonth: string) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const baseDate = new Date(year, (month || 1) - 1, 1);
+
+  return isValid(baseDate) ? baseDate : new Date();
+}
+
+function parseTransactionDate(value: string) {
+  const parsed = parseISO(value);
+  return isValid(parsed) ? parsed : null;
+}
+
 function createDailyTrend(yearMonth: string): DailyExpensePoint[] {
-  const start = parseISO(`${yearMonth}-01`);
+  const start = parseYearMonthStart(yearMonth);
   const end = endOfMonth(start);
 
   return eachDayOfInterval({ start, end }).map((date) => ({
@@ -44,7 +56,7 @@ function createDailyTrend(yearMonth: string): DailyExpensePoint[] {
 }
 
 function createMonthlyTrend(yearMonth: string): MonthlyExpensePoint[] {
-  const end = parseISO(`${yearMonth}-01`);
+  const end = parseYearMonthStart(yearMonth);
 
   return Array.from({ length: 6 }, (_, index) => {
     const date = addMonths(end, index - 5);
@@ -64,12 +76,15 @@ export function analyzeLedgerTransactions(transactions: Transaction[], yearMonth
   const monthlyExpenseTrend = createMonthlyTrend(yearMonth);
   const dailyMap = new Map(dailyExpenseTrend.map((point) => [point.date, point]));
   const monthlyMap = new Map(monthlyExpenseTrend.map((point) => [point.yearMonth, point]));
-  const selectedMonthStart = startOfMonth(parseISO(`${yearMonth}-01`));
+  const selectedMonthStart = startOfMonth(parseYearMonthStart(yearMonth));
   const selectedMonthEnd = endOfMonth(selectedMonthStart);
 
   for (const transaction of transactions) {
     const amount = Number(transaction.amount);
-    const transactionDate = parseISO(transaction.transaction_date);
+    const transactionDate = parseTransactionDate(transaction.transaction_date);
+    if (!transactionDate) {
+      continue;
+    }
     const transactionYearMonth = format(transactionDate, 'yyyy-MM');
 
     if (transaction.type === 'expense' && monthlyMap.has(transactionYearMonth)) {

@@ -19,6 +19,30 @@ export function getAmountConfig(currency: Currency) {
     : { step: 0.01, inputMode: 'decimal' as const, placeholder: '0.00', decimals: 2 };
 }
 
+export function sanitizeAmountInput(value: string, currency: Currency): string {
+  if (!value) return '';
+
+  const normalized = value.replace(/,/g, '').trim();
+
+  if (currency === 'TWD') {
+    return normalized.replace(/\D/g, '');
+  }
+
+  const cleaned = normalized.replace(/[^0-9.]/g, '');
+  const [integerPart = '', ...decimalParts] = cleaned.split('.');
+  const decimals = decimalParts.join('').slice(0, 2);
+
+  if (cleaned.startsWith('.')) {
+    return decimals ? `0.${decimals}` : '0.';
+  }
+
+  if (decimalParts.length === 0) {
+    return integerPart;
+  }
+
+  return `${integerPart}.${decimals}`;
+}
+
 export function normalizeAmount(value: string, currency: Currency): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return 0;
