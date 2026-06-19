@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import type { LedgerType } from '../types';
+import { currentYearMonth } from '../lib/utils';
+import { useAuth } from '../hooks/useAuth';
+import { useTransactions } from '../hooks/useTransactions';
+import { useMonthlySummary } from '../hooks/useMonthlySummary';
+import { DualCurrencyDisplay } from '../components/common/DualCurrencyDisplay';
+import { FAB } from '../components/common/FAB';
+import { TransactionForm } from '../components/transaction/TransactionForm';
+import { TransactionList } from '../components/transaction/TransactionList';
+
+export function Dashboard() {
+  const { profile, family } = useAuth();
+  const [formLedgerType, setFormLedgerType] = useState<LedgerType | null>(null);
+  const yearMonth = currentYearMonth();
+  const familyTransactions = useTransactions('family', yearMonth);
+  const personalTransactions = useTransactions('personal', yearMonth);
+  const familySummary = useMonthlySummary(familyTransactions.transactions);
+  const personalSummary = useMonthlySummary(personalTransactions.transactions);
+
+  async function handleCreate(input: Parameters<typeof familyTransactions.createTransaction>[0]) {
+    if (input.ledger_type === 'family') {
+      await familyTransactions.createTransaction(input);
+    } else {
+      await personalTransactions.createTransaction(input);
+    }
+  }
+
+  return (
+    <div className="grid gap-6">
+      <header className="rounded-xl bg-white p-5">
+        <p className="text-sm font-semibold text-slate-500">{family?.name ?? '我們的家'}</p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">你好，{profile?.display_name ?? '家人'}</h1>
+      </header>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
+        <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-3">
+          <h2 className="text-lg font-bold text-slate-900">最近家庭交易</h2>
+          <TransactionList
+            groupedTransactions={{ 最近: familyTransactions.transactions.slice(0, 5) }}
+            loading={familyTransactions.loading}
+          />
+        </div>
+        <div className="grid gap-3">
+          <h2 className="text-lg font-bold text-slate-900">最近個人交易</h2>
+          <TransactionList
+            groupedTransactions={{ 最近: personalTransactions.transactions.slice(0, 5) }}
+            loading={personalTransactions.loading}
+          />
+        </div>
+      </section>
+
+      <FAB onSelect={setFormLedgerType} />
+
+      {formLedgerType ? (
+        <TransactionForm
+          initialLedgerType={formLedgerType}
+          onSubmit={handleCreate}
+          onClose={() => setFormLedgerType(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
