@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['icon.svg'],
       manifest: {
         name: '家帳 FamilyLedger',
@@ -14,14 +15,17 @@ export default defineConfig({
         start_url: '/',
         display: 'standalone',
         background_color: '#F8FAFC',
-        theme_color: '#4F46E5',
+        theme_color: '#1D9E75',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}']
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true
       }
     })
   ]
