@@ -3,6 +3,7 @@ import { Check, Pencil, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { FamilyInvite } from '../components/family/FamilyInvite';
 import { DataTools } from '../components/settings/DataTools';
+import { SiriShortcut } from '../components/settings/SiriShortcut';
 import { useUIStore } from '../store/uiStore';
 import { isValidDisplayName, MAX_DISPLAY_NAME_LENGTH } from '../lib/profile';
 
@@ -111,6 +112,8 @@ export function Settings() {
       <FamilyInvite variant="plain" />
 
       <DataTools />
+
+      <SiriShortcut />
 
       <button className="h-11 rounded-lg border border-red-200 bg-white font-semibold text-red-600" type="button" onClick={() => void signOut()}>
         登出

@@ -9,6 +9,7 @@ import { CompleteOnboarding } from './pages/auth/CompleteOnboarding';
 import { Dashboard } from './pages/Dashboard';
 import { LedgerPage } from './pages/LedgerPage';
 import { Settings } from './pages/Settings';
+import { QuickAdd } from './pages/QuickAdd';
 import { Toast } from './components/common/Toast';
 
 function ProtectedRoute() {
@@ -34,6 +35,7 @@ export default function App() {
     <>
       <Toast />
       <Routes>
+        <Route path="/quick" element={<QuickAdd />} />
         <Route path="/auth" element={<AuthLayout />}>
           <Route index element={<Navigate to="/auth/login" replace />} />
           <Route path="login" element={<Login />} />
