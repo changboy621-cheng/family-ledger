@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Currency } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { CurrencySelector } from '../../components/common/CurrencySelector';
@@ -7,12 +7,14 @@ import { getErrorMessage } from '../../lib/errors';
 
 export function JoinFamily() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { joinFamily } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [defaultCurrency, setDefaultCurrency] = useState<Currency>('TWD');
-  const [inviteCode, setInviteCode] = useState('');
+  // 邀請連結帶 ?code=XXXX 時自動帶入，家人不用手動輸入
+  const [inviteCode, setInviteCode] = useState(() => (searchParams.get('code') ?? '').trim().toUpperCase());
   const [verificationNotice, setVerificationNotice] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

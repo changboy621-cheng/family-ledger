@@ -1,11 +1,8 @@
 import { useAuth } from '../hooks/useAuth';
+import { FamilyInvite } from '../components/family/FamilyInvite';
 
 export function Settings() {
   const { profile, family, signOut } = useAuth();
-
-  async function copyInviteCode() {
-    if (family?.invite_code) await navigator.clipboard.writeText(family.invite_code);
-  }
 
   return (
     <div className="grid gap-5">
@@ -34,17 +31,10 @@ export function Settings() {
             <dt className="text-slate-500">家庭名稱</dt>
             <dd className="font-semibold text-slate-900">{family?.name}</dd>
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">邀請碼</dt>
-            <dd className="flex items-center gap-2">
-              <span className="font-mono text-lg font-bold tracking-widest text-family">{family?.invite_code}</span>
-              <button className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold" type="button" onClick={() => void copyInviteCode()}>
-                複製
-              </button>
-            </dd>
-          </div>
         </dl>
       </section>
+
+      <FamilyInvite variant="plain" />
 
       <button className="h-11 rounded-lg border border-red-200 bg-white font-semibold text-red-600" type="button" onClick={() => void signOut()}>
         登出
