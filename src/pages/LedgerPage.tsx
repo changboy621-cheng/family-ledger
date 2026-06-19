@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { formatAmount } from '../lib/currency';
 import { useAnalysisTransactions, useTransactions } from '../hooks/useTransactions';
+import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
 import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
@@ -22,7 +23,6 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [deletingIds, setDeletingIds] = useState<string[]>([]);
   const { groupedTransactions, loading, createTransaction, deleteTransaction, updateTransaction } = useTransactions(
     ledgerType,
     yearMonth,
@@ -50,18 +50,14 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     showToast('交易已新增');
   }
 
-  async function handleDelete(transactionId: string) {
-    setDeletingIds((current) => [...current, transactionId]);
-    try {
+  const commitDelete = useCallback(
+    async (transactionId: string) => {
       await deleteTransaction(transactionId);
       await reloadAnalysisTransactions();
-      showToast('交易已刪除');
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : '刪除失敗，請稍後再試。', 'error');
-    } finally {
-      setDeletingIds((current) => current.filter((id) => id !== transactionId));
-    }
-  }
+    },
+    [deleteTransaction, reloadAnalysisTransactions]
+  );
+  const { pendingIds, requestDelete } = usePendingDelete(commitDelete);
 
   async function handleEdit(input: Parameters<typeof createTransaction>[0]) {
     if (!editingTransaction) return;
@@ -157,12 +153,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
       <TransactionList
         groupedTransactions={groupedTransactions}
         loading={loading}
-        onDelete={handleDelete}
+        onDelete={requestDelete}
         onEdit={(transaction) => {
           setEditingTransaction(transaction);
           setShowForm(true);
         }}
-        deletingIds={deletingIds}
+        hiddenIds={pendingIds}
       />
 
       {showForm ? (

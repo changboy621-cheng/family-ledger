@@ -3,6 +3,7 @@ import type { LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { useTransactions } from '../hooks/useTransactions';
+import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useMonthlySummary } from '../hooks/useMonthlySummary';
 import { DualCurrencyDisplay } from '../components/common/DualCurrencyDisplay';
 import { FAB } from '../components/common/FAB';
@@ -15,12 +16,13 @@ export function Dashboard() {
   const { profile, family } = useAuth();
   const [formLedgerType, setFormLedgerType] = useState<LedgerType | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [deletingIds, setDeletingIds] = useState<string[]>([]);
   const yearMonth = currentYearMonth();
   const familyTransactions = useTransactions('family', yearMonth);
   const personalTransactions = useTransactions('personal', yearMonth);
   const familySummary = useMonthlySummary(familyTransactions.transactions);
   const personalSummary = useMonthlySummary(personalTransactions.transactions);
+  const familyPending = usePendingDelete(familyTransactions.deleteTransaction);
+  const personalPending = usePendingDelete(personalTransactions.deleteTransaction);
   const showToast = useUIStore((state) => state.showToast);
 
   async function handleCreate(input: Parameters<typeof familyTransactions.createTransaction>[0]) {
@@ -30,23 +32,6 @@ export function Dashboard() {
       await personalTransactions.createTransaction(input);
     }
     showToast('交易已新增');
-  }
-
-  async function handleDelete(transactionId: string, ledgerType: LedgerType) {
-    setDeletingIds((current) => [...current, transactionId]);
-
-    try {
-      if (ledgerType === 'family') {
-        await familyTransactions.deleteTransaction(transactionId);
-      } else {
-        await personalTransactions.deleteTransaction(transactionId);
-      }
-      showToast('交易已刪除');
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : '刪除失敗，請稍後再試。', 'error');
-    } finally {
-      setDeletingIds((current) => current.filter((id) => id !== transactionId));
-    }
   }
 
   async function handleEdit(input: Parameters<typeof familyTransactions.createTransaction>[0]) {
@@ -88,12 +73,12 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={{ 最近: familyTransactions.transactions.slice(0, 5) }}
             loading={familyTransactions.loading}
-            onDelete={(transactionId) => handleDelete(transactionId, 'family')}
+            onDelete={familyPending.requestDelete}
             onEdit={(transaction) => {
               setEditingTransaction(transaction);
               setFormLedgerType(transaction.ledger_type);
             }}
-            deletingIds={deletingIds}
+            hiddenIds={familyPending.pendingIds}
           />
         </div>
         <div className="grid gap-3">
@@ -101,12 +86,12 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={{ 最近: personalTransactions.transactions.slice(0, 5) }}
             loading={personalTransactions.loading}
-            onDelete={(transactionId) => handleDelete(transactionId, 'personal')}
+            onDelete={personalPending.requestDelete}
             onEdit={(transaction) => {
               setEditingTransaction(transaction);
               setFormLedgerType(transaction.ledger_type);
             }}
-            deletingIds={deletingIds}
+            hiddenIds={personalPending.pendingIds}
           />
         </div>
       </section>
