@@ -9,7 +9,6 @@ import { DualCurrencyDisplay } from '../components/common/DualCurrencyDisplay';
 import { FAB } from '../components/common/FAB';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
-import { FamilyInvite } from '../components/family/FamilyInvite';
 import { useUIStore } from '../store/uiStore';
 
 export function Dashboard() {
@@ -64,8 +63,6 @@ export function Dashboard() {
         <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
         <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
       </section>
-
-      <FamilyInvite />
 
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="grid gap-3">
