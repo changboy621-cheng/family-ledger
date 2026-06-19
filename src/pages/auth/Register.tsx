@@ -46,7 +46,7 @@ export function Register() {
       <div>
         <h1 className="text-xl font-bold text-slate-900">家庭已建立</h1>
         <p className="mt-3 text-sm text-slate-600">把邀請碼分享給另一半，對方就能加入同一個家庭帳本。</p>
-        <div className="mt-5 rounded-lg bg-indigo-50 p-5 text-center">
+        <div className="mt-5 rounded-lg bg-familySoft p-5 text-center">
           <p className="text-sm font-medium text-slate-500">邀請碼</p>
           <p className="mt-2 text-4xl font-bold tracking-widest text-family">{inviteCode}</p>
         </div>
@@ -69,7 +69,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           顯示名稱
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="例如：老公"
@@ -80,7 +80,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Email
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -90,7 +90,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           密碼
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}

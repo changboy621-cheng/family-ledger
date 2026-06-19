@@ -14,7 +14,7 @@ export function AmountInput({ currency, value, onChange }: AmountInputProps) {
     <label className="grid gap-2 text-sm font-medium text-slate-700">
       金額
       <input
-        className="h-14 rounded-lg border border-slate-300 bg-white px-4 text-2xl font-semibold text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+        className="h-14 rounded-lg border border-slate-300 bg-white px-4 text-2xl font-semibold text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
         inputMode={config.inputMode}
         min="0"
         step={config.step}

@@ -46,7 +46,7 @@ export function JoinFamily() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           邀請碼
           <input
-            className="h-12 rounded-lg border border-slate-300 px-3 text-center text-xl font-bold uppercase tracking-widest outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-12 rounded-lg border border-slate-300 px-3 text-center text-xl font-bold uppercase tracking-widest outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             value={inviteCode}
             onChange={(event) => setInviteCode(event.target.value)}
             maxLength={6}
@@ -56,7 +56,7 @@ export function JoinFamily() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           顯示名稱
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="例如：老婆"
@@ -66,11 +66,11 @@ export function JoinFamily() {
         <CurrencySelector value={defaultCurrency} onChange={setDefaultCurrency} label="個人預設幣別" />
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Email
-          <input className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <input className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </label>
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           密碼
-          <input className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
+          <input className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30" type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
         </label>
         {verificationNotice ? (
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{verificationNotice}</p>

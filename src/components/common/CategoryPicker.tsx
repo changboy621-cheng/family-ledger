@@ -17,7 +17,7 @@ export function CategoryPicker({ categories, value, onChange }: CategoryPickerPr
             key={category.id}
             type="button"
             className={cn(
-              'min-h-20 rounded-lg border bg-white p-2 text-center transition focus:outline-none focus:ring-2 focus:ring-indigo-100',
+              'min-h-20 rounded-lg border bg-white p-2 text-center transition focus:outline-none focus:ring-2 focus:ring-family/30',
               value === category.id ? 'border-family text-family' : 'border-slate-200 text-slate-700'
             )}
             onClick={() => onChange(category.id)}

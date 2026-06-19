@@ -32,7 +32,7 @@ export function Login() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Email
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             type="email"
             autoComplete="email"
             value={email}
@@ -43,7 +43,7 @@ export function Login() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           密碼
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             type="password"
             autoComplete="current-password"
             value={password}

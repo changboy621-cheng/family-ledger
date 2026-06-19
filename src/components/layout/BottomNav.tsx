@@ -20,7 +20,7 @@ export function BottomNav() {
             className={({ isActive }) =>
               cn(
                 'grid justify-items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium',
-                isActive ? 'bg-indigo-50 text-family' : 'text-slate-500'
+                isActive ? 'bg-familySoft text-family' : 'text-slate-500'
               )
             }
           >

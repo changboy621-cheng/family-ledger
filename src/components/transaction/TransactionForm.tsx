@@ -130,7 +130,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             日期
             <input
-              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
               type="date"
               value={transactionDate}
               onChange={(event) => setTransactionDate(event.target.value)}
@@ -140,7 +140,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             備註
             <textarea
-              className="min-h-20 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-indigo-100"
+              className="min-h-20 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="晚餐、機票、生活用品..."

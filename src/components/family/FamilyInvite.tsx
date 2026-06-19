@@ -50,13 +50,13 @@ export function FamilyInvite({ variant = 'card' }: FamilyInviteProps) {
 
   const wrapperClass =
     variant === 'card'
-      ? 'rounded-xl border border-indigo-100 bg-white p-5'
+      ? 'rounded-xl border border-familySoft bg-white p-5'
       : 'rounded-lg border border-slate-200 bg-white p-5';
 
   return (
     <section className={wrapperClass}>
       <div className="flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-indigo-50 text-family">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-familySoft text-family">
           <Users className="h-4 w-4" />
         </span>
         <h2 className="font-bold text-slate-900">邀請家人一起記帳</h2>

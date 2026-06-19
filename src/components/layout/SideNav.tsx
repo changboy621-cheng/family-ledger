@@ -21,7 +21,7 @@ export function SideNav() {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold',
-                isActive ? 'bg-indigo-50 text-family' : 'text-slate-600 hover:bg-slate-50'
+                isActive ? 'bg-familySoft text-family' : 'text-slate-600 hover:bg-slate-50'
               )
             }
           >
