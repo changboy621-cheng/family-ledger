@@ -3,7 +3,6 @@ import type { Currency, DailyExpensePoint, MonthlyExpensePoint } from '../../typ
 
 interface ExpenseTrendChartProps {
   title: string;
-  description: string;
   points: DailyExpensePoint[] | MonthlyExpensePoint[];
   currencyFilter: Currency | 'all';
   labelKey: 'day' | 'label';
@@ -17,52 +16,63 @@ function getLabel(point: DailyExpensePoint | MonthlyExpensePoint, labelKey: 'day
   return labelKey === 'day' ? `${(point as DailyExpensePoint).day}` : (point as MonthlyExpensePoint).label;
 }
 
-export function ExpenseTrendChart({
-  title,
-  description,
-  points,
-  currencyFilter,
-  labelKey
-}: ExpenseTrendChartProps) {
+// 每日標籤太密時稀疏顯示：每 5 天、第一天與最後一天才標字。
+function shouldShowLabel(point: DailyExpensePoint | MonthlyExpensePoint, index: number, total: number, labelKey: 'day' | 'label') {
+  if (labelKey === 'label') return true;
+  const day = (point as DailyExpensePoint).day;
+  return day === 1 || day % 5 === 0 || index === total - 1;
+}
+
+export function ExpenseTrendChart({ title, points, currencyFilter, labelKey }: ExpenseTrendChartProps) {
   const currencies = visibleCurrencies(currencyFilter);
   const hasData = points.some((point) => currencies.some((currency) => point.totals[currency] > 0));
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
 
       {!hasData ? (
-        <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">目前還沒有足夠的支出資料可以畫出趨勢。</p>
+        <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">這個月還沒有支出紀錄。</p>
       ) : (
-        <div className="mt-4 grid gap-4">
+        <div className="mt-4 grid gap-5">
           {currencies.map((currency) => {
             const maxValue = Math.max(...points.map((point) => point.totals[currency]), 0);
-            const activePoints = points.some((point) => point.totals[currency] > 0);
-            if (!activePoints) return null;
+            if (maxValue <= 0) return null;
 
             return (
-              <div key={currency} className="grid gap-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{currency}</p>
-                  <span className="text-xs text-slate-500">最高 {formatAmount(maxValue, currency)}</span>
+              <div key={currency} className="grid gap-2">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-semibold tracking-wide">{currency}</span>
+                  <span>最高 {formatAmount(maxValue, currency)}</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <div className="flex min-w-max items-end gap-2 rounded-lg bg-slate-50 px-3 py-4">
-                    {points.map((point) => {
-                      const value = point.totals[currency];
-                      const height = maxValue > 0 ? Math.max((value / maxValue) * 96, value > 0 ? 8 : 2) : 2;
-
-                      return (
-                        <div key={`${currency}-${getLabel(point, labelKey)}`} className="grid w-8 gap-2 text-center">
-                          <div className="flex h-28 items-end justify-center">
-                            <div className="w-6 rounded-t bg-family/85" style={{ height }} title={formatAmount(value, currency)} />
-                          </div>
-                          <span className="text-[11px] text-slate-500">{getLabel(point, labelKey)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="flex h-24 items-end gap-1">
+                  {points.map((point) => {
+                    const value = point.totals[currency];
+                    const height = Math.max(Math.round((value / maxValue) * 100), value > 0 ? 8 : 3);
+                    return (
+                      <div
+                        key={`${currency}-${getLabel(point, labelKey)}`}
+                        className="flex flex-1 items-end justify-center"
+                        style={{ height: '100%' }}
+                      >
+                        <div
+                          className={`w-full rounded-t ${value > 0 ? 'bg-family' : 'bg-slate-200'}`}
+                          style={{ height: `${height}%` }}
+                          title={formatAmount(value, currency)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-1">
+                  {points.map((point, index) => (
+                    <span
+                      key={`label-${currency}-${getLabel(point, labelKey)}`}
+                      className="flex-1 text-center text-[11px] text-slate-400"
+                    >
+                      {shouldShowLabel(point, index, points.length, labelKey) ? getLabel(point, labelKey) : ''}
+                    </span>
+                  ))}
                 </div>
               </div>
             );

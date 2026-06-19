@@ -24,13 +24,8 @@ export function ExpenseCategorySummary({
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500">依類別統計這個月的支出金額</p>
-        </div>
-      </div>
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
 
       {!hasData ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">本月尚無支出分類資料。</p>

@@ -33,6 +33,16 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const analysis = useLedgerAnalysis(analysisTransactions, yearMonth);
   const isFamily = ledgerType === 'family';
   const showToast = useUIStore((state) => state.showToast);
+  // 只顯示有金額的幣別；都沒有時至少顯示 TWD，避免空卡
+  const activeCurrencies = (() => {
+    const active = (['TWD', 'USD'] as Currency[]).filter(
+      (currency) =>
+        analysis.summary.expense[currency] !== 0 ||
+        analysis.summary.income[currency] !== 0 ||
+        analysis.summary.balance[currency] !== 0
+    );
+    return active.length > 0 ? active : (['TWD'] as Currency[]);
+  })();
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
@@ -75,15 +85,21 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       <MonthPicker value={yearMonth} onChange={setYearMonth} />
 
-      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3">
-        {(['TWD', 'USD'] as Currency[]).map((currency) => (
-          <div key={currency} className="grid gap-1">
-            <p className="text-xs font-semibold text-slate-500">{currency}</p>
-            <p className="text-sm text-slate-500">支出 {formatAmount(analysis.summary.expense[currency], currency)}</p>
-            <p className="text-sm text-slate-500">收入 {formatAmount(analysis.summary.income[currency], currency)}</p>
-            <p className="text-lg font-bold text-slate-900">結餘 {formatAmount(analysis.summary.balance[currency], currency)}</p>
-          </div>
-        ))}
+      <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className={`grid gap-3 ${activeCurrencies.length > 1 ? 'md:grid-cols-2' : ''}`}>
+          {activeCurrencies.map((currency) => (
+            <div key={currency} className={`rounded-lg p-3 ${isFamily ? 'bg-familySoft' : 'bg-personalSoft'}`}>
+              <p className="text-xs font-semibold text-slate-500">{currency}</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">
+                結餘 {formatAmount(analysis.summary.balance[currency], currency)}
+              </p>
+              <div className="mt-1 flex gap-4 text-sm text-slate-500">
+                <span>支出 {formatAmount(analysis.summary.expense[currency], currency)}</span>
+                <span>收入 {formatAmount(analysis.summary.income[currency], currency)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="flex items-center justify-between gap-3">
@@ -126,7 +142,6 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       <ExpenseTrendChart
         title="本月每日支出"
-        description="看這個月每天的支出高低變化。"
         points={analysis.dailyExpenseTrend}
         currencyFilter={currencyFilter}
         labelKey="day"
@@ -134,7 +149,6 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       <ExpenseTrendChart
         title="近 6 個月支出"
-        description="看近半年每個月的支出趨勢。"
         points={analysis.monthlyExpenseTrend}
         currencyFilter={currencyFilter}
         labelKey="label"

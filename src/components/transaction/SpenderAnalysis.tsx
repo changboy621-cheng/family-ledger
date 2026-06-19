@@ -19,11 +19,8 @@ export function SpenderAnalysis({ items, currencyFilter }: SpenderAnalysisProps)
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">支出人分析</h2>
-        <p className="mt-1 text-sm text-slate-500">看這個月每位成員花了多少，以及花在哪些類別。</p>
-      </div>
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <h2 className="text-lg font-bold text-slate-900">支出人分析</h2>
 
       {!hasData ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">本月尚無支出人分析資料。</p>

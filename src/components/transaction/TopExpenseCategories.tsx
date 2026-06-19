@@ -20,9 +20,8 @@ export function TopExpenseCategories({ items, currencyFilter, title }: TopExpens
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">先看這個月最大宗的 3 類支出。</p>
 
       {!hasData ? (
         <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">本月尚無前 3 大支出資料。</p>
