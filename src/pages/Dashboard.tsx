@@ -12,6 +12,7 @@ import { TransactionList } from '../components/transaction/TransactionList';
 export function Dashboard() {
   const { profile, family } = useAuth();
   const [formLedgerType, setFormLedgerType] = useState<LedgerType | null>(null);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
   const yearMonth = currentYearMonth();
   const familyTransactions = useTransactions('family', yearMonth);
   const personalTransactions = useTransactions('personal', yearMonth);
@@ -23,6 +24,20 @@ export function Dashboard() {
       await familyTransactions.createTransaction(input);
     } else {
       await personalTransactions.createTransaction(input);
+    }
+  }
+
+  async function handleDelete(transactionId: string, ledgerType: LedgerType) {
+    setDeletingIds((current) => [...current, transactionId]);
+
+    try {
+      if (ledgerType === 'family') {
+        await familyTransactions.deleteTransaction(transactionId);
+      } else {
+        await personalTransactions.deleteTransaction(transactionId);
+      }
+    } finally {
+      setDeletingIds((current) => current.filter((id) => id !== transactionId));
     }
   }
 
@@ -44,6 +59,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={{ 最近: familyTransactions.transactions.slice(0, 5) }}
             loading={familyTransactions.loading}
+            onDelete={(transactionId) => handleDelete(transactionId, 'family')}
+            deletingIds={deletingIds}
           />
         </div>
         <div className="grid gap-3">
@@ -51,6 +68,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={{ 最近: personalTransactions.transactions.slice(0, 5) }}
             loading={personalTransactions.loading}
+            onDelete={(transactionId) => handleDelete(transactionId, 'personal')}
+            deletingIds={deletingIds}
           />
         </div>
       </section>

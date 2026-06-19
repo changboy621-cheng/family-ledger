@@ -20,7 +20,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [yearMonth, setYearMonth] = useState(currentYearMonth());
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
-  const { groupedTransactions, loading, createTransaction } = useTransactions(ledgerType, yearMonth, currencyFilter);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
+  const { groupedTransactions, loading, createTransaction, deleteTransaction } = useTransactions(
+    ledgerType,
+    yearMonth,
+    currencyFilter
+  );
   const { transactions: analysisTransactions, loadTransactions: reloadAnalysisTransactions } =
     useAnalysisTransactions(ledgerType, yearMonth);
   const analysis = useLedgerAnalysis(analysisTransactions, yearMonth);
@@ -29,6 +34,16 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
     await reloadAnalysisTransactions();
+  }
+
+  async function handleDelete(transactionId: string) {
+    setDeletingIds((current) => [...current, transactionId]);
+    try {
+      await deleteTransaction(transactionId);
+      await reloadAnalysisTransactions();
+    } finally {
+      setDeletingIds((current) => current.filter((id) => id !== transactionId));
+    }
   }
 
   return (
@@ -105,7 +120,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         labelKey="label"
       />
 
-      <TransactionList groupedTransactions={groupedTransactions} loading={loading} />
+      <TransactionList
+        groupedTransactions={groupedTransactions}
+        loading={loading}
+        onDelete={handleDelete}
+        deletingIds={deletingIds}
+      />
 
       {showForm ? (
         <TransactionForm

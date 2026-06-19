@@ -4,9 +4,11 @@ import { TransactionItem } from './TransactionItem';
 interface TransactionListProps {
   groupedTransactions: Record<string, Transaction[]>;
   loading: boolean;
+  onDelete?: (transactionId: string) => Promise<void>;
+  deletingIds?: string[];
 }
 
-export function TransactionList({ groupedTransactions, loading }: TransactionListProps) {
+export function TransactionList({ groupedTransactions, loading, onDelete, deletingIds = [] }: TransactionListProps) {
   const dates = Object.keys(groupedTransactions);
 
   if (loading) {
@@ -24,7 +26,12 @@ export function TransactionList({ groupedTransactions, loading }: TransactionLis
           <h3 className="text-sm font-semibold text-slate-500">{date}</h3>
           <ul className="grid gap-3">
             {groupedTransactions[date].map((transaction) => (
-              <TransactionItem key={transaction.id} transaction={transaction} />
+              <TransactionItem
+                key={transaction.id}
+                transaction={transaction}
+                onDelete={onDelete}
+                deleting={deletingIds.includes(transaction.id)}
+              />
             ))}
           </ul>
         </section>

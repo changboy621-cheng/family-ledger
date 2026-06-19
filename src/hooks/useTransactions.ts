@@ -69,6 +69,16 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     [loadTransactions, profile?.family_id, profile?.id]
   );
 
+  const deleteTransaction = useCallback(
+    async (transactionId: string) => {
+      const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
+
+      if (error) throw error;
+      await loadTransactions();
+    },
+    [loadTransactions]
+  );
+
   const visibleTransactions = useMemo(() => {
     if (currencyFilter === 'all') return transactions;
     return transactions.filter((transaction) => transaction.currency === currencyFilter);
@@ -82,7 +92,7 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     }, {});
   }, [visibleTransactions]);
 
-  return { transactions, groupedTransactions, loading, loadTransactions, createTransaction };
+  return { transactions, groupedTransactions, loading, loadTransactions, createTransaction, deleteTransaction };
 }
 
 export function useAnalysisTransactions(ledgerType: LedgerType, yearMonth: string) {
