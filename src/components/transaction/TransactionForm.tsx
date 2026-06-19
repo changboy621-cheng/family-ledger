@@ -4,6 +4,8 @@ import { normalizeAmount } from '../../lib/currency';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
+import { useEntrySuggestions } from '../../hooks/useEntrySuggestions';
+import { filterNotes } from '../../lib/suggestions';
 import type { TransactionInput } from '../../hooks/useTransactions';
 import { AmountInput } from '../common/AmountInput';
 import { CategoryPicker } from '../common/CategoryPicker';
@@ -28,6 +30,13 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const { categories } = useCategories(type);
+  const { frequentItems, noteHistory } = useEntrySuggestions(ledgerType, type);
+  const noteSuggestions = filterNotes(noteHistory, note);
+
+  function applyQuickItem(categoryId: string, quickNote: string) {
+    setCategoryId(categoryId);
+    if (quickNote) setNote(quickNote);
+  }
 
   useEffect(() => {
     setLedgerType(initialTransaction?.ledger_type ?? initialLedgerType);
@@ -123,6 +132,28 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             ))}
           </div>
 
+          {frequentItems.length > 0 ? (
+            <div className="grid gap-2">
+              <p className="text-sm font-medium text-slate-700">常用快捷</p>
+              <div className="flex flex-wrap gap-2">
+                {frequentItems.map((item) => (
+                  <button
+                    key={`${item.categoryId}-${item.note}`}
+                    type="button"
+                    className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 active:bg-slate-50"
+                    onClick={() => applyQuickItem(item.categoryId, item.note)}
+                  >
+                    <span aria-hidden="true">{item.categoryIcon}</span>
+                    <span>
+                      {item.categoryName}
+                      {item.note ? ` · ${item.note}` : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <CurrencySelector value={currency} onChange={setCurrency} />
           <AmountInput currency={currency} value={amount} onChange={setAmount} />
           <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} />
@@ -145,6 +176,20 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               onChange={(event) => setNote(event.target.value)}
               placeholder="晚餐、機票、生活用品..."
             />
+            {noteSuggestions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {noteSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 active:bg-slate-50"
+                    onClick={() => setNote(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </label>
 
           {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
