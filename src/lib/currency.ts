@@ -1,4 +1,5 @@
 import type { Currency, Transaction, TransactionType } from '../types';
+import { evaluateExpression } from './expression';
 
 export const currencies: { code: Currency; label: string; symbol: string }[] = [
   { code: 'TWD', label: 'NT$ 新台幣', symbol: 'NT$' },
@@ -44,8 +45,8 @@ export function sanitizeAmountInput(value: string, currency: Currency): string {
 }
 
 export function normalizeAmount(value: string, currency: Currency): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  const parsed = evaluateExpression(value);
+  if (parsed === null || parsed <= 0) return 0;
   return currency === 'TWD' ? Math.round(parsed) : Math.round(parsed * 100) / 100;
 }
 
