@@ -15,6 +15,10 @@ export interface TransactionInput {
   note?: string;
 }
 
+export interface TransactionUpdateInput extends TransactionInput {
+  id: string;
+}
+
 export function useTransactions(ledgerType: LedgerType, yearMonth: string, currencyFilter: Currency | 'all' = 'all') {
   const profile = useAuthStore((state) => state.profile);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -79,6 +83,27 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     [loadTransactions]
   );
 
+  const updateTransaction = useCallback(
+    async ({ id, ...input }: TransactionUpdateInput) => {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          ledger_type: input.ledger_type,
+          type: input.type,
+          amount: input.amount,
+          currency: input.currency,
+          category_id: input.category_id,
+          transaction_date: input.transaction_date,
+          note: input.note?.trim() || null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      await loadTransactions();
+    },
+    [loadTransactions]
+  );
+
   const visibleTransactions = useMemo(() => {
     if (currencyFilter === 'all') return transactions;
     return transactions.filter((transaction) => transaction.currency === currencyFilter);
@@ -92,7 +117,15 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     }, {});
   }, [visibleTransactions]);
 
-  return { transactions, groupedTransactions, loading, loadTransactions, createTransaction, deleteTransaction };
+  return {
+    transactions,
+    groupedTransactions,
+    loading,
+    loadTransactions,
+    createTransaction,
+    deleteTransaction,
+    updateTransaction
+  };
 }
 
 export function useAnalysisTransactions(ledgerType: LedgerType, yearMonth: string) {

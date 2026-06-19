@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Currency, LedgerType } from '../types';
+import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { formatAmount } from '../lib/currency';
 import { useAnalysisTransactions, useTransactions } from '../hooks/useTransactions';
@@ -11,6 +11,7 @@ import { ExpenseCategorySummary } from '../components/transaction/ExpenseCategor
 import { SpenderAnalysis } from '../components/transaction/SpenderAnalysis';
 import { TopExpenseCategories } from '../components/transaction/TopExpenseCategories';
 import { ExpenseTrendChart } from '../components/transaction/ExpenseTrendChart';
+import { useUIStore } from '../store/uiStore';
 
 interface LedgerPageProps {
   ledgerType: LedgerType;
@@ -20,8 +21,9 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [yearMonth, setYearMonth] = useState(currentYearMonth());
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
-  const { groupedTransactions, loading, createTransaction, deleteTransaction } = useTransactions(
+  const { groupedTransactions, loading, createTransaction, deleteTransaction, updateTransaction } = useTransactions(
     ledgerType,
     yearMonth,
     currencyFilter
@@ -30,10 +32,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     useAnalysisTransactions(ledgerType, yearMonth);
   const analysis = useLedgerAnalysis(analysisTransactions, yearMonth);
   const isFamily = ledgerType === 'family';
+  const showToast = useUIStore((state) => state.showToast);
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
     await reloadAnalysisTransactions();
+    showToast('交易已新增');
   }
 
   async function handleDelete(transactionId: string) {
@@ -41,8 +45,24 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     try {
       await deleteTransaction(transactionId);
       await reloadAnalysisTransactions();
+      showToast('交易已刪除');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '刪除失敗，請稍後再試。', 'error');
     } finally {
       setDeletingIds((current) => current.filter((id) => id !== transactionId));
+    }
+  }
+
+  async function handleEdit(input: Parameters<typeof createTransaction>[0]) {
+    if (!editingTransaction) return;
+    try {
+      await updateTransaction({ id: editingTransaction.id, ...input });
+      await reloadAnalysisTransactions();
+      showToast('交易已更新');
+      setEditingTransaction(null);
+      setShowForm(false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '更新失敗，請稍後再試。', 'error');
     }
   }
 
@@ -124,14 +144,22 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         groupedTransactions={groupedTransactions}
         loading={loading}
         onDelete={handleDelete}
+        onEdit={(transaction) => {
+          setEditingTransaction(transaction);
+          setShowForm(true);
+        }}
         deletingIds={deletingIds}
       />
 
       {showForm ? (
         <TransactionForm
-          initialLedgerType={ledgerType}
-          onSubmit={handleCreate}
-          onClose={() => setShowForm(false)}
+          initialLedgerType={editingTransaction?.ledger_type ?? ledgerType}
+          initialTransaction={editingTransaction}
+          onSubmit={editingTransaction ? handleEdit : handleCreate}
+          onClose={() => {
+            setShowForm(false);
+            setEditingTransaction(null);
+          }}
         />
       ) : null}
     </div>

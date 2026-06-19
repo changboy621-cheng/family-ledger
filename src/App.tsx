@@ -9,6 +9,7 @@ import { CompleteOnboarding } from './pages/auth/CompleteOnboarding';
 import { Dashboard } from './pages/Dashboard';
 import { LedgerPage } from './pages/LedgerPage';
 import { Settings } from './pages/Settings';
+import { Toast } from './components/common/Toast';
 
 function ProtectedRoute() {
   const { session, profile, loading } = useAuth();
@@ -30,21 +31,24 @@ function ProtectedRoute() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/auth" element={<AuthLayout />}>
-        <Route index element={<Navigate to="/auth/login" replace />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="join" element={<JoinFamily />} />
-        <Route path="complete" element={<CompleteOnboarding />} />
-      </Route>
-      <Route element={<ProtectedRoute />}>
-        <Route index element={<Dashboard />} />
-        <Route path="family" element={<LedgerPage ledgerType="family" />} />
-        <Route path="personal" element={<LedgerPage ledgerType="personal" />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Toast />
+      <Routes>
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route index element={<Navigate to="/auth/login" replace />} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="join" element={<JoinFamily />} />
+          <Route path="complete" element={<CompleteOnboarding />} />
+        </Route>
+        <Route element={<ProtectedRoute />}>
+          <Route index element={<Dashboard />} />
+          <Route path="family" element={<LedgerPage ledgerType="family" />} />
+          <Route path="personal" element={<LedgerPage ledgerType="personal" />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Currency, LedgerType, TransactionType } from '../../types';
+import type { Currency, LedgerType, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
@@ -13,24 +13,32 @@ interface TransactionFormProps {
   initialLedgerType: LedgerType;
   onSubmit: (input: TransactionInput) => Promise<void>;
   onClose: () => void;
+  initialTransaction?: Transaction | null;
 }
 
-export function TransactionForm({ initialLedgerType, onSubmit, onClose }: TransactionFormProps) {
+export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialTransaction }: TransactionFormProps) {
   const profile = useAuthStore((state) => state.profile);
-  const [ledgerType, setLedgerType] = useState<LedgerType>(initialLedgerType);
-  const [type, setType] = useState<TransactionType>('expense');
-  const [currency, setCurrency] = useState<Currency>(profile?.default_currency ?? 'TWD');
-  const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [transactionDate, setTransactionDate] = useState(todayISO());
-  const [note, setNote] = useState('');
+  const [ledgerType, setLedgerType] = useState<LedgerType>(initialTransaction?.ledger_type ?? initialLedgerType);
+  const [type, setType] = useState<TransactionType>(initialTransaction?.type ?? 'expense');
+  const [currency, setCurrency] = useState<Currency>(initialTransaction?.currency ?? profile?.default_currency ?? 'TWD');
+  const [amount, setAmount] = useState(initialTransaction ? String(initialTransaction.amount) : '');
+  const [categoryId, setCategoryId] = useState(initialTransaction?.category_id ?? '');
+  const [transactionDate, setTransactionDate] = useState(initialTransaction?.transaction_date ?? todayISO());
+  const [note, setNote] = useState(initialTransaction?.note ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const { categories } = useCategories(type);
 
   useEffect(() => {
-    setLedgerType(initialLedgerType);
-  }, [initialLedgerType]);
+    setLedgerType(initialTransaction?.ledger_type ?? initialLedgerType);
+    setType(initialTransaction?.type ?? 'expense');
+    setCurrency(initialTransaction?.currency ?? profile?.default_currency ?? 'TWD');
+    setAmount(initialTransaction ? String(initialTransaction.amount) : '');
+    setCategoryId(initialTransaction?.category_id ?? '');
+    setTransactionDate(initialTransaction?.transaction_date ?? todayISO());
+    setNote(initialTransaction?.note ?? '');
+    setError('');
+  }, [initialLedgerType, initialTransaction, profile?.default_currency]);
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((category) => category.id === categoryId)) {
@@ -78,7 +86,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose }: Transa
     <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-900/40 p-4">
       <div className="mx-auto max-w-xl rounded-xl bg-white p-5 shadow-xl">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-slate-900">新增記帳</h2>
+          <h2 className="text-xl font-bold text-slate-900">{initialTransaction ? '編輯交易' : '新增記帳'}</h2>
           <button className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100" type="button" onClick={onClose}>
             關閉
           </button>
@@ -146,7 +154,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose }: Transa
             type="submit"
             disabled={saving}
           >
-            {saving ? '儲存中...' : '儲存交易'}
+            {saving ? '儲存中...' : initialTransaction ? '更新交易' : '儲存交易'}
           </button>
         </form>
       </div>

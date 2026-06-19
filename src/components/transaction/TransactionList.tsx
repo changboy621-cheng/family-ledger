@@ -5,10 +5,17 @@ interface TransactionListProps {
   groupedTransactions: Record<string, Transaction[]>;
   loading: boolean;
   onDelete?: (transactionId: string) => Promise<void>;
+  onEdit?: (transaction: Transaction) => void;
   deletingIds?: string[];
 }
 
-export function TransactionList({ groupedTransactions, loading, onDelete, deletingIds = [] }: TransactionListProps) {
+export function TransactionList({
+  groupedTransactions,
+  loading,
+  onDelete,
+  onEdit,
+  deletingIds = []
+}: TransactionListProps) {
   const dates = Object.keys(groupedTransactions);
 
   if (loading) {
@@ -30,6 +37,7 @@ export function TransactionList({ groupedTransactions, loading, onDelete, deleti
                 key={transaction.id}
                 transaction={transaction}
                 onDelete={onDelete}
+                onEdit={onEdit}
                 deleting={deletingIds.includes(transaction.id)}
               />
             ))}

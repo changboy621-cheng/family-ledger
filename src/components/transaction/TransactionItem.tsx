@@ -1,15 +1,16 @@
 import type { Transaction } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { CurrencyBadge } from '../common/CurrencyBadge';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface TransactionItemProps {
   transaction: Transaction;
   onDelete?: (transactionId: string) => Promise<void>;
+  onEdit?: (transaction: Transaction) => void;
   deleting?: boolean;
 }
 
-export function TransactionItem({ transaction, onDelete, deleting = false }: TransactionItemProps) {
+export function TransactionItem({ transaction, onDelete, onEdit, deleting = false }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
 
   async function handleDelete() {
@@ -43,6 +44,17 @@ export function TransactionItem({ transaction, onDelete, deleting = false }: Tra
         <div className="grid justify-items-end gap-2">
           <div className="flex items-center gap-2">
             <CurrencyBadge currency={transaction.currency} />
+            {onEdit ? (
+              <button
+                className="rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-family"
+                type="button"
+                onClick={() => onEdit(transaction)}
+                aria-label="編輯交易"
+                title="編輯交易"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            ) : null}
             {onDelete ? (
               <button
                 className="rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
