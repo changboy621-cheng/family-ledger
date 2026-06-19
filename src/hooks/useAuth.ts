@@ -9,6 +9,7 @@ import {
   saveOnboardingDraft,
   type OnboardingMode
 } from '../lib/onboarding';
+import { normalizeDisplayName } from '../lib/profile';
 
 const AVATAR_COLORS = ['#4F46E5', '#0EA5E9', '#15803D', '#B45309', '#EF4444'];
 
@@ -257,6 +258,26 @@ export function useAuth() {
     });
   }
 
+  async function updateDisplayName(rawName: string) {
+    if (!session?.user.id) {
+      throw new Error('請先登入，才能修改名稱。');
+    }
+
+    const name = normalizeDisplayName(rawName);
+    if (!name) {
+      throw new Error('名稱不能空白。');
+    }
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ display_name: name })
+      .eq('id', session.user.id);
+
+    if (error) throw error;
+
+    await loadProfile(session.user.id);
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     reset();
@@ -275,6 +296,7 @@ export function useAuth() {
     joinFamily,
     completeOnboarding,
     onboardingDraft: loadOnboardingDraft(),
+    updateDisplayName,
     signOut
   };
 }
