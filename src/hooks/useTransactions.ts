@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Currency, LedgerType, Transaction, TransactionType } from '../types';
+import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { monthRange, rollingMonthRange } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
@@ -13,6 +13,7 @@ export interface TransactionInput {
   category_id: string;
   transaction_date: string;
   note?: string;
+  payment_method?: PaymentMethod | null;
 }
 
 export interface TransactionUpdateInput extends TransactionInput {
@@ -64,7 +65,8 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
         ...input,
         family_id: profile.family_id,
         owner_id: profile.id,
-        note: input.note?.trim() || null
+        note: input.note?.trim() || null,
+        payment_method: input.payment_method ?? null
       });
 
       if (error) throw error;
@@ -94,7 +96,8 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
           currency: input.currency,
           category_id: input.category_id,
           transaction_date: input.transaction_date,
-          note: input.note?.trim() || null
+          note: input.note?.trim() || null,
+          payment_method: input.payment_method ?? null
         })
         .eq('id', id);
 

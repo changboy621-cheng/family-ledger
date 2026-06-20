@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Currency, LedgerType, Transaction, TransactionType } from '../../types';
+import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
@@ -26,6 +26,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [amount, setAmount] = useState(initialTransaction ? String(initialTransaction.amount) : '');
   const [categoryId, setCategoryId] = useState(initialTransaction?.category_id ?? '');
   const [transactionDate, setTransactionDate] = useState(initialTransaction?.transaction_date ?? todayISO());
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialTransaction?.payment_method ?? 'cash');
   const [note, setNote] = useState(initialTransaction?.note ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -45,6 +46,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     setAmount(initialTransaction ? String(initialTransaction.amount) : '');
     setCategoryId(initialTransaction?.category_id ?? '');
     setTransactionDate(initialTransaction?.transaction_date ?? todayISO());
+    setPaymentMethod(initialTransaction?.payment_method ?? 'cash');
     setNote(initialTransaction?.note ?? '');
     setError('');
   }, [initialLedgerType, initialTransaction, profile?.default_currency]);
@@ -79,6 +81,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
         currency,
         category_id: categoryId,
         transaction_date: transactionDate,
+        payment_method: paymentMethod,
         note
       });
       setAmount('');
@@ -128,6 +131,21 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                 onClick={() => setType(option)}
               >
                 {option === 'expense' ? '支出' : '收入'}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            {(['cash', 'card'] as PaymentMethod[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                  paymentMethod === option ? 'bg-family text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+                onClick={() => setPaymentMethod(option)}
+              >
+                {option === 'cash' ? '現金' : '刷卡'}
               </button>
             ))}
           </div>

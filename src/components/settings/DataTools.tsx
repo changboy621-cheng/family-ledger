@@ -105,6 +105,7 @@ export function DataTools() {
         currency: record.currency,
         category_id: categoryByKey.get(`${record.type}|${record.categoryName}`),
         transaction_date: record.transaction_date,
+        payment_method: record.paymentMethod,
         note: record.note || null
       }));
 

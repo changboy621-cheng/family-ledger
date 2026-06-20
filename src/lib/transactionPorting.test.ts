@@ -23,17 +23,17 @@ function tx(partial: Partial<Transaction>): Transaction {
 }
 
 describe('buildExportRows', () => {
-  it('把交易轉成中文欄位的列', () => {
-    const rows = buildExportRows([tx({})]);
-    expect(rows[0]).toEqual(['2026-06-19', '家庭', '支出', '居家', '1099', 'TWD', '衛生紙', '老婆']);
+  it('把交易轉成中文欄位的列（含付款方式）', () => {
+    const rows = buildExportRows([tx({ payment_method: 'card' })]);
+    expect(rows[0]).toEqual(['2026-06-19', '家庭', '支出', '居家', '1099', 'TWD', '刷卡', '衛生紙', '老婆']);
   });
 });
 
 describe('parseImportRecords', () => {
   it('依欄名自動辨識並轉成匯入紀錄', () => {
     const rows = [
-      ['日期', '帳本', '類型', '類別', '金額', '幣別', '備註'],
-      ['2026-06-19', '個人', '支出', '餐飲', 'NT$1,099', 'TWD', '午餐']
+      ['日期', '帳本', '類型', '類別', '金額', '幣別', '付款方式', '備註'],
+      ['2026-06-19', '個人', '支出', '餐飲', 'NT$1,099', 'TWD', '刷卡', '午餐']
     ];
     const { records, skipped } = parseImportRecords(rows);
     expect(skipped).toBe(0);
@@ -44,6 +44,7 @@ describe('parseImportRecords', () => {
       categoryName: '餐飲',
       amount: 1099,
       currency: 'TWD',
+      paymentMethod: 'card',
       note: '午餐'
     });
   });

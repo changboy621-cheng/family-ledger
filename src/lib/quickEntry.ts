@@ -1,10 +1,11 @@
 // 解析 Siri 捷徑口述的一句話，例如「200 餐飲 午餐」→ 可記帳的結構。
-import type { LedgerType, TransactionType } from '../types';
+import type { LedgerType, PaymentMethod, TransactionType } from '../types';
 
 export interface QuickEntry {
   amount: number;
   type: TransactionType;
   ledgerType: LedgerType;
+  paymentMethod: PaymentMethod | null;
   categoryName: string | null;
   note: string;
 }
@@ -36,6 +37,15 @@ export function parseQuickEntry(rawText: string, categoryNames: string[]): Quick
     rest = rest.replace(/家庭|family/i, ' ');
   }
 
+  let paymentMethod: PaymentMethod | null = null;
+  if (/刷卡|信用卡|card/i.test(rest)) {
+    paymentMethod = 'card';
+    rest = rest.replace(/刷卡|信用卡|card/i, ' ');
+  } else if (/現金|cash/i.test(rest)) {
+    paymentMethod = 'cash';
+    rest = rest.replace(/現金|cash/i, ' ');
+  }
+
   // 以「最長且為子字串」的類別名稱比對，避免短名稱誤判
   let categoryName: string | null = null;
   const sorted = [...categoryNames].filter(Boolean).sort((a, b) => b.length - a.length);
@@ -48,5 +58,5 @@ export function parseQuickEntry(rawText: string, categoryNames: string[]): Quick
   }
 
   const note = rest.replace(/\s+/g, ' ').trim();
-  return { amount, type, ledgerType, categoryName, note };
+  return { amount, type, ledgerType, paymentMethod, categoryName, note };
 }

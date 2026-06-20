@@ -9,9 +9,15 @@ describe('parseQuickEntry', () => {
       amount: 200,
       type: 'expense',
       ledgerType: 'family',
+      paymentMethod: null,
       categoryName: '餐飲',
       note: ''
     });
+  });
+
+  it('辨識刷卡/現金關鍵字', () => {
+    expect(parseQuickEntry('刷卡 1200 餐飲', categories)).toMatchObject({ paymentMethod: 'card', amount: 1200, categoryName: '餐飲' });
+    expect(parseQuickEntry('現金 50 交通', categories)).toMatchObject({ paymentMethod: 'cash', categoryName: '交通' });
   });
 
   it('解析「類別 金額 備註」並順序不拘', () => {

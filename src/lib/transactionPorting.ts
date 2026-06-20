@@ -1,7 +1,7 @@
 // 交易匯出列／匯入解析：把交易轉成中文欄位 CSV 列，並把外部 CSV 依欄名辨識成可寫入的紀錄。
-import type { Currency, LedgerType, Transaction, TransactionType } from '../types';
+import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
 
-export const EXPORT_HEADER = ['日期', '帳本', '類型', '類別', '金額', '幣別', '備註', '記錄人'];
+export const EXPORT_HEADER = ['日期', '帳本', '類型', '類別', '金額', '幣別', '付款方式', '備註', '記錄人'];
 
 export interface ImportRecord {
   transaction_date: string;
@@ -10,7 +10,14 @@ export interface ImportRecord {
   categoryName: string;
   amount: number;
   currency: Currency;
+  paymentMethod: PaymentMethod | null;
   note: string;
+}
+
+function paymentLabel(method: PaymentMethod | null | undefined): string {
+  if (method === 'cash') return '現金';
+  if (method === 'card') return '刷卡';
+  return '';
 }
 
 export function buildExportRows(transactions: Transaction[]): string[][] {
@@ -21,6 +28,7 @@ export function buildExportRows(transactions: Transaction[]): string[][] {
     transaction.category?.name ?? '',
     String(transaction.amount),
     transaction.currency,
+    paymentLabel(transaction.payment_method),
     transaction.note ?? '',
     transaction.owner?.display_name ?? ''
   ]);
@@ -33,8 +41,16 @@ const ALIASES: Record<string, string[]> = {
   category: ['類別', '分類', 'category'],
   amount: ['金額', '價格', 'amount'],
   currency: ['幣別', 'currency'],
+  payment: ['付款方式', '付款', 'payment'],
   note: ['備註', '說明', 'note']
 };
+
+function parsePayment(raw: string): PaymentMethod | null {
+  const value = raw.trim().toLowerCase();
+  if (value.includes('刷') || value.includes('card') || value.includes('信用')) return 'card';
+  if (value.includes('現金') || value.includes('cash')) return 'cash';
+  return null;
+}
 
 function detectColumns(header: string[]): Record<string, number> {
   const columns: Record<string, number> = {};
@@ -101,6 +117,7 @@ export function parseImportRecords(rows: string[][]): { records: ImportRecord[];
       categoryName,
       amount,
       currency: parseCurrency(pick(row, columns.currency)),
+      paymentMethod: parsePayment(pick(row, columns.payment)),
       note: pick(row, columns.note).trim()
     });
   }

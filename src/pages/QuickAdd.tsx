@@ -59,6 +59,7 @@ export function QuickAdd() {
         currency: 'TWD',
         category_id: category.id,
         transaction_date: todayISO(),
+        payment_method: parsed.paymentMethod,
         note: parsed.note || null
       });
 

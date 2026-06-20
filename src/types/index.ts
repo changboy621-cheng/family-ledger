@@ -1,6 +1,7 @@
 export type Currency = 'TWD' | 'USD';
 export type LedgerType = 'family' | 'personal';
 export type TransactionType = 'expense' | 'income';
+export type PaymentMethod = 'cash' | 'card';
 
 export interface Family {
   id: string;
@@ -39,6 +40,7 @@ export interface Transaction {
   currency: Currency;
   category_id: string;
   note?: string | null;
+  payment_method?: PaymentMethod | null;
   transaction_date: string;
   receipt_url?: string | null;
   created_at: string;

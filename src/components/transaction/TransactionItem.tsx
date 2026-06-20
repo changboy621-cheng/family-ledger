@@ -31,6 +31,11 @@ export function TransactionItem({ transaction, onDelete, onEdit }: TransactionIt
               style={{ backgroundColor: transaction.owner?.avatar_color ?? '#64748B' }}
             />
             <span>{transaction.owner?.display_name ?? '我'}</span>
+            {transaction.payment_method ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
+                {transaction.payment_method === 'cash' ? '現金' : '刷卡'}
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="grid justify-items-end gap-3">
