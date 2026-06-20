@@ -4,6 +4,7 @@ import { normalizeAmount } from '../../lib/currency';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
+import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 import { useEntrySuggestions } from '../../hooks/useEntrySuggestions';
 import { filterNotes } from '../../lib/suggestions';
 import type { TransactionInput } from '../../hooks/useTransactions';
@@ -28,9 +29,11 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [transactionDate, setTransactionDate] = useState(initialTransaction?.transaction_date ?? todayISO());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialTransaction?.payment_method ?? 'cash');
   const [note, setNote] = useState(initialTransaction?.note ?? '');
+  const [ownerId, setOwnerId] = useState(initialTransaction?.owner_id ?? profile?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const { categories } = useCategories(type);
+  const { categories, createCategory } = useCategories(type);
+  const { members } = useFamilyMembers();
   const { frequentItems, noteHistory } = useEntrySuggestions(ledgerType, type);
   const noteSuggestions = filterNotes(noteHistory, note);
 
@@ -48,8 +51,9 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     setTransactionDate(initialTransaction?.transaction_date ?? todayISO());
     setPaymentMethod(initialTransaction?.payment_method ?? 'cash');
     setNote(initialTransaction?.note ?? '');
+    setOwnerId(initialTransaction?.owner_id ?? profile?.id ?? '');
     setError('');
-  }, [initialLedgerType, initialTransaction, profile?.default_currency]);
+  }, [initialLedgerType, initialTransaction, profile?.default_currency, profile?.id]);
 
   useEffect(() => {
     if (categories.length > 0 && !categories.some((category) => category.id === categoryId)) {
@@ -82,7 +86,8 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
         category_id: categoryId,
         transaction_date: transactionDate,
         payment_method: paymentMethod,
-        note
+        note,
+        owner_id: ledgerType === 'family' ? ownerId || profile?.id : undefined
       });
       setAmount('');
       setNote('');
@@ -96,7 +101,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
 
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-900/40 p-4">
-      <div className="mx-auto max-w-xl rounded-xl bg-white p-5 shadow-xl">
+      <div className="mx-auto max-w-3xl rounded-xl bg-white p-5 shadow-xl">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-xl font-bold text-slate-900">{initialTransaction ? '編輯交易' : '新增記帳'}</h2>
           <button className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100" type="button" onClick={onClose}>
@@ -172,9 +177,36 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             </div>
           ) : null}
 
+          {ledgerType === 'family' && members.length > 1 ? (
+            <div className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">這筆是誰花的</span>
+              <div className="flex flex-wrap gap-2">
+                {members.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                      ownerId === member.id
+                        ? 'border-family bg-familySoft text-family'
+                        : 'border-slate-200 bg-white text-slate-600'
+                    }`}
+                    onClick={() => setOwnerId(member.id)}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: member.avatar_color }} />
+                    {member.display_name}
+                    {member.id === profile?.id ? '（我）' : ''}
+                  </button>
+                ))}
+              </div>
+              {ownerId && ownerId !== profile?.id ? (
+                <p className="text-xs text-slate-500">這筆會記在對方名下，並標註由你（{profile?.display_name}）代記。</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <CurrencySelector value={currency} onChange={setCurrency} />
           <AmountInput currency={currency} value={amount} onChange={setAmount} />
-          <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} />
+          <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} onCreate={createCategory} />
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             日期

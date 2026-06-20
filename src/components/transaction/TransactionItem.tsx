@@ -11,6 +11,10 @@ interface TransactionItemProps {
 
 export function TransactionItem({ transaction, onDelete, onEdit }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
+  const recordedByOther =
+    transaction.recorded_by != null &&
+    transaction.recorded_by !== transaction.owner_id &&
+    transaction.recorder?.display_name;
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-4">
@@ -34,6 +38,11 @@ export function TransactionItem({ transaction, onDelete, onEdit }: TransactionIt
             {transaction.payment_method ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
                 {transaction.payment_method === 'cash' ? '現金' : '刷卡'}
+              </span>
+            ) : null}
+            {recordedByOther ? (
+              <span className="rounded-full bg-familySoft px-2 py-0.5 font-medium text-family">
+                {transaction.recorder?.display_name} 代記
               </span>
             ) : null}
           </div>

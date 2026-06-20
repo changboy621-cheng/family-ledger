@@ -34,6 +34,7 @@ export interface Transaction {
   id: string;
   family_id: string;
   owner_id: string;
+  recorded_by?: string | null;
   ledger_type: LedgerType;
   type: TransactionType;
   amount: number;
@@ -47,6 +48,7 @@ export interface Transaction {
   updated_at: string;
   category?: Category | null;
   owner?: UserProfile | null;
+  recorder?: UserProfile | null;
 }
 
 export interface CurrencySummary {

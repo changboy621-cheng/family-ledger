@@ -34,7 +34,7 @@ export function DataTools() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, category:categories(*), owner:user_profiles(*)')
+        .select('*, category:categories(*), owner:user_profiles!owner_id(*)')
         .eq('family_id', profile.family_id)
         .order('transaction_date', { ascending: false });
 
@@ -104,6 +104,7 @@ export function DataTools() {
       const inserts = preview.records.map((record) => ({
         family_id: profile.family_id,
         owner_id: profile.id,
+        recorded_by: profile.id,
         ledger_type: ledger,
         type: record.type,
         amount: record.amount,
