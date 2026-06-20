@@ -22,7 +22,7 @@ export function SiriShortcut() {
       <p className="mt-1 text-sm text-slate-500">設定一個 iPhone「捷徑」，對 Siri 說一句就記帳。</p>
 
       <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
-        <code className="truncate text-xs text-slate-700">{QUICK_ADD_URL}</code>
+        <code className="min-w-0 flex-1 truncate text-xs text-slate-700">{QUICK_ADD_URL}</code>
         <button
           type="button"
           onClick={() => void copyUrl()}
