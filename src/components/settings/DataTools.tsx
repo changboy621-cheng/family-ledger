@@ -104,6 +104,7 @@ export function DataTools() {
       const inserts = preview.records.map((record) => ({
         family_id: profile.family_id,
         owner_id: profile.id,
+        recorded_by: profile.id,
         ledger_type: ledger,
         type: record.type,
         amount: record.amount,

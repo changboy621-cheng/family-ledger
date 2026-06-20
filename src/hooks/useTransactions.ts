@@ -14,6 +14,8 @@ export interface TransactionInput {
   transaction_date: string;
   note?: string;
   payment_method?: PaymentMethod | null;
+  /** 這筆帳歸屬的成員；未指定時即記帳人本人。家庭帳本可代其他成員記錄。 */
+  owner_id?: string;
 }
 
 export interface TransactionUpdateInput extends TransactionInput {
@@ -61,10 +63,12 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     async (input: TransactionInput) => {
       if (!profile?.family_id) throw new Error('尚未加入家庭，無法新增交易。');
 
+      const { owner_id, ...rest } = input;
       const { error } = await supabase.from('transactions').insert({
-        ...input,
+        ...rest,
         family_id: profile.family_id,
-        owner_id: profile.id,
+        owner_id: input.ledger_type === 'family' ? owner_id ?? profile.id : profile.id,
+        recorded_by: profile.id,
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null
       });
@@ -97,7 +101,8 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
           category_id: input.category_id,
           transaction_date: input.transaction_date,
           note: input.note?.trim() || null,
-          payment_method: input.payment_method ?? null
+          payment_method: input.payment_method ?? null,
+          ...(input.ledger_type === 'family' && input.owner_id ? { owner_id: input.owner_id } : {})
         })
         .eq('id', id);
 

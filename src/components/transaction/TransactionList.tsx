@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import type { Transaction } from '../../types';
 import { TransactionItem } from './TransactionItem';
+import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 
 interface TransactionListProps {
   groupedTransactions: Record<string, Transaction[]>;
@@ -16,6 +18,12 @@ export function TransactionList({
   onEdit,
   hiddenIds = []
 }: TransactionListProps) {
+  const { members } = useFamilyMembers();
+  const memberNames = useMemo(
+    () => Object.fromEntries(members.map((member) => [member.id, member.display_name])),
+    [members]
+  );
+
   if (loading) {
     return <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500">載入交易中...</div>;
   }
@@ -41,6 +49,7 @@ export function TransactionList({
                 transaction={transaction}
                 onDelete={onDelete}
                 onEdit={onEdit}
+                recorderName={transaction.recorded_by ? memberNames[transaction.recorded_by] : undefined}
               />
             ))}
           </ul>

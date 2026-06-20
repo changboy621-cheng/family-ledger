@@ -53,6 +53,7 @@ export function QuickAdd() {
       const { error } = await supabase.from('transactions').insert({
         family_id: profile.family_id,
         owner_id: profile.id,
+        recorded_by: profile.id,
         ledger_type: parsed.ledgerType,
         type: parsed.type,
         amount,
