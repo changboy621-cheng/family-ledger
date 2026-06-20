@@ -32,7 +32,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [ownerId, setOwnerId] = useState(initialTransaction?.owner_id ?? profile?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const { categories, createCategory } = useCategories(type);
+  const { categories, createCategory, updateCategory } = useCategories(type);
   const { members } = useFamilyMembers();
   const { frequentItems, noteHistory } = useEntrySuggestions(ledgerType, type);
   const noteSuggestions = filterNotes(noteHistory, note);
@@ -206,7 +206,13 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
 
           <CurrencySelector value={currency} onChange={setCurrency} />
           <AmountInput currency={currency} value={amount} onChange={setAmount} />
-          <CategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} onCreate={createCategory} />
+          <CategoryPicker
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+            onCreate={createCategory}
+            onUpdate={updateCategory}
+          />
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             日期

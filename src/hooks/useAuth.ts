@@ -278,6 +278,29 @@ export function useAuth() {
     await loadProfile(session.user.id);
   }
 
+  async function updateFamilyName(rawName: string) {
+    if (!session?.user.id) {
+      throw new Error('請先登入，才能修改家庭名稱。');
+    }
+    if (!profile?.family_id) {
+      throw new Error('尚未加入家庭，無法修改家庭名稱。');
+    }
+
+    const name = normalizeDisplayName(rawName);
+    if (!name) {
+      throw new Error('家庭名稱不能空白。');
+    }
+
+    const { error } = await supabase
+      .from('families')
+      .update({ name })
+      .eq('id', profile.family_id);
+
+    if (error) throw error;
+
+    await loadProfile(session.user.id);
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     reset();
@@ -297,6 +320,7 @@ export function useAuth() {
     completeOnboarding,
     onboardingDraft: loadOnboardingDraft(),
     updateDisplayName,
+    updateFamilyName,
     signOut
   };
 }
