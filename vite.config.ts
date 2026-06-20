@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon-192.png'],
       manifest: {
         name: '家帳 FamilyLedger',
         short_name: '家帳',
