@@ -65,9 +65,9 @@ export function FamilyInvite({ variant = 'card' }: FamilyInviteProps) {
       <p className="mt-2 text-sm text-slate-500">把下面的邀請碼或連結傳給家人，對方就能加入這個家庭帳本。</p>
 
       <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500">家庭邀請碼</p>
-          <p className="font-mono text-2xl font-bold tracking-[0.3em] text-family">{code}</p>
+          <p className="break-all font-mono text-2xl font-bold tracking-[0.3em] text-family">{code}</p>
         </div>
       </div>
 
