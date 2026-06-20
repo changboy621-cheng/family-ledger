@@ -48,7 +48,6 @@ export interface Transaction {
   updated_at: string;
   category?: Category | null;
   owner?: UserProfile | null;
-  recorder?: UserProfile | null;
 }
 
 export interface CurrencySummary {

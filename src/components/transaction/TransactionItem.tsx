@@ -7,14 +7,14 @@ interface TransactionItemProps {
   transaction: Transaction;
   onDelete?: (transactionId: string) => void;
   onEdit?: (transaction: Transaction) => void;
+  /** 實際記帳人的名稱（與歸屬人不同時才會傳入），用於顯示「○○ 代記」 */
+  recorderName?: string;
 }
 
-export function TransactionItem({ transaction, onDelete, onEdit }: TransactionItemProps) {
+export function TransactionItem({ transaction, onDelete, onEdit, recorderName }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
   const recordedByOther =
-    transaction.recorded_by != null &&
-    transaction.recorded_by !== transaction.owner_id &&
-    transaction.recorder?.display_name;
+    transaction.recorded_by != null && transaction.recorded_by !== transaction.owner_id && Boolean(recorderName);
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-4">
@@ -42,7 +42,7 @@ export function TransactionItem({ transaction, onDelete, onEdit }: TransactionIt
             ) : null}
             {recordedByOther ? (
               <span className="rounded-full bg-familySoft px-2 py-0.5 font-medium text-family">
-                {transaction.recorder?.display_name} 代記
+                {recorderName} 代記
               </span>
             ) : null}
           </div>

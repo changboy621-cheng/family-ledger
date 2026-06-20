@@ -35,7 +35,7 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
 
     let query = supabase
       .from('transactions')
-      .select('*, category:categories(*), owner:user_profiles!owner_id(*), recorder:user_profiles!recorded_by(*)')
+      .select('*, category:categories(*), owner:user_profiles(*)')
       .eq('ledger_type', ledgerType)
       .gte('transaction_date', range.from)
       .lte('transaction_date', range.to)
@@ -149,7 +149,7 @@ export function useAnalysisTransactions(ledgerType: LedgerType, yearMonth: strin
 
     let query = supabase
       .from('transactions')
-      .select('*, category:categories(*), owner:user_profiles!owner_id(*), recorder:user_profiles!recorded_by(*)')
+      .select('*, category:categories(*), owner:user_profiles(*)')
       .eq('ledger_type', ledgerType)
       .gte('transaction_date', range.from)
       .lte('transaction_date', range.to)

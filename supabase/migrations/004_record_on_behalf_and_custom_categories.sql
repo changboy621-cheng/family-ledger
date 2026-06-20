@@ -1,7 +1,13 @@
 -- 家庭記帳可代另一半記錄，並記住「實際記帳人」是誰
 -- recorded_by = 實際操作記帳的人；owner_id = 這筆支出/收入歸屬的成員
+-- 注意：刻意不加外鍵（references）。transactions 對 user_profiles 已有 owner_id 外鍵，
+-- 若 recorded_by 再加外鍵會造成 PostgREST 嵌入查詢（owner:user_profiles(*)）無法判斷要用哪個關聯而失敗。
 alter table public.transactions
-  add column if not exists recorded_by uuid references public.user_profiles(id) on delete set null;
+  add column if not exists recorded_by uuid;
+
+-- 若先前版本曾加上外鍵，移除它以避免查詢歧義
+alter table public.transactions
+  drop constraint if exists transactions_recorded_by_fkey;
 
 -- 既有資料：把記帳人視為歸屬人本人
 update public.transactions

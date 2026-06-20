@@ -34,7 +34,7 @@ export function DataTools() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, category:categories(*), owner:user_profiles!owner_id(*)')
+        .select('*, category:categories(*), owner:user_profiles(*)')
         .eq('family_id', profile.family_id)
         .order('transaction_date', { ascending: false });
 
