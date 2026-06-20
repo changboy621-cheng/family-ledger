@@ -118,6 +118,8 @@ export function Settings() {
       <button className="h-11 rounded-lg border border-red-200 bg-white font-semibold text-red-600" type="button" onClick={() => void signOut()}>
         登出
       </button>
+
+      <p className="pt-2 text-center text-xs text-slate-400">版本 {__BUILD_TIME__}</p>
     </div>
   );
 }

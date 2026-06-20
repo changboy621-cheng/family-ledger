@@ -10,18 +10,11 @@
     "Noto Sans TC", sans-serif;
 }
 
-/* 防止任何過寬元素把行動版的版面撐寬（避免整頁需要左右捲動／縮小）。
-   放在文件根層才能阻止行動瀏覽器擴張 layout viewport；放在內層只會裁切已被撐開的內容。 */
-html {
-  overflow-x: hidden;
-}
-
 body {
   min-width: 320px;
   max-width: 100%;
   min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
 }
 
 button,
