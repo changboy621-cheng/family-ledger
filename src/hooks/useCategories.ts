@@ -54,5 +54,25 @@ export function useCategories(type: TransactionType) {
     [categories, loadCategories, profile?.family_id, type]
   );
 
-  return { categories, loading, createCategory, reload: loadCategories };
+  // 更新自訂類別的名稱與圖示（系統內建類別因 RLS 無法更新）。
+  const updateCategory = useCallback(
+    async (id: string, name: string, icon: string): Promise<Category> => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error('請輸入類別名稱。');
+
+      const { data, error } = await supabase
+        .from('categories')
+        .update({ name: trimmed, icon })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error || !data) throw error ?? new Error('更新類別失敗，請稍後再試。');
+      await loadCategories();
+      return data as Category;
+    },
+    [loadCategories]
+  );
+
+  return { categories, loading, createCategory, updateCategory, reload: loadCategories };
 }
