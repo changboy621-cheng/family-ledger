@@ -45,13 +45,13 @@ export function Settings() {
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-bold text-slate-900">個人設定</h2>
         <dl className="mt-4 grid gap-3 text-sm">
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">顯示名稱</dt>
-            <dd className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <dt className="shrink-0 text-slate-500">顯示名稱</dt>
+            <dd className="flex min-w-0 items-center gap-2">
               {editing ? (
                 <>
                   <input
-                    className="h-9 w-36 rounded-lg border border-slate-300 px-3 text-right outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+                    className="h-9 w-40 max-w-full min-w-0 flex-1 rounded-lg border border-slate-300 px-3 text-right outline-none focus:border-family focus:ring-2 focus:ring-family/30"
                     value={draftName}
                     onChange={(event) => setDraftName(event.target.value)}
                     maxLength={MAX_DISPLAY_NAME_LENGTH}
