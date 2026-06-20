@@ -88,8 +88,23 @@ function parseCurrency(raw: string): Currency {
   return value.includes('usd') || value.includes('美') ? 'USD' : 'TWD';
 }
 
-function isValidDate(raw: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(raw.trim());
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+/** 把多種日期格式正規化成 YYYY-MM-DD；無法辨識回傳 null。 */
+export function normalizeDate(raw: string): string | null {
+  const text = raw.trim();
+  let match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (!match) match = text.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  return `${year}-${pad2(month)}-${pad2(day)}`;
 }
 
 export function parseImportRecords(rows: string[][]): { records: ImportRecord[]; skipped: number } {
@@ -101,11 +116,11 @@ export function parseImportRecords(rows: string[][]): { records: ImportRecord[];
   let skipped = 0;
 
   for (const row of data) {
-    const date = pick(row, columns.date).trim();
+    const date = normalizeDate(pick(row, columns.date));
     const amount = parseAmount(pick(row, columns.amount));
     const categoryName = pick(row, columns.category).trim();
 
-    if (!isValidDate(date) || amount <= 0 || !categoryName) {
+    if (!date || amount <= 0 || !categoryName) {
       skipped += 1;
       continue;
     }

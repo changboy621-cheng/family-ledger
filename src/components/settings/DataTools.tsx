@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
-import type { Transaction } from '../../types';
+import type { LedgerType, Transaction } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { todayISO } from '../../lib/utils';
 import { parseCSV, toCSV } from '../../lib/csv';
 import { EXPORT_HEADER, buildExportRows, parseImportRecords, type ImportRecord } from '../../lib/transactionPorting';
+import { detectAndroMoney, parseAndroMoney } from '../../lib/importAdapters';
 
 function downloadCSV(filename: string, content: string) {
   const bom = String.fromCharCode(0xfeff);
@@ -24,7 +25,8 @@ export function DataTools() {
   const showToast = useUIStore((state) => state.showToast);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<{ records: ImportRecord[]; skipped: number; fileName: string } | null>(null);
+  const [ledger, setLedger] = useState<LedgerType>('family');
+  const [preview, setPreview] = useState<{ records: ImportRecord[]; skipped: number; fileName: string; format: string } | null>(null);
 
   async function handleExport() {
     if (!profile?.family_id || busy) return;
@@ -57,12 +59,15 @@ export function DataTools() {
     if (!file) return;
     try {
       const text = await file.text();
-      const { records, skipped } = parseImportRecords(parseCSV(text));
+      const rows = parseCSV(text);
+      const isAndroMoney = detectAndroMoney(rows);
+      const { records, skipped } = isAndroMoney ? parseAndroMoney(rows) : parseImportRecords(rows);
+      const format = isAndroMoney ? 'AndroMoney（理財幫手）' : '一般 CSV';
       if (records.length === 0) {
         showToast(skipped > 0 ? `這個檔案的 ${skipped} 筆都無法辨識。` : '找不到可匯入的資料。', 'error');
         setPreview(null);
       } else {
-        setPreview({ records, skipped, fileName: file.name });
+        setPreview({ records, skipped, fileName: file.name, format });
       }
     } catch {
       showToast('讀取檔案失敗，請確認是 CSV 檔。', 'error');
@@ -99,7 +104,7 @@ export function DataTools() {
       const inserts = preview.records.map((record) => ({
         family_id: profile.family_id,
         owner_id: profile.id,
-        ledger_type: record.ledger_type,
+        ledger_type: ledger,
         type: record.type,
         amount: record.amount,
         currency: record.currency,
@@ -151,10 +156,28 @@ export function DataTools() {
 
       {preview ? (
         <div className="mt-4 rounded-lg bg-slate-50 p-4">
-          <p className="text-sm text-slate-700">
+          <p className="text-xs text-slate-500">偵測格式：{preview.format}</p>
+          <p className="mt-1 text-sm text-slate-700">
             檔案「{preview.fileName}」：將匯入 <strong className="text-family">{preview.records.length}</strong> 筆
-            {preview.skipped > 0 ? `，略過 ${preview.skipped} 筆（缺日期/金額/類別）` : ''}。
+            {preview.skipped > 0 ? `，略過 ${preview.skipped} 筆（期初/轉帳/資料不全）` : ''}。
           </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm text-slate-600">匯入到</span>
+            {(['family', 'personal'] as LedgerType[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                  ledger === option ? 'bg-family text-white' : 'bg-white text-slate-600 border border-slate-300'
+                }`}
+                onClick={() => setLedger(option)}
+              >
+                {option === 'family' ? '家庭帳本' : '個人帳本'}
+              </button>
+            ))}
+          </div>
+
           <div className="mt-3 flex gap-2">
             <button
               type="button"
