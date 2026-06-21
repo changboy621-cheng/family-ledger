@@ -9,6 +9,7 @@ import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
 import { ExpenseCategorySummary } from '../components/transaction/ExpenseCategorySummary';
+import { PaymentMethodSummary } from '../components/transaction/PaymentMethodSummary';
 import { SpenderAnalysis } from '../components/transaction/SpenderAnalysis';
 import { TopExpenseCategories } from '../components/transaction/TopExpenseCategories';
 import { ExpenseTrendChart } from '../components/transaction/ExpenseTrendChart';
@@ -132,6 +133,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         items={analysis.expenseByCategory}
         currencyFilter={currencyFilter}
         title={isFamily ? '本月支出分類' : '本月個人支出分類'}
+      />
+
+      <PaymentMethodSummary
+        items={analysis.expenseByPayment}
+        currencyFilter={currencyFilter}
+        title={isFamily ? '本月付款方式（現金／刷卡）' : '本月個人付款方式（現金／刷卡）'}
       />
 
       {isFamily ? <SpenderAnalysis items={analysis.expenseByOwner} currencyFilter={currencyFilter} /> : null}

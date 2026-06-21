@@ -168,6 +168,21 @@ describe('analyzeLedgerTransactions', () => {
     });
   });
 
+  it('splits expense totals by payment method (cash / card / unspecified)', () => {
+    const withPayment: Transaction[] = [
+      { ...transactions[0], id: 'p1', amount: 500, currency: 'TWD', payment_method: 'cash' },
+      { ...transactions[0], id: 'p2', amount: 300, currency: 'TWD', payment_method: 'card' },
+      { ...transactions[1], id: 'p3', amount: 120, currency: 'USD', payment_method: 'card' },
+      { ...transactions[0], id: 'p4', amount: 200, currency: 'TWD' } // 未指定
+    ];
+    const analysis = analyzeLedgerTransactions(withPayment, '2026-06');
+    const byMethod = Object.fromEntries(analysis.expenseByPayment.map((item) => [item.method, item.totals]));
+
+    expect(byMethod.cash).toEqual({ TWD: 500, USD: 0 });
+    expect(byMethod.card).toEqual({ TWD: 300, USD: 120 });
+    expect(byMethod.unspecified).toEqual({ TWD: 200, USD: 0 });
+  });
+
   it('skips invalid transaction dates instead of crashing the ledger page', () => {
     const analysis = analyzeLedgerTransactions(
       [
