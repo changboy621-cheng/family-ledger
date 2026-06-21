@@ -78,6 +78,12 @@ export interface OwnerExpenseSummary {
   categories: CategoryExpenseSummary[];
 }
 
+export interface PaymentExpenseSummary {
+  method: PaymentMethod | 'unspecified';
+  totals: CurrencySummary;
+  ratios: CurrencySummary;
+}
+
 export interface DailyExpensePoint {
   date: string;
   day: number;
@@ -95,6 +101,7 @@ export interface LedgerAnalysis {
   topCategories: CategoryExpenseSummary[];
   expenseByCategory: CategoryExpenseSummary[];
   expenseByOwner: OwnerExpenseSummary[];
+  expenseByPayment: PaymentExpenseSummary[];
   dailyExpenseTrend: DailyExpensePoint[];
   monthlyExpenseTrend: MonthlyExpensePoint[];
 }

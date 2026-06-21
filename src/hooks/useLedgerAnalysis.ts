@@ -72,6 +72,11 @@ export function analyzeLedgerTransactions(transactions: Transaction[], yearMonth
   const summary = emptyMonthlySummary();
   const categories = new Map<string, CategoryExpenseSummary>();
   const owners = new Map<string, OwnerExpenseSummary>();
+  const payments: Record<'cash' | 'card' | 'unspecified', CurrencySummary> = {
+    cash: emptyCurrencySummary(),
+    card: emptyCurrencySummary(),
+    unspecified: emptyCurrencySummary()
+  };
   const dailyExpenseTrend = createDailyTrend(yearMonth);
   const monthlyExpenseTrend = createMonthlyTrend(yearMonth);
   const dailyMap = new Map(dailyExpenseTrend.map((point) => [point.date, point]));
@@ -98,6 +103,12 @@ export function analyzeLedgerTransactions(transactions: Transaction[], yearMonth
     summary[transaction.type][transaction.currency] += amount;
 
     if (transaction.type !== 'expense') continue;
+
+    const paymentKey =
+      transaction.payment_method === 'cash' || transaction.payment_method === 'card'
+        ? transaction.payment_method
+        : 'unspecified';
+    payments[paymentKey][transaction.currency] += amount;
 
     const dailyPoint = dailyMap.get(transaction.transaction_date);
     if (dailyPoint) {
@@ -174,11 +185,21 @@ export function analyzeLedgerTransactions(transactions: Transaction[], yearMonth
     }))
     .sort((left, right) => totalValue(right.totals) - totalValue(left.totals));
 
+  const expenseByPayment = (['cash', 'card', 'unspecified'] as const).map((method) => ({
+    method,
+    totals: payments[method],
+    ratios: {
+      TWD: calculateRatio(payments[method].TWD, summary.expense.TWD),
+      USD: calculateRatio(payments[method].USD, summary.expense.USD)
+    }
+  }));
+
   return {
     summary,
     topCategories,
     expenseByCategory,
     expenseByOwner,
+    expenseByPayment,
     dailyExpenseTrend,
     monthlyExpenseTrend
   };
