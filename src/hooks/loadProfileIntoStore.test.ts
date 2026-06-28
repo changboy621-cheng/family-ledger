@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useAuthStore } from '../store/authStore';
 
-const single = vi.fn();
-const eq = vi.fn((..._args: unknown[]) => ({ single }));
-const select = vi.fn((..._args: unknown[]) => ({ eq }));
-const from = vi.fn((..._args: unknown[]) => ({ select }));
-vi.mock('../lib/supabase', () => ({ supabase: { from: (...a: unknown[]) => from(...a) } }));
+const { single, eq, select, from } = vi.hoisted(() => ({
+  single: vi.fn(),
+  eq: vi.fn(),
+  select: vi.fn(),
+  from: vi.fn()
+}));
+vi.mock('../lib/supabase', () => ({ supabase: { from } }));
 
 import { loadProfileIntoStore } from './loadProfileIntoStore';
 
@@ -13,6 +15,9 @@ describe('loadProfileIntoStore', () => {
   beforeEach(() => {
     useAuthStore.setState({ profile: null, family: null });
     single.mockReset();
+    from.mockReturnValue({ select });
+    select.mockReturnValue({ eq });
+    eq.mockReturnValue({ single });
   });
 
   it('讀到 profile 寫入 store', async () => {
