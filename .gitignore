@@ -4,3 +4,6 @@ dist
 .env.local
 .DS_Store
 *.tsbuildinfo
+
+# local agent/orchestration state (Codex review P3)
+.claude/
