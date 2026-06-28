@@ -244,7 +244,7 @@ export function useAuth() {
 
     if (error) throw error;
 
-    await loadProfile(session.user.id);
+    await loadProfileIntoStore(session.user.id);
   }
 
   async function signOut() {
