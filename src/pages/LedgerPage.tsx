@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { formatAmount } from '../lib/currency';
@@ -35,7 +35,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const isFamily = ledgerType === 'family';
   const showToast = useUIStore((state) => state.showToast);
   // 只顯示有金額的幣別；都沒有時至少顯示 TWD，避免空卡
-  const activeCurrencies = (() => {
+  const activeCurrencies = useMemo(() => {
     const active = (['TWD', 'USD'] as Currency[]).filter(
       (currency) =>
         analysis.summary.expense[currency] !== 0 ||
@@ -43,7 +43,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         analysis.summary.balance[currency] !== 0
     );
     return active.length > 0 ? active : (['TWD'] as Currency[]);
-  })();
+  }, [analysis.summary]);
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
@@ -59,6 +59,11 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     [deleteTransaction, reloadAnalysisTransactions]
   );
   const { pendingIds, requestDelete } = usePendingDelete(commitDelete);
+
+  const handleSelectEdit = useCallback((transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setShowForm(true);
+  }, []);
 
   async function handleEdit(input: Parameters<typeof createTransaction>[0]) {
     if (!editingTransaction) return;
@@ -161,10 +166,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         groupedTransactions={groupedTransactions}
         loading={loading}
         onDelete={requestDelete}
-        onEdit={(transaction) => {
-          setEditingTransaction(transaction);
-          setShowForm(true);
-        }}
+        onEdit={handleSelectEdit}
         hiddenIds={pendingIds}
       />
 

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Transaction } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { CurrencyBadge } from '../common/CurrencyBadge';
@@ -11,7 +12,7 @@ interface TransactionItemProps {
   recorderName?: string;
 }
 
-export function TransactionItem({ transaction, onDelete, onEdit, recorderName }: TransactionItemProps) {
+function TransactionItemBase({ transaction, onDelete, onEdit, recorderName }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
   const recordedByOther =
     transaction.recorded_by != null && transaction.recorded_by !== transaction.owner_id && Boolean(recorderName);
@@ -86,3 +87,5 @@ export function TransactionItem({ transaction, onDelete, onEdit, recorderName }:
     </li>
   );
 }
+
+export const TransactionItem = memo(TransactionItemBase);

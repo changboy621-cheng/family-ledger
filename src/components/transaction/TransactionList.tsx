@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { Transaction } from '../../types';
 import { TransactionItem } from './TransactionItem';
 import { useFamilyMembers } from '../../hooks/useFamilyMembers';
@@ -11,7 +11,7 @@ interface TransactionListProps {
   hiddenIds?: string[];
 }
 
-export function TransactionList({
+function TransactionListBase({
   groupedTransactions,
   loading,
   onDelete,
@@ -58,3 +58,5 @@ export function TransactionList({
     </div>
   );
 }
+
+export const TransactionList = memo(TransactionListBase);

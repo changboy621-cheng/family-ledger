@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
@@ -23,6 +23,20 @@ export function Dashboard() {
   const familyPending = usePendingDelete(familyTransactions.deleteTransaction);
   const personalPending = usePendingDelete(personalTransactions.deleteTransaction);
   const showToast = useUIStore((state) => state.showToast);
+
+  const handleSelectEdit = useCallback((transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setFormLedgerType(transaction.ledger_type);
+  }, []);
+
+  const familyRecent = useMemo(
+    () => ({ 最近: familyTransactions.transactions.slice(0, 5) }),
+    [familyTransactions.transactions]
+  );
+  const personalRecent = useMemo(
+    () => ({ 最近: personalTransactions.transactions.slice(0, 5) }),
+    [personalTransactions.transactions]
+  );
 
   async function handleCreate(input: Parameters<typeof familyTransactions.createTransaction>[0]) {
     if (input.ledger_type === 'family') {
@@ -68,26 +82,20 @@ export function Dashboard() {
         <div className="grid gap-3">
           <h2 className="text-lg font-bold text-slate-900">最近家庭交易</h2>
           <TransactionList
-            groupedTransactions={{ 最近: familyTransactions.transactions.slice(0, 5) }}
+            groupedTransactions={familyRecent}
             loading={familyTransactions.loading}
             onDelete={familyPending.requestDelete}
-            onEdit={(transaction) => {
-              setEditingTransaction(transaction);
-              setFormLedgerType(transaction.ledger_type);
-            }}
+            onEdit={handleSelectEdit}
             hiddenIds={familyPending.pendingIds}
           />
         </div>
         <div className="grid gap-3">
           <h2 className="text-lg font-bold text-slate-900">最近個人交易</h2>
           <TransactionList
-            groupedTransactions={{ 最近: personalTransactions.transactions.slice(0, 5) }}
+            groupedTransactions={personalRecent}
             loading={personalTransactions.loading}
             onDelete={personalPending.requestDelete}
-            onEdit={(transaction) => {
-              setEditingTransaction(transaction);
-              setFormLedgerType(transaction.ledger_type);
-            }}
+            onEdit={handleSelectEdit}
             hiddenIds={personalPending.pendingIds}
           />
         </div>
