@@ -1,7 +1,8 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import type { Currency } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { loadProfileIntoStore } from './loadProfileIntoStore';
 import {
   clearOnboardingDraft,
   loadOnboardingDraft,
@@ -54,36 +55,7 @@ export async function resolveInviteFamily(rawCode: string): Promise<{ id: string
 }
 
 export function useAuth() {
-  const { session, profile, family, loading, setSession, setProfile, setFamily, setLoading, reset } =
-    useAuthStore();
-
-  const loadProfile = useCallback(
-    async (userId: string) => {
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (profileError) {
-        setProfile(null);
-        setFamily(null);
-        return;
-      }
-
-      setProfile(profileData);
-
-      if (profileData.family_id) {
-        const { data: familyData } = await supabase
-          .from('families')
-          .select('*')
-          .eq('id', profileData.family_id)
-          .single();
-        setFamily(familyData ?? null);
-      }
-    },
-    [setFamily, setProfile]
-  );
+  const { session, profile, family, loading, reset } = useAuthStore();
 
   const createFamilyAndProfile = useCallback(
     async ({
@@ -123,41 +95,12 @@ export function useAuth() {
 
       if (profileError) throw profileError;
 
-      await loadProfile(userId);
+      await loadProfileIntoStore(userId);
       clearOnboardingDraft();
       return familyData;
     },
-    [loadProfile]
+    []
   );
-
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      if (data.session?.user.id) {
-        await loadProfile(data.session.user.id);
-      }
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      if (nextSession?.user.id) {
-        void loadProfile(nextSession.user.id);
-      } else {
-        reset();
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [loadProfile, reset, setLoading, setSession]);
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -278,7 +221,7 @@ export function useAuth() {
 
     if (error) throw error;
 
-    await loadProfile(session.user.id);
+    await loadProfileIntoStore(session.user.id);
   }
 
   async function updateFamilyName(rawName: string) {
@@ -315,7 +258,7 @@ export function useAuth() {
     profile,
     family,
     loading,
-    loadProfile,
+    loadProfile: loadProfileIntoStore,
     signIn,
     signInWithGoogle,
     registerFamily,

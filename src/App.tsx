@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { useAuthListener } from './hooks/useAuthListener';
 import { AppShell } from './components/layout/AppShell';
 import { Toast } from './components/common/Toast';
 
@@ -40,6 +41,8 @@ function ProtectedRoute() {
 }
 
 export default function App() {
+  useAuthListener();
+
   return (
     <>
       <Toast />
