@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { formatAmount } from '../lib/currency';
-import { useAnalysisTransactions, useTransactions } from '../hooks/useTransactions';
+import { useLedgerTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
 import { MonthPicker } from '../components/common/MonthPicker';
@@ -24,13 +24,14 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const { groupedTransactions, loading, createTransaction, deleteTransaction, updateTransaction } = useTransactions(
-    ledgerType,
-    yearMonth,
-    currencyFilter
-  );
-  const { transactions: analysisTransactions, loadTransactions: reloadAnalysisTransactions } =
-    useAnalysisTransactions(ledgerType, yearMonth);
+  const {
+    transactions: analysisTransactions,
+    groupedTransactions,
+    loading,
+    createTransaction,
+    deleteTransaction,
+    updateTransaction
+  } = useLedgerTransactions(ledgerType, yearMonth, currencyFilter);
   const analysis = useLedgerAnalysis(analysisTransactions, yearMonth);
   const isFamily = ledgerType === 'family';
   const showToast = useUIStore((state) => state.showToast);
@@ -47,18 +48,10 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
-    await reloadAnalysisTransactions();
     showToast('交易已新增');
   }
 
-  const commitDelete = useCallback(
-    async (transactionId: string) => {
-      await deleteTransaction(transactionId);
-      await reloadAnalysisTransactions();
-    },
-    [deleteTransaction, reloadAnalysisTransactions]
-  );
-  const { pendingIds, requestDelete } = usePendingDelete(commitDelete);
+  const { pendingIds, requestDelete } = usePendingDelete(deleteTransaction);
 
   const handleSelectEdit = useCallback((transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -69,7 +62,6 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     if (!editingTransaction) return;
     try {
       await updateTransaction({ id: editingTransaction.id, ...input });
-      await reloadAnalysisTransactions();
       showToast('交易已更新');
       setEditingTransaction(null);
       setShowForm(false);

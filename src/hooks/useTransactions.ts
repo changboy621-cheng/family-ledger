@@ -22,7 +22,58 @@ export interface TransactionUpdateInput extends TransactionInput {
   id: string;
 }
 
-export function useTransactions(ledgerType: LedgerType, yearMonth: string, currencyFilter: Currency | 'all' = 'all') {
+/** 近 6 個月趨勢所需的回看月數（rollingMonthRange 的 monthsBack 參數）。 */
+const TREND_MONTHS_BACK = 5;
+const TRANSACTION_SELECT = '*, category:categories(*), owner:user_profiles(*)';
+
+interface FetchTransactionsParams {
+  ledgerType: LedgerType;
+  profile: { id: string; family_id: string };
+  from: string;
+  to: string;
+}
+
+/**
+ * 交易查詢的單一來源：family 以 family_id、personal 以 owner_id 過濾，並套用日期範圍。
+ * 由 list / analysis / 匯出等所有讀取路徑共用，避免 select/filter 邏輯重複漂移。
+ */
+export function fetchTransactions({ ledgerType, profile, from, to }: FetchTransactionsParams) {
+  let query = supabase
+    .from('transactions')
+    .select(TRANSACTION_SELECT)
+    .eq('ledger_type', ledgerType)
+    .gte('transaction_date', from)
+    .lte('transaction_date', to)
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (ledgerType === 'family') {
+    query = query.eq('family_id', profile.family_id);
+  } else {
+    query = query.eq('owner_id', profile.id);
+  }
+
+  return query;
+}
+
+/** 從較大的交易集合（如近 6 個月）挑出指定月份（YYYY-MM），維持原順序。 */
+export function filterTransactionsByMonth(transactions: Transaction[], yearMonth: string): Transaction[] {
+  const { from, to } = monthRange(yearMonth);
+  return transactions.filter(
+    (transaction) => transaction.transaction_date >= from && transaction.transaction_date <= to
+  );
+}
+
+interface DateRange {
+  from: string;
+  to: string;
+}
+
+/**
+ * 交易讀取 + 即時同步 + 異動操作的核心 hook，依傳入的日期範圍抓取一次。
+ * list（當月）與 analysis（近 6 月）只是範圍不同，共用此核心，確保單一查詢與單一 realtime channel。
+ */
+function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
   const profile = useAuthStore((state) => state.profile);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,28 +81,16 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
   const loadTransactions = useCallback(async () => {
     if (!profile?.family_id) return;
 
-    const range = monthRange(yearMonth);
     setLoading(true);
-
-    let query = supabase
-      .from('transactions')
-      .select('*, category:categories(*), owner:user_profiles(*)')
-      .eq('ledger_type', ledgerType)
-      .gte('transaction_date', range.from)
-      .lte('transaction_date', range.to)
-      .order('transaction_date', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (ledgerType === 'family') {
-      query = query.eq('family_id', profile.family_id);
-    } else {
-      query = query.eq('owner_id', profile.id);
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await fetchTransactions({
+      ledgerType,
+      profile: { id: profile.id, family_id: profile.family_id },
+      from: range.from,
+      to: range.to
+    });
     if (!error) setTransactions((data ?? []) as Transaction[]);
     setLoading(false);
-  }, [ledgerType, profile?.family_id, profile?.id, yearMonth]);
+  }, [ledgerType, profile?.family_id, profile?.id, range.from, range.to]);
 
   useEffect(() => {
     void loadTransactions();
@@ -112,66 +151,55 @@ export function useTransactions(ledgerType: LedgerType, yearMonth: string, curre
     [loadTransactions]
   );
 
-  const visibleTransactions = useMemo(() => {
-    if (currencyFilter === 'all') return transactions;
-    return transactions.filter((transaction) => transaction.currency === currencyFilter);
-  }, [currencyFilter, transactions]);
-
-  const groupedTransactions = useMemo(() => {
-    return visibleTransactions.reduce<Record<string, Transaction[]>>((groups, transaction) => {
-      groups[transaction.transaction_date] ??= [];
-      groups[transaction.transaction_date].push(transaction);
-      return groups;
-    }, {});
-  }, [visibleTransactions]);
-
-  return {
-    transactions,
-    groupedTransactions,
-    loading,
-    loadTransactions,
-    createTransaction,
-    deleteTransaction,
-    updateTransaction
-  };
+  return { transactions, loading, loadTransactions, createTransaction, deleteTransaction, updateTransaction };
 }
 
-export function useAnalysisTransactions(ledgerType: LedgerType, yearMonth: string) {
-  const profile = useAuthStore((state) => state.profile);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+function groupByDate(transactions: Transaction[]): Record<string, Transaction[]> {
+  return transactions.reduce<Record<string, Transaction[]>>((groups, transaction) => {
+    groups[transaction.transaction_date] ??= [];
+    groups[transaction.transaction_date].push(transaction);
+    return groups;
+  }, {});
+}
 
-  const loadTransactions = useCallback(async () => {
-    if (!profile?.family_id) return;
+/** 當月交易（list 用）。Dashboard 等只需單月資料的畫面使用。 */
+export function useTransactions(ledgerType: LedgerType, yearMonth: string, currencyFilter: Currency | 'all' = 'all') {
+  const range = useMemo(() => monthRange(yearMonth), [yearMonth]);
+  const core = useTransactionsCore(ledgerType, range);
 
-    const range = rollingMonthRange(yearMonth, 5);
-    setLoading(true);
+  const visibleTransactions = useMemo(() => {
+    if (currencyFilter === 'all') return core.transactions;
+    return core.transactions.filter((transaction) => transaction.currency === currencyFilter);
+  }, [currencyFilter, core.transactions]);
 
-    let query = supabase
-      .from('transactions')
-      .select('*, category:categories(*), owner:user_profiles(*)')
-      .eq('ledger_type', ledgerType)
-      .gte('transaction_date', range.from)
-      .lte('transaction_date', range.to)
-      .order('transaction_date', { ascending: false })
-      .order('created_at', { ascending: false });
+  const groupedTransactions = useMemo(() => groupByDate(visibleTransactions), [visibleTransactions]);
 
-    if (ledgerType === 'family') {
-      query = query.eq('family_id', profile.family_id);
-    } else {
-      query = query.eq('owner_id', profile.id);
-    }
+  return { ...core, groupedTransactions };
+}
 
-    const { data, error } = await query;
-    if (!error) setTransactions((data ?? []) as Transaction[]);
-    setLoading(false);
-  }, [ledgerType, profile?.family_id, profile?.id, yearMonth]);
+/**
+ * 帳本頁（list + 近 6 月分析）的單一資料來源：只抓近 6 個月一次、只開一個 realtime channel。
+ * `transactions` 提供給 analysis；當月清單由 client 端衍生，異動後只需重抓這一份。
+ */
+export function useLedgerTransactions(
+  ledgerType: LedgerType,
+  yearMonth: string,
+  currencyFilter: Currency | 'all' = 'all'
+) {
+  const range = useMemo(() => rollingMonthRange(yearMonth, TREND_MONTHS_BACK), [yearMonth]);
+  const core = useTransactionsCore(ledgerType, range);
 
-  useEffect(() => {
-    void loadTransactions();
-  }, [loadTransactions]);
+  const monthTransactions = useMemo(
+    () => filterTransactionsByMonth(core.transactions, yearMonth),
+    [core.transactions, yearMonth]
+  );
 
-  useRealtimeSync(ledgerType === 'family' ? profile?.family_id : undefined, loadTransactions);
+  const visibleTransactions = useMemo(() => {
+    if (currencyFilter === 'all') return monthTransactions;
+    return monthTransactions.filter((transaction) => transaction.currency === currencyFilter);
+  }, [currencyFilter, monthTransactions]);
 
-  return { transactions, loading, loadTransactions };
+  const groupedTransactions = useMemo(() => groupByDate(visibleTransactions), [visibleTransactions]);
+
+  return { ...core, monthTransactions, groupedTransactions };
 }
