@@ -40,6 +40,19 @@ async function createFamilyWithRetry() {
   throw new Error('邀請碼產生失敗，請再試一次。');
 }
 
+// 用邀請碼解析家庭：改走 SECURITY DEFINER 的 find_family_by_invite RPC，
+// 避免前端直接 select families 整表（否則 invite_code 可被列舉）。
+export async function resolveInviteFamily(rawCode: string): Promise<{ id: string; name: string }> {
+  const { data, error } = await supabase.rpc('find_family_by_invite', {
+    code: rawCode?.trim().toUpperCase() ?? ''
+  });
+  const match = Array.isArray(data) ? data[0] : data;
+  if (error || !match) {
+    throw new Error('找不到這組邀請碼，請確認大小寫與數字。');
+  }
+  return match as { id: string; name: string };
+}
+
 export function useAuth() {
   const { session, profile, family, loading, setSession, setProfile, setFamily, setLoading, reset } =
     useAuthStore();
@@ -93,18 +106,8 @@ export function useAuth() {
         familyData = await createFamilyWithRetry();
         familyId = familyData.id;
       } else {
-        const response = await supabase
-          .from('families')
-          .select('*')
-          .eq('invite_code', inviteCode?.trim().toUpperCase() ?? '')
-          .single();
-
-        if (response.error || !response.data) {
-          throw new Error('找不到這組邀請碼，請確認大小寫與數字。');
-        }
-
-        familyData = response.data;
-        familyId = response.data.id;
+        familyData = await resolveInviteFamily(inviteCode ?? '');
+        familyId = familyData.id;
       }
 
       const { error: profileError } = await supabase.from('user_profiles').upsert(
