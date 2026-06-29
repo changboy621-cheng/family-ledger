@@ -74,8 +74,16 @@ export function Dashboard() {
       </header>
 
       <section className="grid gap-3 md:grid-cols-2">
-        <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
-        <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+        {familyTransactions.error ? (
+          <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">家庭本月支出載入失敗</div>
+        ) : (
+          <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
+        )}
+        {personalTransactions.error ? (
+          <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">個人本月支出載入失敗</div>
+        ) : (
+          <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+        )}
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
@@ -84,6 +92,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={familyRecent}
             loading={familyTransactions.loading}
+            error={familyTransactions.error}
+            onRetry={familyTransactions.loadTransactions}
             onDelete={familyPending.requestDelete}
             onEdit={handleSelectEdit}
             hiddenIds={familyPending.pendingIds}
@@ -94,6 +104,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={personalRecent}
             loading={personalTransactions.loading}
+            error={personalTransactions.error}
+            onRetry={personalTransactions.loadTransactions}
             onDelete={personalPending.requestDelete}
             onEdit={handleSelectEdit}
             hiddenIds={personalPending.pendingIds}

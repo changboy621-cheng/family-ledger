@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { parseTransactions } from '../lib/schemas';
@@ -99,18 +99,32 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
   const profile = useAuthStore((state) => state.profile);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  // 請求序號：換月/換 filter/realtime 重抓可能重疊，只有最新請求能更新狀態，
+  // 避免較舊的失敗回應蓋掉較新成功結果（把畫面卡在 error/重試）。
+  const requestIdRef = useRef(0);
 
   const loadTransactions = useCallback(async () => {
     if (!profile?.family_id) return;
 
+    const requestId = ++requestIdRef.current;
     setLoading(true);
-    const { data, error } = await fetchTransactions({
+    const { data, error: fetchError } = await fetchTransactions({
       ledgerType,
       profile: { id: profile.id, family_id: profile.family_id },
       from: range.from,
       to: range.to
     });
-    if (!error) setTransactions(parseTransactions(data));
+    if (requestId !== requestIdRef.current) return; // 已被較新的請求取代，忽略過時回應
+
+    // 不再靜默吞錯：失敗時記錄並標記 error，讓 UI 顯示「載入失敗＋重試」而非假空狀態。
+    if (fetchError) {
+      console.error('[useTransactions] 讀取交易失敗', fetchError);
+      setError(true);
+    } else {
+      setTransactions(parseTransactions(data));
+      setError(false);
+    }
     setLoading(false);
   }, [ledgerType, profile?.family_id, profile?.id, range.from, range.to]);
 
@@ -173,7 +187,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
     [loadTransactions]
   );
 
-  return { transactions, loading, loadTransactions, createTransaction, deleteTransaction, updateTransaction };
+  return { transactions, loading, error, loadTransactions, createTransaction, deleteTransaction, updateTransaction };
 }
 
 function groupByDate(transactions: Transaction[]): Record<string, Transaction[]> {

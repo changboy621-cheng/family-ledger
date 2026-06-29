@@ -6,6 +6,8 @@ import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 interface TransactionListProps {
   groupedTransactions: Record<string, Transaction[]>;
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   onDelete?: (transactionId: string) => void;
   onEdit?: (transaction: Transaction) => void;
   hiddenIds?: string[];
@@ -14,6 +16,8 @@ interface TransactionListProps {
 function TransactionListBase({
   groupedTransactions,
   loading,
+  error = false,
+  onRetry,
   onDelete,
   onEdit,
   hiddenIds = []
@@ -26,6 +30,24 @@ function TransactionListBase({
 
   if (loading) {
     return <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500">載入交易中...</div>;
+  }
+
+  // 讀取失敗：明確顯示錯誤與重試，而非偽裝成「沒有交易」（對記帳 App 最具誤導性的失敗模式）。
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-white p-6 text-center">
+        <p className="text-sm text-slate-600">載入失敗，請檢查網路後再試。</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          >
+            重試
+          </button>
+        ) : null}
+      </div>
+    );
   }
 
   // 過濾掉等待刪除（已樂觀隱藏）的項目，並丟掉因此清空的日期分組

@@ -28,6 +28,8 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     transactions: analysisTransactions,
     groupedTransactions,
     loading,
+    error,
+    loadTransactions,
     createTransaction,
     deleteTransaction,
     updateTransaction
@@ -79,6 +81,11 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       <MonthPicker value={yearMonth} onChange={setYearMonth} />
 
+      {error ? (
+        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+          本月財務資料載入失敗，請至下方交易清單按「重試」。
+        </section>
+      ) : (
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className={`grid gap-3 ${activeCurrencies.length > 1 ? 'md:grid-cols-2' : ''}`}>
           {activeCurrencies.map((currency) => (
@@ -95,6 +102,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
           ))}
         </div>
       </section>
+      )}
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2">
@@ -120,6 +128,8 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         </button>
       </div>
 
+      {!error && (
+        <>
       <TopExpenseCategories
         items={analysis.topCategories}
         currencyFilter={currencyFilter}
@@ -153,10 +163,14 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         currencyFilter={currencyFilter}
         labelKey="label"
       />
+        </>
+      )}
 
       <TransactionList
         groupedTransactions={groupedTransactions}
         loading={loading}
+        error={error}
+        onRetry={loadTransactions}
         onDelete={requestDelete}
         onEdit={handleSelectEdit}
         hiddenIds={pendingIds}
