@@ -5,6 +5,7 @@ import { CURRENCIES, formatAmount } from '../lib/currency';
 import { useLedgerTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
+import { FAB } from '../components/common/FAB';
 import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
@@ -104,28 +105,19 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
       </section>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {(['all', 'TWD', 'USD'] as const).map((option) => (
-            <button
-              key={option}
-              className={`rounded-full px-3 py-2 text-sm font-semibold ${
-                currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
-              }`}
-              type="button"
-              onClick={() => setCurrencyFilter(option)}
-            >
-              {option === 'all' ? '全部' : option}
-            </button>
-          ))}
-        </div>
-        <button
-          className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${isFamily ? 'bg-family' : 'bg-personal'}`}
-          type="button"
-          onClick={() => setShowForm(true)}
-        >
-          新增
-        </button>
+      <div className="flex gap-2">
+        {(['all', 'TWD', 'USD'] as const).map((option) => (
+          <button
+            key={option}
+            className={`rounded-full px-3 py-2 text-sm font-semibold ${
+              currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+            }`}
+            type="button"
+            onClick={() => setCurrencyFilter(option)}
+          >
+            {option === 'all' ? '全部' : option}
+          </button>
+        ))}
       </div>
 
       {!error && (
@@ -175,6 +167,8 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         onEdit={handleSelectEdit}
         hiddenIds={pendingIds}
       />
+
+      <FAB ledgerType={ledgerType} onSelect={() => setShowForm(true)} />
 
       {showForm ? (
         <TransactionForm
