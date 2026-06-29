@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
+import { getErrorMessage } from '../../lib/errors';
 import { paymentMethodLabel } from '../../lib/constants';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
@@ -95,7 +96,11 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
       setNote('');
       onClose();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : '儲存失敗，請稍後再試。');
+      setError(
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? '目前離線，請連上網路後再試。'
+          : getErrorMessage(submitError, '儲存失敗，請稍後再試。')
+      );
     } finally {
       setSaving(false);
     }
