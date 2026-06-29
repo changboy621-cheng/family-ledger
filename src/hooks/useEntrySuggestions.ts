@@ -31,7 +31,13 @@ export function useEntrySuggestions(ledgerType: LedgerType, type: TransactionTyp
       query = ledgerType === 'family' ? query.eq('family_id', profile.family_id) : query.eq('owner_id', profile.id);
 
       const { data, error } = await query;
-      if (active && !error) setRows(parseEntryRows(data));
+      if (!active) return;
+      // 建議是便利性功能，失敗不需打斷使用者；但不再靜默吞錯，記錄以利除錯。
+      if (error) {
+        console.error('[useEntrySuggestions] 讀取建議資料失敗', error);
+        return;
+      }
+      setRows(parseEntryRows(data));
     }
 
     void load();
