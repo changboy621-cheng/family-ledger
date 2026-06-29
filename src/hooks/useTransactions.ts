@@ -56,6 +56,28 @@ export function fetchTransactions({ ledgerType, profile, from, to }: FetchTransa
   return query;
 }
 
+/**
+ * 新增交易時的 owner_id：家庭帳本可代記他人（未指定則記帳人本人），個人帳本一律本人。
+ */
+export function resolveInsertOwnerId(
+  ledgerType: LedgerType,
+  inputOwnerId: string | undefined,
+  profileId: string
+): string {
+  return ledgerType === 'family' ? inputOwnerId ?? profileId : profileId;
+}
+
+/**
+ * 更新交易時的 owner_id patch：僅在家庭帳本且有指定 owner 時才改 owner_id；
+ * 個人帳本不動 owner（避免把別人個人帳改成自己）。
+ */
+export function resolveUpdateOwnerPatch(
+  ledgerType: LedgerType,
+  inputOwnerId: string | undefined
+): { owner_id?: string } {
+  return ledgerType === 'family' && inputOwnerId ? { owner_id: inputOwnerId } : {};
+}
+
 /** 從較大的交易集合（如近 6 個月）挑出指定月份（YYYY-MM），維持原順序。 */
 export function filterTransactionsByMonth(transactions: Transaction[], yearMonth: string): Transaction[] {
   const { from, to } = monthRange(yearMonth);
@@ -106,7 +128,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
       const { error } = await supabase.from('transactions').insert({
         ...rest,
         family_id: profile.family_id,
-        owner_id: input.ledger_type === 'family' ? owner_id ?? profile.id : profile.id,
+        owner_id: resolveInsertOwnerId(input.ledger_type, owner_id, profile.id),
         recorded_by: profile.id,
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null
@@ -141,7 +163,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
           transaction_date: input.transaction_date,
           note: input.note?.trim() || null,
           payment_method: input.payment_method ?? null,
-          ...(input.ledger_type === 'family' && input.owner_id ? { owner_id: input.owner_id } : {})
+          ...resolveUpdateOwnerPatch(input.ledger_type, input.owner_id)
         })
         .eq('id', id);
 

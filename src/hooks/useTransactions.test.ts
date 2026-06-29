@@ -4,7 +4,33 @@ import type { Transaction } from '../types';
 const { from } = vi.hoisted(() => ({ from: vi.fn() }));
 vi.mock('../lib/supabase', () => ({ supabase: { from } }));
 
-import { fetchTransactions, filterTransactionsByMonth } from './useTransactions';
+import {
+  fetchTransactions,
+  filterTransactionsByMonth,
+  resolveInsertOwnerId,
+  resolveUpdateOwnerPatch
+} from './useTransactions';
+
+describe('resolveInsertOwnerId', () => {
+  it('家庭帳本可代記他人；未指定則為記帳人本人', () => {
+    expect(resolveInsertOwnerId('family', 'spouse', 'me')).toBe('spouse');
+    expect(resolveInsertOwnerId('family', undefined, 'me')).toBe('me');
+  });
+  it('個人帳本一律記帳人本人（忽略傳入 owner）', () => {
+    expect(resolveInsertOwnerId('personal', 'spouse', 'me')).toBe('me');
+    expect(resolveInsertOwnerId('personal', undefined, 'me')).toBe('me');
+  });
+});
+
+describe('resolveUpdateOwnerPatch', () => {
+  it('家庭帳本且有指定 owner 才更新 owner_id', () => {
+    expect(resolveUpdateOwnerPatch('family', 'spouse')).toEqual({ owner_id: 'spouse' });
+  });
+  it('家庭帳本未指定 owner，或個人帳本，皆不動 owner_id', () => {
+    expect(resolveUpdateOwnerPatch('family', undefined)).toEqual({});
+    expect(resolveUpdateOwnerPatch('personal', 'spouse')).toEqual({});
+  });
+});
 
 // 紀錄 query builder 上每個過濾呼叫，最後以 thenable 回傳 {data,error}
 function makeBuilder(calls: Array<[string, string, unknown]>) {
