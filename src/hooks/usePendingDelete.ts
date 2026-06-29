@@ -48,6 +48,9 @@ export function usePendingDelete(commit: (id: string) => Promise<void>) {
 
   const requestDelete = useCallback(
     (id: string) => {
+      // 已在等待視窗中：不重複排程，否則舊 timer 會脫離追蹤（map 只留最後一個），
+      // 造成復原後殘留 timer 仍偷偷送出刪除（重複刪除）。
+      if (timers.current.has(id)) return;
       setPendingIds((current) => (current.includes(id) ? current : [...current, id]));
       const timer = window.setTimeout(() => void commitNow(id), UNDO_WINDOW_MS);
       timers.current.set(id, timer);

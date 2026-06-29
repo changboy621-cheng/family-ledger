@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
-import { formatAmount } from '../lib/currency';
-import { useAnalysisTransactions, useTransactions } from '../hooks/useTransactions';
+import { CURRENCIES, formatAmount } from '../lib/currency';
+import { useLedgerTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
+import { FAB } from '../components/common/FAB';
 import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
@@ -24,41 +25,36 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const { groupedTransactions, loading, createTransaction, deleteTransaction, updateTransaction } = useTransactions(
-    ledgerType,
-    yearMonth,
-    currencyFilter
-  );
-  const { transactions: analysisTransactions, loadTransactions: reloadAnalysisTransactions } =
-    useAnalysisTransactions(ledgerType, yearMonth);
+  const {
+    transactions: analysisTransactions,
+    groupedTransactions,
+    loading,
+    error,
+    loadTransactions,
+    createTransaction,
+    deleteTransaction,
+    updateTransaction
+  } = useLedgerTransactions(ledgerType, yearMonth, currencyFilter);
   const analysis = useLedgerAnalysis(analysisTransactions, yearMonth);
   const isFamily = ledgerType === 'family';
   const showToast = useUIStore((state) => state.showToast);
   // 只顯示有金額的幣別；都沒有時至少顯示 TWD，避免空卡
   const activeCurrencies = useMemo(() => {
-    const active = (['TWD', 'USD'] as Currency[]).filter(
+    const active = CURRENCIES.filter(
       (currency) =>
         analysis.summary.expense[currency] !== 0 ||
         analysis.summary.income[currency] !== 0 ||
         analysis.summary.balance[currency] !== 0
     );
-    return active.length > 0 ? active : (['TWD'] as Currency[]);
+    return active.length > 0 ? active : [CURRENCIES[0]];
   }, [analysis.summary]);
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
-    await reloadAnalysisTransactions();
     showToast('交易已新增');
   }
 
-  const commitDelete = useCallback(
-    async (transactionId: string) => {
-      await deleteTransaction(transactionId);
-      await reloadAnalysisTransactions();
-    },
-    [deleteTransaction, reloadAnalysisTransactions]
-  );
-  const { pendingIds, requestDelete } = usePendingDelete(commitDelete);
+  const { pendingIds, requestDelete } = usePendingDelete(deleteTransaction);
 
   const handleSelectEdit = useCallback((transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -69,7 +65,6 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
     if (!editingTransaction) return;
     try {
       await updateTransaction({ id: editingTransaction.id, ...input });
-      await reloadAnalysisTransactions();
       showToast('交易已更新');
       setEditingTransaction(null);
       setShowForm(false);
@@ -87,6 +82,11 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       <MonthPicker value={yearMonth} onChange={setYearMonth} />
 
+      {error ? (
+        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+          本月財務資料載入失敗，請至下方交易清單按「重試」。
+        </section>
+      ) : (
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className={`grid gap-3 ${activeCurrencies.length > 1 ? 'md:grid-cols-2' : ''}`}>
           {activeCurrencies.map((currency) => (
@@ -103,31 +103,25 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
           ))}
         </div>
       </section>
+      )}
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-2">
-          {(['all', 'TWD', 'USD'] as const).map((option) => (
-            <button
-              key={option}
-              className={`rounded-full px-3 py-2 text-sm font-semibold ${
-                currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
-              }`}
-              type="button"
-              onClick={() => setCurrencyFilter(option)}
-            >
-              {option === 'all' ? '全部' : option}
-            </button>
-          ))}
-        </div>
-        <button
-          className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${isFamily ? 'bg-family' : 'bg-personal'}`}
-          type="button"
-          onClick={() => setShowForm(true)}
-        >
-          新增
-        </button>
+      <div className="flex gap-2">
+        {(['all', 'TWD', 'USD'] as const).map((option) => (
+          <button
+            key={option}
+            className={`rounded-full px-3 py-2 text-sm font-semibold ${
+              currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+            }`}
+            type="button"
+            onClick={() => setCurrencyFilter(option)}
+          >
+            {option === 'all' ? '全部' : option}
+          </button>
+        ))}
       </div>
 
+      {!error && (
+        <>
       <TopExpenseCategories
         items={analysis.topCategories}
         currencyFilter={currencyFilter}
@@ -161,14 +155,20 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         currencyFilter={currencyFilter}
         labelKey="label"
       />
+        </>
+      )}
 
       <TransactionList
         groupedTransactions={groupedTransactions}
         loading={loading}
+        error={error}
+        onRetry={loadTransactions}
         onDelete={requestDelete}
         onEdit={handleSelectEdit}
         hiddenIds={pendingIds}
       />
+
+      <FAB ledgerType={ledgerType} onSelect={() => setShowForm(true)} />
 
       {showForm ? (
         <TransactionForm

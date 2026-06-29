@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useCategories } from '../hooks/useCategories';
 import { parseQuickEntry } from '../lib/quickEntry';
+import { getErrorMessage } from '../lib/errors';
 import { formatAmount } from '../lib/currency';
 import { todayISO } from '../lib/utils';
 
@@ -65,7 +66,7 @@ export function QuickAdd() {
       });
 
       if (error) {
-        setState({ status: 'error', message: error.message });
+        setState({ status: 'error', message: getErrorMessage(error) });
         return;
       }
 

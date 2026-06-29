@@ -1,4 +1,6 @@
+import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { CategoryExpenseSummary, Currency } from '../../types';
 
 interface ExpenseCategorySummaryProps {
@@ -7,15 +9,7 @@ interface ExpenseCategorySummaryProps {
   title?: string;
 }
 
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-export function ExpenseCategorySummary({
+function ExpenseCategorySummaryBase({
   items,
   currencyFilter,
   title = '本月支出分類'
@@ -59,7 +53,7 @@ export function ExpenseCategorySummary({
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-family transition-all"
-                          style={{ width: `${Math.max(item.ratios[currency] * 100, item.ratios[currency] > 0 ? 6 : 0)}%` }}
+                          style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
                         />
                       </div>
                     </div>
@@ -73,3 +67,6 @@ export function ExpenseCategorySummary({
     </section>
   );
 }
+
+// 由 LedgerPage 在 showForm/currencyFilter 等變動時重繪；props 來自 useMemo 後穩定，memo 可跳過重算。
+export const ExpenseCategorySummary = memo(ExpenseCategorySummaryBase);

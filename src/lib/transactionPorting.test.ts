@@ -1,6 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../types';
-import { EXPORT_HEADER, buildExportRows, parseImportRecords } from './transactionPorting';
+import {
+  EXPORT_HEADER,
+  buildExportRows,
+  categoryKey,
+  collectMissingCategories,
+  parseImportRecords
+} from './transactionPorting';
+
+describe('collectMissingCategories', () => {
+  it('排除已存在、並去除重複（type|name）', () => {
+    const records = [
+      { type: 'expense' as const, categoryName: '餐飲' },
+      { type: 'expense' as const, categoryName: '餐飲' }, // 重複
+      { type: 'expense' as const, categoryName: '交通' }, // 已存在
+      { type: 'income' as const, categoryName: '餐飲' }, // 同名不同 type → 視為不同
+      { type: 'expense' as const, categoryName: '娛樂' }
+    ];
+    const existing = new Set([categoryKey('expense', '交通')]);
+    const missing = collectMissingCategories(records, existing);
+    expect(missing).toEqual([
+      { name: '餐飲', type: 'expense' },
+      { name: '餐飲', type: 'income' },
+      { name: '娛樂', type: 'expense' }
+    ]);
+  });
+
+  it('全部已存在時回傳空陣列', () => {
+    const records = [{ type: 'expense' as const, categoryName: '餐飲' }];
+    expect(collectMissingCategories(records, new Set([categoryKey('expense', '餐飲')]))).toEqual([]);
+  });
+});
 
 function tx(partial: Partial<Transaction>): Transaction {
   return {

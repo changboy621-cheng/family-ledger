@@ -1,4 +1,7 @@
+import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
+import { PAYMENT_METHOD_DISPLAY } from '../../lib/constants';
 import type { Currency, PaymentExpenseSummary } from '../../types';
 
 interface PaymentMethodSummaryProps {
@@ -7,21 +10,9 @@ interface PaymentMethodSummaryProps {
   title?: string;
 }
 
-const METHOD_LABELS: Record<PaymentExpenseSummary['method'], { name: string; icon: string }> = {
-  cash: { name: '現金', icon: '💵' },
-  card: { name: '刷卡', icon: '💳' },
-  unspecified: { name: '未指定', icon: '🧾' }
-};
+const METHOD_LABELS = PAYMENT_METHOD_DISPLAY;
 
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-export function PaymentMethodSummary({
+function PaymentMethodSummaryBase({
   items,
   currencyFilter,
   title = '本月付款方式'
@@ -52,7 +43,7 @@ export function PaymentMethodSummary({
                           <span className="text-xl" aria-hidden="true">
                             {METHOD_LABELS[item.method].icon}
                           </span>
-                          <span className="font-medium text-slate-900">{METHOD_LABELS[item.method].name}</span>
+                          <span className="font-medium text-slate-900">{METHOD_LABELS[item.method].label}</span>
                         </div>
                         <div className="text-right">
                           <strong className="block text-slate-900">{formatAmount(item.totals[currency], currency)}</strong>
@@ -62,7 +53,7 @@ export function PaymentMethodSummary({
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-family transition-all"
-                          style={{ width: `${Math.max(item.ratios[currency] * 100, item.ratios[currency] > 0 ? 6 : 0)}%` }}
+                          style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
                         />
                       </div>
                     </div>
@@ -76,3 +67,6 @@ export function PaymentMethodSummary({
     </section>
   );
 }
+
+// 由 LedgerPage 在 showForm/currencyFilter 等變動時重繪；props 來自 useMemo 後穩定，memo 可跳過重算。
+export const PaymentMethodSummary = memo(PaymentMethodSummaryBase);

@@ -1,30 +1,34 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { Category, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { deriveReferenceLoading, useReferenceStore } from '../store/referenceStore';
 
 export function useCategories(type: TransactionType) {
   const profile = useAuthStore((state) => state.profile);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadCategories = useCallback(async () => {
-    if (!profile?.family_id) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('type', type)
-      .or(`family_id.is.null,family_id.eq.${profile.family_id}`)
-      .order('sort_order', { ascending: true });
-
-    if (!error) setCategories(data ?? []);
-    setLoading(false);
-  }, [profile?.family_id, type]);
+  const allCategories = useReferenceStore((state) => state.categories);
+  const storeLoading = useReferenceStore((state) => state.categoriesLoading);
+  const loadedFamilyId = useReferenceStore((state) => state.loadedCategoriesFamilyId);
+  const error = useReferenceStore((state) => state.categoriesError);
+  const ensureCategories = useReferenceStore((state) => state.ensureCategories);
+  const reloadCategories = useReferenceStore((state) => state.reloadCategories);
 
   useEffect(() => {
-    void loadCategories();
-  }, [loadCategories]);
+    if (profile?.family_id) void ensureCategories(profile.family_id);
+  }, [profile?.family_id, ensureCategories]);
+
+  // 尚未為當前家庭載入完成前一律視為載入中，避免 QuickAdd 提早判定「找不到類別」；
+  // 但載入失敗時改回「非載入中」，避免卡在無限轉圈（沿用原本失敗即顯示空集合的行為）。
+  const loading = deriveReferenceLoading(storeLoading, loadedFamilyId, profile?.family_id, error);
+
+  // 快取的分類含全部類型；依目前 type 過濾並排序（取代原本的 per-type 查詢）。
+  const categories = useMemo(
+    () =>
+      allCategories
+        .filter((category) => category.type === type)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [allCategories, type]
+  );
 
   // 新增家庭自訂類別，回傳建立後的類別（供表單立即選用）。
   const createCategory = useCallback(
@@ -48,10 +52,10 @@ export function useCategories(type: TransactionType) {
         .single();
 
       if (error || !data) throw error ?? new Error('新增類別失敗，請稍後再試。');
-      await loadCategories();
+      await reloadCategories(profile.family_id);
       return data as Category;
     },
-    [categories, loadCategories, profile?.family_id, type]
+    [categories, reloadCategories, profile?.family_id, type]
   );
 
   // 更新自訂類別的名稱與圖示（系統內建類別因 RLS 無法更新）。
@@ -68,11 +72,15 @@ export function useCategories(type: TransactionType) {
         .single();
 
       if (error || !data) throw error ?? new Error('更新類別失敗，請稍後再試。');
-      await loadCategories();
+      if (profile?.family_id) await reloadCategories(profile.family_id);
       return data as Category;
     },
-    [loadCategories]
+    [reloadCategories, profile?.family_id]
   );
 
-  return { categories, loading, createCategory, updateCategory, reload: loadCategories };
+  const reload = useCallback(async () => {
+    if (profile?.family_id) await reloadCategories(profile.family_id);
+  }, [reloadCategories, profile?.family_id]);
+
+  return { categories, loading, createCategory, updateCategory, reload };
 }

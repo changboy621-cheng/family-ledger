@@ -1,5 +1,6 @@
 // 交易匯出列／匯入解析：把交易轉成中文欄位 CSV 列，並把外部 CSV 依欄名辨識成可寫入的紀錄。
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
+import { paymentMethodLabel } from './constants';
 
 export const EXPORT_HEADER = ['日期', '帳本', '類型', '類別', '金額', '幣別', '付款方式', '備註', '記錄人'];
 
@@ -14,10 +15,28 @@ export interface ImportRecord {
   note: string;
 }
 
-function paymentLabel(method: PaymentMethod | null | undefined): string {
-  if (method === 'cash') return '現金';
-  if (method === 'card') return '刷卡';
-  return '';
+/** 分類去重用的複合 key（type|name）。 */
+export function categoryKey(type: TransactionType, name: string): string {
+  return `${type}|${name}`;
+}
+
+/**
+ * 從匯入紀錄中挑出「尚未存在」且去重後的分類，供一次性 batch 建立。
+ * 取代原本逐筆 await insert 的 N+1 網路往返。
+ */
+export function collectMissingCategories(
+  records: Pick<ImportRecord, 'type' | 'categoryName'>[],
+  existingKeys: Set<string>
+): { name: string; type: TransactionType }[] {
+  const seen = new Set<string>();
+  const missing: { name: string; type: TransactionType }[] = [];
+  for (const record of records) {
+    const key = categoryKey(record.type, record.categoryName);
+    if (existingKeys.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    missing.push({ name: record.categoryName, type: record.type });
+  }
+  return missing;
 }
 
 export function buildExportRows(transactions: Transaction[]): string[][] {
@@ -28,7 +47,7 @@ export function buildExportRows(transactions: Transaction[]): string[][] {
     transaction.category?.name ?? '',
     String(transaction.amount),
     transaction.currency,
-    paymentLabel(transaction.payment_method),
+    paymentMethodLabel(transaction.payment_method),
     transaction.note ?? '',
     transaction.owner?.display_name ?? ''
   ]);

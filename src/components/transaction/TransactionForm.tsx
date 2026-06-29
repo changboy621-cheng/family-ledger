@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
+import { getErrorMessage } from '../../lib/errors';
+import { paymentMethodLabel } from '../../lib/constants';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
@@ -11,6 +13,7 @@ import type { TransactionInput } from '../../hooks/useTransactions';
 import { AmountInput } from '../common/AmountInput';
 import { CategoryPicker } from '../common/CategoryPicker';
 import { CurrencySelector } from '../common/CurrencySelector';
+import { Modal } from '../common/Modal';
 
 interface TransactionFormProps {
   initialLedgerType: LedgerType;
@@ -93,23 +96,28 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
       setNote('');
       onClose();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : '儲存失敗，請稍後再試。');
+      setError(
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? '目前離線，請連上網路後再試。'
+          : getErrorMessage(submitError, '儲存失敗，請稍後再試。')
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-900/40 p-4">
-      <div className="mx-auto max-w-3xl rounded-xl bg-white p-5 shadow-xl">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-slate-900">{initialTransaction ? '編輯交易' : '新增記帳'}</h2>
-          <button className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100" type="button" onClick={onClose}>
-            關閉
-          </button>
-        </div>
+  const dialogTitle = initialTransaction ? '編輯交易' : '新增記帳';
 
-        <form className="mt-5 grid gap-5" onSubmit={handleSubmit}>
+  return (
+    <Modal title={dialogTitle} onClose={onClose}>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-bold text-slate-900">{dialogTitle}</h2>
+        <button className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100" type="button" onClick={onClose}>
+          關閉
+        </button>
+      </div>
+
+      <form className="mt-5 grid gap-5" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
             {(['family', 'personal'] as LedgerType[]).map((option) => (
               <button
@@ -150,7 +158,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                 }`}
                 onClick={() => setPaymentMethod(option)}
               >
-                {option === 'cash' ? '現金' : '刷卡'}
+                {paymentMethodLabel(option)}
               </button>
             ))}
           </div>
@@ -257,8 +265,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
           >
             {saving ? '儲存中...' : initialTransaction ? '更新交易' : '儲存交易'}
           </button>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

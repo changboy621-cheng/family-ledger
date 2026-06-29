@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 import type { Currency } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { useReferenceStore } from '../store/referenceStore';
+import { parseInviteFamily } from '../lib/schemas';
 import { loadProfileIntoStore } from './loadProfileIntoStore';
 import {
   clearOnboardingDraft,
@@ -48,10 +50,11 @@ export async function resolveInviteFamily(rawCode: string): Promise<{ id: string
     code: rawCode?.trim().toUpperCase() ?? ''
   });
   const match = Array.isArray(data) ? data[0] : data;
-  if (error || !match) {
+  const family = parseInviteFamily(match);
+  if (error || !family) {
     throw new Error('找不到這組邀請碼，請確認大小寫與數字。');
   }
-  return match as { id: string; name: string };
+  return family;
 }
 
 export function useAuth() {
@@ -222,6 +225,8 @@ export function useAuth() {
     if (error) throw error;
 
     await loadProfileIntoStore(session.user.id);
+    // 成員快取含顯示名稱，改名後需失效，否則「幫誰記帳」選單仍顯示舊名。
+    if (profile?.family_id) await useReferenceStore.getState().reloadMembers(profile.family_id);
   }
 
   async function updateFamilyName(rawName: string) {

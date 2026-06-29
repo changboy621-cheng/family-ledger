@@ -5,7 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import { useTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useMonthlySummary } from '../hooks/useMonthlySummary';
+import { useFamilyMembers } from '../hooks/useFamilyMembers';
 import { DualCurrencyDisplay } from '../components/common/DualCurrencyDisplay';
+import { FamilyInvite } from '../components/family/FamilyInvite';
 import { FAB } from '../components/common/FAB';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
@@ -23,6 +25,18 @@ export function Dashboard() {
   const familyPending = usePendingDelete(familyTransactions.deleteTransaction);
   const personalPending = usePendingDelete(personalTransactions.deleteTransaction);
   const showToast = useUIStore((state) => state.showToast);
+  const { members } = useFamilyMembers();
+
+  // 新使用者引導：資料載入完成且無誤時才判斷，避免載入中誤顯示。
+  const ledgersReady =
+    !familyTransactions.loading &&
+    !personalTransactions.loading &&
+    !familyTransactions.error &&
+    !personalTransactions.error;
+  // 恰為 1 名成員才算 solo：載入中或查詢失敗時 members 為空（length 0），不會誤顯示邀請卡。
+  const isSoloFamily = members.length === 1;
+  const hasTransactionThisMonth =
+    familyTransactions.transactions.length > 0 || personalTransactions.transactions.length > 0;
 
   const handleSelectEdit = useCallback((transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -74,9 +88,25 @@ export function Dashboard() {
       </header>
 
       <section className="grid gap-3 md:grid-cols-2">
-        <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
-        <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+        {familyTransactions.error ? (
+          <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">家庭本月支出載入失敗</div>
+        ) : (
+          <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
+        )}
+        {personalTransactions.error ? (
+          <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">個人本月支出載入失敗</div>
+        ) : (
+          <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+        )}
       </section>
+
+      {ledgersReady && !hasTransactionThisMonth ? (
+        <section className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
+          這個月還沒有交易，點右下角的「＋」記一筆吧！
+        </section>
+      ) : null}
+
+      {ledgersReady && isSoloFamily ? <FamilyInvite variant="card" /> : null}
 
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="grid gap-3">
@@ -84,6 +114,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={familyRecent}
             loading={familyTransactions.loading}
+            error={familyTransactions.error}
+            onRetry={familyTransactions.loadTransactions}
             onDelete={familyPending.requestDelete}
             onEdit={handleSelectEdit}
             hiddenIds={familyPending.pendingIds}
@@ -94,6 +126,8 @@ export function Dashboard() {
           <TransactionList
             groupedTransactions={personalRecent}
             loading={personalTransactions.loading}
+            error={personalTransactions.error}
+            onRetry={personalTransactions.loadTransactions}
             onDelete={personalPending.requestDelete}
             onEdit={handleSelectEdit}
             hiddenIds={personalPending.pendingIds}

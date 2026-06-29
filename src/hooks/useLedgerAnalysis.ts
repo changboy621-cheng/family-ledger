@@ -10,10 +10,8 @@ import type {
   OwnerExpenseSummary,
   Transaction
 } from '../types';
-
-function emptyCurrencySummary(): CurrencySummary {
-  return { TWD: 0, USD: 0 };
-}
+import { emptyCurrencySummary } from '../lib/currency';
+import { DEFAULT_AVATAR_COLOR, TREND_MONTHS, TREND_MONTHS_BACK } from '../lib/constants';
 
 function emptyMonthlySummary(): MonthlySummary {
   return {
@@ -58,8 +56,8 @@ function createDailyTrend(yearMonth: string): DailyExpensePoint[] {
 function createMonthlyTrend(yearMonth: string): MonthlyExpensePoint[] {
   const end = parseYearMonthStart(yearMonth);
 
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = addMonths(end, index - 5);
+  return Array.from({ length: TREND_MONTHS }, (_, index) => {
+    const date = addMonths(end, index - TREND_MONTHS_BACK);
     return {
       yearMonth: format(date, 'yyyy-MM'),
       label: format(date, 'M月'),
@@ -130,7 +128,7 @@ export function analyzeLedgerTransactions(transactions: Transaction[], yearMonth
     const existingOwner = owners.get(ownerKey) ?? {
       ownerId: ownerKey,
       ownerName: transaction.owner?.display_name ?? '未命名成員',
-      avatarColor: transaction.owner?.avatar_color ?? '#64748B',
+      avatarColor: transaction.owner?.avatar_color ?? DEFAULT_AVATAR_COLOR,
       totals: emptyCurrencySummary(),
       ratios: emptyCurrencySummary(),
       categories: []

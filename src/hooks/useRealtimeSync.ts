@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 
 export function useRealtimeSync(familyId: string | undefined, onChange: () => void) {
   const channelKeyRef = useRef(`rt_${Math.random().toString(36).slice(2, 10)}`);
+  // 用 ref 持有最新 onChange，讓 channel 訂閱不因 callback 身分變動（如換月時 loadTransactions 重建）而拆/重建。
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     if (!familyId) return undefined;
@@ -17,12 +20,12 @@ export function useRealtimeSync(familyId: string | undefined, onChange: () => vo
           table: 'transactions',
           filter: `family_id=eq.${familyId}&ledger_type=eq.family`
         },
-        () => onChange()
+        () => onChangeRef.current()
       )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [familyId, onChange]);
+  }, [familyId]);
 }
