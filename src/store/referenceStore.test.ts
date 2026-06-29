@@ -17,6 +17,25 @@ function builder(data: unknown[], error: { message: string } | null = null) {
   return b;
 }
 
+// 符合 zod schema 的最小合法資料（schemas 會丟棄結構不符的列）。
+const member = (over: Record<string, unknown> = {}) => ({
+  id: 'u1',
+  family_id: 'fam1',
+  display_name: 'A',
+  avatar_color: '#000000',
+  default_currency: 'TWD',
+  ...over
+});
+const category = (over: Record<string, unknown> = {}) => ({
+  id: 'c1',
+  name: '餐飲',
+  icon: '🍜',
+  type: 'expense',
+  is_shared: true,
+  family_id: null,
+  ...over
+});
+
 const INITIAL = useReferenceStore.getState();
 
 describe('referenceStore', () => {
@@ -26,7 +45,7 @@ describe('referenceStore', () => {
   });
 
   it('ensureMembers 並發呼叫只發一次查詢', async () => {
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1' }]));
+    from.mockReturnValue(builder([member()]));
     await Promise.all([
       useReferenceStore.getState().ensureMembers('fam1'),
       useReferenceStore.getState().ensureMembers('fam1')
@@ -36,36 +55,36 @@ describe('referenceStore', () => {
   });
 
   it('ensureMembers 已快取同一家庭時不再查詢', async () => {
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1' }]));
+    from.mockReturnValue(builder([member()]));
     await useReferenceStore.getState().ensureMembers('fam1');
     await useReferenceStore.getState().ensureMembers('fam1');
     expect(from).toHaveBeenCalledTimes(1);
   });
 
   it('ensureMembers 換家庭會重新查詢', async () => {
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1' }]));
+    from.mockReturnValue(builder([member()]));
     await useReferenceStore.getState().ensureMembers('fam1');
     await useReferenceStore.getState().ensureMembers('fam2');
     expect(from).toHaveBeenCalledTimes(2);
   });
 
   it('reloadMembers 強制重新查詢（改名後失效快取）', async () => {
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1', display_name: '舊名' }]));
+    from.mockReturnValue(builder([member({ display_name: '舊名' })]));
     await useReferenceStore.getState().ensureMembers('fam1');
     expect(from).toHaveBeenCalledTimes(1);
 
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1', display_name: '新名' }]));
+    from.mockReturnValue(builder([member({ display_name: '新名' })]));
     await useReferenceStore.getState().reloadMembers('fam1');
     expect(from).toHaveBeenCalledTimes(2);
     expect((useReferenceStore.getState().members[0] as { display_name: string }).display_name).toBe('新名');
   });
 
   it('ensureMembers 換家庭時立即清空舊成員（避免短暫露出他家資料）', async () => {
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1' }]));
+    from.mockReturnValue(builder([member()]));
     await useReferenceStore.getState().ensureMembers('fam1');
     expect(useReferenceStore.getState().members).toHaveLength(1);
 
-    from.mockReturnValue(builder([{ id: 'u2', family_id: 'fam2' }]));
+    from.mockReturnValue(builder([member({ id: 'u2', family_id: 'fam2' })]));
     const pending = useReferenceStore.getState().ensureMembers('fam2');
     expect(useReferenceStore.getState().members).toEqual([]); // 查詢解析前即清空
     await pending;
@@ -73,7 +92,7 @@ describe('referenceStore', () => {
   });
 
   it('ensureCategories 快取，reloadCategories 強制重新查詢', async () => {
-    from.mockReturnValue(builder([{ id: 'c1', type: 'expense', family_id: null }]));
+    from.mockReturnValue(builder([category()]));
     await useReferenceStore.getState().ensureCategories('fam1');
     await useReferenceStore.getState().ensureCategories('fam1');
     expect(from).toHaveBeenCalledTimes(1);
@@ -95,7 +114,7 @@ describe('referenceStore', () => {
     );
 
     // 重試成功後恢復
-    from.mockReturnValue(builder([{ id: 'c1', type: 'expense', family_id: null }]));
+    from.mockReturnValue(builder([category()]));
     await useReferenceStore.getState().ensureCategories('fam1');
     expect(from).toHaveBeenCalledTimes(2);
     expect(useReferenceStore.getState().categoriesError).toBe(false);
@@ -106,7 +125,7 @@ describe('referenceStore', () => {
 describe('authStore.reset 清空參照快取', () => {
   it('登出 reset 後成員/分類與已載入標記皆清空', async () => {
     const { useAuthStore } = await import('./authStore');
-    from.mockReturnValue(builder([{ id: 'u1', family_id: 'fam1' }]));
+    from.mockReturnValue(builder([member()]));
     await useReferenceStore.getState().ensureMembers('fam1');
     expect(useReferenceStore.getState().members).toHaveLength(1);
 

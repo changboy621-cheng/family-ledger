@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
-import type { LedgerType, Transaction } from '../../types';
+import type { LedgerType } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { parseTransactions } from '../../lib/schemas';
 import { useAuthStore } from '../../store/authStore';
 import { useReferenceStore } from '../../store/referenceStore';
 import { useUIStore } from '../../store/uiStore';
@@ -47,7 +48,7 @@ export function DataTools() {
         .order('transaction_date', { ascending: false });
 
       if (error) throw error;
-      const transactions = (data ?? []) as Transaction[];
+      const transactions = parseTransactions(data);
       if (transactions.length === 0) {
         showToast('目前沒有可匯出的交易。', 'error');
         return;

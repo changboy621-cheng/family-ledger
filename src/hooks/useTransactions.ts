@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
+import { parseTransactions } from '../lib/schemas';
 import { monthRange, rollingMonthRange } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
 import { useRealtimeSync } from './useRealtimeSync';
@@ -88,7 +89,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
       from: range.from,
       to: range.to
     });
-    if (!error) setTransactions((data ?? []) as Transaction[]);
+    if (!error) setTransactions(parseTransactions(data));
     setLoading(false);
   }, [ledgerType, profile?.family_id, profile?.id, range.from, range.to]);
 

@@ -1,4 +1,5 @@
 import type { Currency } from '../types';
+import { parseOnboardingDraft } from './schemas';
 
 export type OnboardingMode = 'create' | 'join';
 
@@ -32,12 +33,21 @@ export function loadOnboardingDraft(): OnboardingDraft | null {
   const raw = localStorage.getItem(onboardingDraftStorageKey);
   if (!raw) return null;
 
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as OnboardingDraft;
+    parsed = JSON.parse(raw);
   } catch {
     localStorage.removeItem(onboardingDraftStorageKey);
     return null;
   }
+
+  // 竄改或舊 schema 的內容以 zod 驗證；不合法即清除，避免回傳半殘的 draft。
+  const draft = parseOnboardingDraft(parsed);
+  if (!draft) {
+    localStorage.removeItem(onboardingDraftStorageKey);
+    return null;
+  }
+  return draft;
 }
 
 export function clearOnboardingDraft() {

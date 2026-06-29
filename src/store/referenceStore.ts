@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Category, UserProfile } from '../types';
 import { supabase } from '../lib/supabase';
+import { parseCategories, parseUserProfiles } from '../lib/schemas';
 
 // 慢變動的參照資料（家庭成員、分類）集中快取，避免每個元件掛載各自重抓。
 // 以 family_id 為 key 載入一次；外部異動（分類匯入、改名）需呼叫對應 reload* 失效。
@@ -83,7 +84,7 @@ export const useReferenceStore = create<ReferenceState>((set, get) => ({
       set({ loadedMembersFamilyId: null, membersLoading: false, membersError: true });
       return;
     }
-    set({ members: (data ?? []) as UserProfile[], membersLoading: false });
+    set({ members: parseUserProfiles(data), membersLoading: false });
   },
 
   reloadCategories: async (familyId) => {
@@ -99,7 +100,7 @@ export const useReferenceStore = create<ReferenceState>((set, get) => ({
       set({ loadedCategoriesFamilyId: null, categoriesLoading: false, categoriesError: true });
       return;
     }
-    set({ categories: (data ?? []) as Category[], categoriesLoading: false });
+    set({ categories: parseCategories(data), categoriesLoading: false });
   },
 
   clear: () => set({ ...INITIAL })

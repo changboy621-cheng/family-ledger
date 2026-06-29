@@ -3,6 +3,7 @@ import type { Currency } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { useReferenceStore } from '../store/referenceStore';
+import { parseInviteFamily } from '../lib/schemas';
 import { loadProfileIntoStore } from './loadProfileIntoStore';
 import {
   clearOnboardingDraft,
@@ -49,10 +50,11 @@ export async function resolveInviteFamily(rawCode: string): Promise<{ id: string
     code: rawCode?.trim().toUpperCase() ?? ''
   });
   const match = Array.isArray(data) ? data[0] : data;
-  if (error || !match) {
+  const family = parseInviteFamily(match);
+  if (error || !family) {
     throw new Error('找不到這組邀請碼，請確認大小寫與數字。');
   }
-  return match as { id: string; name: string };
+  return family;
 }
 
 export function useAuth() {
