@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TransactionList } from './TransactionList';
+
+afterEach(cleanup);
 
 describe('TransactionList 載入失敗狀態', () => {
   it('error 時顯示「載入失敗＋重試」，而非假裝「沒有交易」', () => {
