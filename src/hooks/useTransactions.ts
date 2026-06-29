@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { parseTransactions } from '../lib/schemas';
+import { TREND_MONTHS_BACK } from '../lib/constants';
 import { monthRange, rollingMonthRange } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
 import { useRealtimeSync } from './useRealtimeSync';
@@ -23,8 +24,6 @@ export interface TransactionUpdateInput extends TransactionInput {
   id: string;
 }
 
-/** 近 6 個月趨勢所需的回看月數（rollingMonthRange 的 monthsBack 參數）。 */
-const TREND_MONTHS_BACK = 5;
 const TRANSACTION_SELECT = '*, category:categories(*), owner:user_profiles(*)';
 
 interface FetchTransactionsParams {

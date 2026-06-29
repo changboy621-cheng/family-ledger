@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Category, Transaction, UserProfile } from '../types';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
+import { DEFAULT_AVATAR_COLOR } from './constants';
 
 // 外部資料邊界（Supabase 列、RPC、localStorage）的 runtime 驗證，
 // 取代散落各處對未驗證資料的 `as Transaction[]` / `as unknown as` 等不安全轉型。
@@ -15,7 +16,7 @@ export const userProfileSchema = z.object({
   id: z.string(),
   family_id: z.string(),
   display_name: z.string(),
-  avatar_color: z.string().catch('#64748B'),
+  avatar_color: z.string().catch(DEFAULT_AVATAR_COLOR),
   default_currency: currencySchema.catch('TWD'),
   created_at: z.string().optional()
 });

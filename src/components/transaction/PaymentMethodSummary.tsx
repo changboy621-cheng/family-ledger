@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
 import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
+import { PAYMENT_METHOD_DISPLAY } from '../../lib/constants';
 import type { Currency, PaymentExpenseSummary } from '../../types';
 
 interface PaymentMethodSummaryProps {
@@ -9,11 +10,7 @@ interface PaymentMethodSummaryProps {
   title?: string;
 }
 
-const METHOD_LABELS: Record<PaymentExpenseSummary['method'], { name: string; icon: string }> = {
-  cash: { name: '現金', icon: '💵' },
-  card: { name: '刷卡', icon: '💳' },
-  unspecified: { name: '未指定', icon: '🧾' }
-};
+const METHOD_LABELS = PAYMENT_METHOD_DISPLAY;
 
 function PaymentMethodSummaryBase({
   items,
@@ -46,7 +43,7 @@ function PaymentMethodSummaryBase({
                           <span className="text-xl" aria-hidden="true">
                             {METHOD_LABELS[item.method].icon}
                           </span>
-                          <span className="font-medium text-slate-900">{METHOD_LABELS[item.method].name}</span>
+                          <span className="font-medium text-slate-900">{METHOD_LABELS[item.method].label}</span>
                         </div>
                         <div className="text-right">
                           <strong className="block text-slate-900">{formatAmount(item.totals[currency], currency)}</strong>

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { Transaction } from '../../types';
 import { formatAmount } from '../../lib/currency';
+import { DEFAULT_AVATAR_COLOR, paymentMethodLabel } from '../../lib/constants';
 import { CurrencyBadge } from '../common/CurrencyBadge';
 import { Pencil, Trash2 } from 'lucide-react';
 
@@ -33,12 +34,12 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName }: Tr
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
             <span
               className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: transaction.owner?.avatar_color ?? '#64748B' }}
+              style={{ backgroundColor: transaction.owner?.avatar_color ?? DEFAULT_AVATAR_COLOR }}
             />
             <span>{transaction.owner?.display_name ?? '我'}</span>
             {transaction.payment_method ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
-                {transaction.payment_method === 'cash' ? '現金' : '刷卡'}
+                {paymentMethodLabel(transaction.payment_method)}
               </span>
             ) : null}
             {recordedByOther ? (

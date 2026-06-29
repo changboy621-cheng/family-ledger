@@ -1,5 +1,6 @@
 // 交易匯出列／匯入解析：把交易轉成中文欄位 CSV 列，並把外部 CSV 依欄名辨識成可寫入的紀錄。
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../types';
+import { paymentMethodLabel } from './constants';
 
 export const EXPORT_HEADER = ['日期', '帳本', '類型', '類別', '金額', '幣別', '付款方式', '備註', '記錄人'];
 
@@ -38,12 +39,6 @@ export function collectMissingCategories(
   return missing;
 }
 
-function paymentLabel(method: PaymentMethod | null | undefined): string {
-  if (method === 'cash') return '現金';
-  if (method === 'card') return '刷卡';
-  return '';
-}
-
 export function buildExportRows(transactions: Transaction[]): string[][] {
   return transactions.map((transaction) => [
     transaction.transaction_date,
@@ -52,7 +47,7 @@ export function buildExportRows(transactions: Transaction[]): string[][] {
     transaction.category?.name ?? '',
     String(transaction.amount),
     transaction.currency,
-    paymentLabel(transaction.payment_method),
+    paymentMethodLabel(transaction.payment_method),
     transaction.note ?? '',
     transaction.owner?.display_name ?? ''
   ]);

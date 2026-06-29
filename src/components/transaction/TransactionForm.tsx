@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
+import { paymentMethodLabel } from '../../lib/constants';
 import { todayISO } from '../../lib/utils';
 import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
@@ -150,7 +151,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                 }`}
                 onClick={() => setPaymentMethod(option)}
               >
-                {option === 'cash' ? '現金' : '刷卡'}
+                {paymentMethodLabel(option)}
               </button>
             ))}
           </div>
