@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import type { Transaction } from '../types';
+import { emptyCurrencySummary } from '../lib/currency';
 
 export function useMonthlySummary(transactions: Transaction[]) {
   return useMemo(() => {
     const summary = {
-      income: { TWD: 0, USD: 0 },
-      expense: { TWD: 0, USD: 0 },
-      balance: { TWD: 0, USD: 0 }
+      income: emptyCurrencySummary(),
+      expense: emptyCurrencySummary(),
+      balance: emptyCurrencySummary()
     };
 
     for (const transaction of transactions) {

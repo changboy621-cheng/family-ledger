@@ -10,10 +10,7 @@ import type {
   OwnerExpenseSummary,
   Transaction
 } from '../types';
-
-function emptyCurrencySummary(): CurrencySummary {
-  return { TWD: 0, USD: 0 };
-}
+import { emptyCurrencySummary } from '../lib/currency';
 
 function emptyMonthlySummary(): MonthlySummary {
   return {
