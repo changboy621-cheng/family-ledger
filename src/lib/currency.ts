@@ -1,6 +1,9 @@
 import type { Currency, Transaction, TransactionType } from '../types';
 import { evaluateExpression } from './expression';
 
+// 所有支援幣別的單一來源，取代各處 `(['TWD','USD'] as Currency[])` 的重複轉型。
+export const CURRENCIES: readonly Currency[] = ['TWD', 'USD'];
+
 export const currencies: { code: Currency; label: string; symbol: string }[] = [
   { code: 'TWD', label: 'NT$ 新台幣', symbol: 'NT$' },
   { code: 'USD', label: '$ 美金', symbol: '$' }

@@ -1,18 +1,11 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { Currency, OwnerExpenseSummary } from '../../types';
 
 interface SpenderAnalysisProps {
   items: OwnerExpenseSummary[];
   currencyFilter: Currency | 'all';
-}
-
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
 }
 
 function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
@@ -56,7 +49,7 @@ function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
-                            width: `${Math.max(item.ratios[currency] * 100, item.ratios[currency] > 0 ? 6 : 0)}%`,
+                            width: `${ratioBarWidth(item.ratios[currency])}%`,
                             backgroundColor: item.avatarColor
                           }}
                         />
@@ -82,7 +75,7 @@ function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
                                 <div
                                   className="h-full rounded-full"
                                   style={{
-                                    width: `${Math.max(category.ratios[currency] * 100, category.ratios[currency] > 0 ? 6 : 0)}%`,
+                                    width: `${ratioBarWidth(category.ratios[currency])}%`,
                                     backgroundColor: item.avatarColor
                                   }}
                                 />

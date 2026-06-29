@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
-import { formatAmount } from '../lib/currency';
+import { CURRENCIES, formatAmount } from '../lib/currency';
 import { useLedgerTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
@@ -37,13 +37,13 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const showToast = useUIStore((state) => state.showToast);
   // 只顯示有金額的幣別；都沒有時至少顯示 TWD，避免空卡
   const activeCurrencies = useMemo(() => {
-    const active = (['TWD', 'USD'] as Currency[]).filter(
+    const active = CURRENCIES.filter(
       (currency) =>
         analysis.summary.expense[currency] !== 0 ||
         analysis.summary.income[currency] !== 0 ||
         analysis.summary.balance[currency] !== 0
     );
-    return active.length > 0 ? active : (['TWD'] as Currency[]);
+    return active.length > 0 ? active : [CURRENCIES[0]];
   }, [analysis.summary]);
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {

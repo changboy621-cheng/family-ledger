@@ -1,19 +1,12 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { CategoryExpenseSummary, Currency } from '../../types';
 
 interface ExpenseCategorySummaryProps {
   items: CategoryExpenseSummary[];
   currencyFilter: Currency | 'all';
   title?: string;
-}
-
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
 }
 
 function ExpenseCategorySummaryBase({
@@ -60,7 +53,7 @@ function ExpenseCategorySummaryBase({
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-family transition-all"
-                          style={{ width: `${Math.max(item.ratios[currency] * 100, item.ratios[currency] > 0 ? 6 : 0)}%` }}
+                          style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
                         />
                       </div>
                     </div>

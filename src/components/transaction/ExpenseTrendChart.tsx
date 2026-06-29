@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { visibleCurrencies } from '../../lib/summaryView';
 import type { Currency, DailyExpensePoint, MonthlyExpensePoint } from '../../types';
 
 interface ExpenseTrendChartProps {
@@ -7,10 +8,6 @@ interface ExpenseTrendChartProps {
   points: DailyExpensePoint[] | MonthlyExpensePoint[];
   currencyFilter: Currency | 'all';
   labelKey: 'day' | 'label';
-}
-
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
 }
 
 function getLabel(point: DailyExpensePoint | MonthlyExpensePoint, labelKey: 'day' | 'label') {

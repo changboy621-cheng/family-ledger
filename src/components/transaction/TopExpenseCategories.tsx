@@ -1,19 +1,12 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, visibleCurrencies } from '../../lib/summaryView';
 import type { CategoryExpenseSummary, Currency } from '../../types';
 
 interface TopExpenseCategoriesProps {
   items: CategoryExpenseSummary[];
   currencyFilter: Currency | 'all';
   title: string;
-}
-
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
 }
 
 function TopExpenseCategoriesBase({ items, currencyFilter, title }: TopExpenseCategoriesProps) {

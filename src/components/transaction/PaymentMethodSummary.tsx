@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
+import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { Currency, PaymentExpenseSummary } from '../../types';
 
 interface PaymentMethodSummaryProps {
@@ -13,14 +14,6 @@ const METHOD_LABELS: Record<PaymentExpenseSummary['method'], { name: string; ico
   card: { name: '刷卡', icon: '💳' },
   unspecified: { name: '未指定', icon: '🧾' }
 };
-
-function visibleCurrencies(currencyFilter: Currency | 'all') {
-  return currencyFilter === 'all' ? (['TWD', 'USD'] as Currency[]) : [currencyFilter];
-}
-
-function formatRatio(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
 
 function PaymentMethodSummaryBase({
   items,
@@ -63,7 +56,7 @@ function PaymentMethodSummaryBase({
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-family transition-all"
-                          style={{ width: `${Math.max(item.ratios[currency] * 100, item.ratios[currency] > 0 ? 6 : 0)}%` }}
+                          style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
                         />
                       </div>
                     </div>
