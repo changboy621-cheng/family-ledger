@@ -25,6 +25,18 @@ export function Login() {
     }
   }
 
+  async function handleGoogle() {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (googleError) {
+      setError(getErrorMessage(googleError, 'Google 登入失敗'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       <h1 className="text-xl font-bold text-slate-900">登入</h1>
@@ -57,9 +69,10 @@ export function Login() {
         </button>
       </form>
       <button
-        className="mt-3 h-11 w-full rounded-lg border border-slate-300 font-semibold text-slate-700"
+        className="mt-3 h-11 w-full rounded-lg border border-slate-300 font-semibold text-slate-700 disabled:opacity-60"
         type="button"
-        onClick={() => void signInWithGoogle()}
+        disabled={loading}
+        onClick={() => void handleGoogle()}
       >
         使用 Google 登入
       </button>
