@@ -14,6 +14,30 @@ export interface ImportRecord {
   note: string;
 }
 
+/** 分類去重用的複合 key（type|name）。 */
+export function categoryKey(type: TransactionType, name: string): string {
+  return `${type}|${name}`;
+}
+
+/**
+ * 從匯入紀錄中挑出「尚未存在」且去重後的分類，供一次性 batch 建立。
+ * 取代原本逐筆 await insert 的 N+1 網路往返。
+ */
+export function collectMissingCategories(
+  records: Pick<ImportRecord, 'type' | 'categoryName'>[],
+  existingKeys: Set<string>
+): { name: string; type: TransactionType }[] {
+  const seen = new Set<string>();
+  const missing: { name: string; type: TransactionType }[] = [];
+  for (const record of records) {
+    const key = categoryKey(record.type, record.categoryName);
+    if (existingKeys.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    missing.push({ name: record.categoryName, type: record.type });
+  }
+  return missing;
+}
+
 function paymentLabel(method: PaymentMethod | null | undefined): string {
   if (method === 'cash') return '現金';
   if (method === 'card') return '刷卡';

@@ -7,7 +7,14 @@ import { useReferenceStore } from '../../store/referenceStore';
 import { useUIStore } from '../../store/uiStore';
 import { todayISO } from '../../lib/utils';
 import { parseCSV, toCSV } from '../../lib/csv';
-import { EXPORT_HEADER, buildExportRows, parseImportRecords, type ImportRecord } from '../../lib/transactionPorting';
+import {
+  EXPORT_HEADER,
+  buildExportRows,
+  categoryKey,
+  collectMissingCategories,
+  parseImportRecords,
+  type ImportRecord
+} from '../../lib/transactionPorting';
 import { detectAndroMoney, parseAndroMoney } from '../../lib/importAdapters';
 
 function downloadCSV(filename: string, content: string) {
@@ -87,19 +94,26 @@ export function DataTools() {
         .or(`family_id.is.null,family_id.eq.${profile.family_id}`);
 
       const categoryByKey = new Map<string, string>();
-      (existing ?? []).forEach((category) => categoryByKey.set(`${category.type}|${category.name}`, category.id));
+      (existing ?? []).forEach((category) => categoryByKey.set(categoryKey(category.type, category.name), category.id));
 
-      // 對不到的類別自動建立（去重）
-      for (const record of preview.records) {
-        const key = `${record.type}|${record.categoryName}`;
-        if (categoryByKey.has(key)) continue;
+      // 對不到的類別一次性 batch 建立（去重），取代原本逐筆 await 的 N+1 往返。
+      const missing = collectMissingCategories(preview.records, new Set(categoryByKey.keys()));
+      if (missing.length > 0) {
         const { data: created, error } = await supabase
           .from('categories')
-          .insert({ name: record.categoryName, icon: '🏷️', type: record.type, family_id: profile.family_id, is_shared: true, sort_order: 999 })
-          .select('id')
-          .single();
+          .insert(
+            missing.map((category) => ({
+              name: category.name,
+              icon: '🏷️',
+              type: category.type,
+              family_id: profile.family_id,
+              is_shared: true,
+              sort_order: 999
+            }))
+          )
+          .select('id, name, type');
         if (error || !created) throw error ?? new Error('建立類別失敗');
-        categoryByKey.set(key, created.id);
+        created.forEach((category) => categoryByKey.set(categoryKey(category.type, category.name), category.id));
       }
 
       const inserts = preview.records.map((record) => ({
@@ -110,7 +124,7 @@ export function DataTools() {
         type: record.type,
         amount: record.amount,
         currency: record.currency,
-        category_id: categoryByKey.get(`${record.type}|${record.categoryName}`),
+        category_id: categoryByKey.get(categoryKey(record.type, record.categoryName)),
         transaction_date: record.transaction_date,
         payment_method: record.paymentMethod,
         note: record.note || null
