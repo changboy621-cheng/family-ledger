@@ -3,6 +3,7 @@ import { Download, Upload } from 'lucide-react';
 import type { LedgerType, Transaction } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { useReferenceStore } from '../../store/referenceStore';
 import { useUIStore } from '../../store/uiStore';
 import { todayISO } from '../../lib/utils';
 import { parseCSV, toCSV } from '../../lib/csv';
@@ -117,6 +118,9 @@ export function DataTools() {
 
       const { error: insertError } = await supabase.from('transactions').insert(inserts);
       if (insertError) throw insertError;
+
+      // 匯入可能新建分類，使分類快取失效，否則表單/QuickAdd 仍看不到新分類。
+      await useReferenceStore.getState().reloadCategories(profile.family_id);
 
       showToast(`已匯入 ${inserts.length} 筆${preview.skipped > 0 ? `（略過 ${preview.skipped}）` : ''}`);
       setPreview(null);

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { Currency } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { useReferenceStore } from '../store/referenceStore';
 import { loadProfileIntoStore } from './loadProfileIntoStore';
 import {
   clearOnboardingDraft,
@@ -222,6 +223,8 @@ export function useAuth() {
     if (error) throw error;
 
     await loadProfileIntoStore(session.user.id);
+    // 成員快取含顯示名稱，改名後需失效，否則「幫誰記帳」選單仍顯示舊名。
+    if (profile?.family_id) await useReferenceStore.getState().reloadMembers(profile.family_id);
   }
 
   async function updateFamilyName(rawName: string) {
