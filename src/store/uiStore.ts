@@ -8,48 +8,49 @@ interface ToastOptions {
   duration?: number;
 }
 
-interface ToastState {
+export interface ToastItem {
+  id: number;
   message: string;
   tone: ToastTone;
-  visible: boolean;
   actionLabel?: string;
   onAction?: () => void;
   duration: number;
 }
 
 interface UIState {
-  toast: ToastState;
+  toasts: ToastItem[];
   showToast: (message: string, tone?: ToastTone, options?: ToastOptions) => void;
-  hideToast: () => void;
+  dismissToast: (id: number) => void;
 }
 
 const DEFAULT_DURATION = 2400;
+const MAX_TOASTS = 3; // 同時最多顯示 3 個，避免洗版
+
+let nextToastId = 0;
 
 export const useUIStore = create<UIState>((set) => ({
-  toast: {
-    message: '',
-    tone: 'success',
-    visible: false,
-    duration: DEFAULT_DURATION
-  },
+  toasts: [],
+  // 改為 queue：新 toast 不再覆蓋舊的，避免後續訊息把「復原」按鈕（undo 視窗）吃掉。
   showToast: (message, tone = 'success', options) =>
-    set({
-      toast: {
-        message,
-        tone,
-        visible: true,
-        actionLabel: options?.actionLabel,
-        onAction: options?.onAction,
-        duration: options?.duration ?? DEFAULT_DURATION
-      }
+    set((state) => {
+      const next: ToastItem[] = [
+        ...state.toasts,
+        {
+          id: (nextToastId += 1),
+          message,
+          tone,
+          actionLabel: options?.actionLabel,
+          onAction: options?.onAction,
+          duration: options?.duration ?? DEFAULT_DURATION
+        }
+      ];
+      if (next.length <= MAX_TOASTS) return { toasts: next };
+
+      // 超過上限：優先淘汰最舊的「非可操作」toast，保留含復原等動作的 toast（否則仍會吃掉 undo）。
+      const removableIndex = next.findIndex((toast) => !toast.onAction);
+      if (removableIndex === -1) return { toasts: next.slice(1) };
+      next.splice(removableIndex, 1);
+      return { toasts: next };
     }),
-  hideToast: () =>
-    set((state) => ({
-      toast: {
-        ...state.toast,
-        visible: false,
-        actionLabel: undefined,
-        onAction: undefined
-      }
-    }))
+  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) }))
 }));
