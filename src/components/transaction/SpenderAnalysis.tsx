@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
 import type { Currency, OwnerExpenseSummary } from '../../types';
 
@@ -14,7 +15,7 @@ function formatRatio(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-export function SpenderAnalysis({ items, currencyFilter }: SpenderAnalysisProps) {
+function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
   const currencies = visibleCurrencies(currencyFilter);
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
@@ -100,3 +101,6 @@ export function SpenderAnalysis({ items, currencyFilter }: SpenderAnalysisProps)
     </section>
   );
 }
+
+// 由 LedgerPage 在 showForm/currencyFilter 等變動時重繪；props 來自 useMemo 後穩定，memo 可跳過重算。
+export const SpenderAnalysis = memo(SpenderAnalysisBase);

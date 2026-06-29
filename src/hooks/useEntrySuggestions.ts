@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { LedgerType, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
@@ -39,8 +39,9 @@ export function useEntrySuggestions(ledgerType: LedgerType, type: TransactionTyp
     };
   }, [ledgerType, type, profile?.family_id, profile?.id]);
 
-  return {
-    frequentItems: computeFrequentItems(rows),
-    noteHistory: computeRecentNotes(rows)
-  };
+  // rows 變動才重算；否則表單每次輸入（rerender）都會重掃最多 200 列兩次。
+  const frequentItems = useMemo(() => computeFrequentItems(rows), [rows]);
+  const noteHistory = useMemo(() => computeRecentNotes(rows), [rows]);
+
+  return { frequentItems, noteHistory };
 }

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
 import type { Currency, PaymentExpenseSummary } from '../../types';
 
@@ -21,7 +22,7 @@ function formatRatio(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-export function PaymentMethodSummary({
+function PaymentMethodSummaryBase({
   items,
   currencyFilter,
   title = '本月付款方式'
@@ -76,3 +77,6 @@ export function PaymentMethodSummary({
     </section>
   );
 }
+
+// 由 LedgerPage 在 showForm/currencyFilter 等變動時重繪；props 來自 useMemo 後穩定，memo 可跳過重算。
+export const PaymentMethodSummary = memo(PaymentMethodSummaryBase);

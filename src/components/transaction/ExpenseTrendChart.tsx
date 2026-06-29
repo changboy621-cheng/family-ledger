@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
 import type { Currency, DailyExpensePoint, MonthlyExpensePoint } from '../../types';
 
@@ -23,7 +24,7 @@ function shouldShowLabel(point: DailyExpensePoint | MonthlyExpensePoint, index: 
   return day === 1 || day % 5 === 0 || index === total - 1;
 }
 
-export function ExpenseTrendChart({ title, points, currencyFilter, labelKey }: ExpenseTrendChartProps) {
+function ExpenseTrendChartBase({ title, points, currencyFilter, labelKey }: ExpenseTrendChartProps) {
   const currencies = visibleCurrencies(currencyFilter);
   const hasData = points.some((point) => currencies.some((currency) => point.totals[currency] > 0));
 
@@ -82,3 +83,6 @@ export function ExpenseTrendChart({ title, points, currencyFilter, labelKey }: E
     </section>
   );
 }
+
+// 由 LedgerPage 在 showForm/currencyFilter 等變動時重繪；props 來自 useMemo 後穩定，memo 可跳過重算。
+export const ExpenseTrendChart = memo(ExpenseTrendChartBase);
