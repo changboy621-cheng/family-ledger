@@ -167,11 +167,19 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             <div className="grid gap-2">
               <p className="text-sm font-medium text-slate-700">常用快捷</p>
               <div className="flex flex-wrap gap-2">
-                {frequentItems.map((item) => (
+                {frequentItems.map((item) => {
+                  // 已套用（分類與備註都吻合目前表單）時高亮，讓使用者看得出點了哪一個。
+                  const active = item.categoryId === categoryId && item.note === note;
+                  return (
                   <button
                     key={`${item.categoryId}-${item.note}`}
                     type="button"
-                    className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 active:bg-slate-50"
+                    aria-pressed={active}
+                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition active:scale-95 ${
+                      active
+                        ? 'border-family bg-familySoft text-family'
+                        : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'
+                    }`}
                     onClick={() => applyQuickItem(item.categoryId, item.note)}
                   >
                     <span aria-hidden="true">{item.categoryIcon}</span>
@@ -180,7 +188,8 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                       {item.note ? ` · ${item.note}` : ''}
                     </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : null}
