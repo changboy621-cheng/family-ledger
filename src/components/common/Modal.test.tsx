@@ -51,4 +51,18 @@ describe('Modal a11y', () => {
     fireEvent.keyDown(document, { key: 'Tab' });
     expect(document.activeElement?.textContent).toBe('第一顆');
   });
+
+  it('開啟時鎖住背景捲動，關閉時還原（避免 iOS 連續記帳版面錯位）', () => {
+    document.body.style.overflow = '';
+    const { unmount } = render(
+      <Modal title="新增記帳" onClose={vi.fn()}>
+        <button>第一顆</button>
+      </Modal>
+    );
+    // 開啟期間背景不可捲動
+    expect(document.body.style.overflow).toBe('hidden');
+    unmount();
+    // 關閉後還原成原本的值（此例為空字串）
+    expect(document.body.style.overflow).toBe('');
+  });
 });

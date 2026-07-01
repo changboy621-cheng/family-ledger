@@ -23,8 +23,10 @@ export function Modal({ onClose, title, children }: ModalProps) {
     if (!dialog) return undefined;
 
     // 開啟時把焦點移入對話框（第一個可聚焦元素，否則對話框本身）。
+    // preventScroll：iOS 上程式化 focus 會把元素捲進可視區，導致固定浮層位移、
+    // 畫面比例看似變調、點擊座標對不上（連續記帳時特別明顯），故禁止此捲動。
     const first = dialog.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? dialog).focus();
+    (first ?? dialog).focus({ preventScroll: true });
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -56,6 +58,38 @@ export function Modal({ onClose, title, children }: ModalProps) {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
     // mount-only：初始聚焦只做一次；Esc 透過 onCloseRef 取得最新 handler（故 deps 為空）。
+  }, []);
+
+  // 開啟期間鎖住背景捲動：避免對話框內的捲動「串接」到底層頁面，
+  // 讓頁面在關閉後停在偏移位置，害下一次開窗的固定浮層錯位、無法點擊。
+  // 記錄開窗當下的捲動位置，關閉時原封還原，過程中不讓畫面跳動。
+  useEffect(() => {
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width
+    };
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+
+    return () => {
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      // 還原捲動位置（jsdom 的 scrollTo 為未實作的樁，故以 try 包住）。
+      try {
+        window.scrollTo(0, scrollY);
+      } catch {
+        // 測試環境無真正的捲動，忽略即可。
+      }
+    };
   }, []);
 
   return (
