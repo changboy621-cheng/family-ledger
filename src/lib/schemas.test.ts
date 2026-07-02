@@ -64,8 +64,8 @@ describe('parseCategories / parseUserProfiles / parseEntryRows', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('建議列：note 可為 null、category 可選', () => {
-    const result = parseEntryRows([{ category_id: 'c1', note: null }]);
+  it('建議列：note 可為 null', () => {
+    const result = parseEntryRows([{ note: null }]);
     expect(result).toHaveLength(1);
   });
 });

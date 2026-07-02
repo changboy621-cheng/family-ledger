@@ -37,13 +37,8 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [error, setError] = useState('');
   const { categories, createCategory, updateCategory } = useCategories(type);
   const { members } = useFamilyMembers();
-  const { frequentItems, noteHistory } = useEntrySuggestions(ledgerType, type);
+  const { noteHistory } = useEntrySuggestions(ledgerType, type);
   const noteSuggestions = filterNotes(noteHistory, note);
-
-  function applyQuickItem(categoryId: string, quickNote: string) {
-    setCategoryId(categoryId);
-    if (quickNote) setNote(quickNote);
-  }
 
   useEffect(() => {
     setLedgerType(initialTransaction?.ledger_type ?? initialLedgerType);
@@ -162,37 +157,6 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               </button>
             ))}
           </div>
-
-          {frequentItems.length > 0 ? (
-            <div className="grid gap-2">
-              <p className="text-sm font-medium text-slate-700">常用快捷</p>
-              <div className="flex flex-wrap gap-2">
-                {frequentItems.map((item) => {
-                  // 已套用（分類與備註都吻合目前表單）時高亮，讓使用者看得出點了哪一個。
-                  const active = item.categoryId === categoryId && item.note === note;
-                  return (
-                  <button
-                    key={`${item.categoryId}-${item.note}`}
-                    type="button"
-                    aria-pressed={active}
-                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition active:scale-95 ${
-                      active
-                        ? 'border-family bg-familySoft text-family'
-                        : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'
-                    }`}
-                    onClick={() => applyQuickItem(item.categoryId, item.note)}
-                  >
-                    <span aria-hidden="true">{item.categoryIcon}</span>
-                    <span>
-                      {item.categoryName}
-                      {item.note ? ` · ${item.note}` : ''}
-                    </span>
-                  </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
 
           {ledgerType === 'family' && members.length > 1 ? (
             <div className="grid gap-2">

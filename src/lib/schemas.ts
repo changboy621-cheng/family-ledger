@@ -54,10 +54,8 @@ export const transactionSchema = z.object({
 });
 
 export const entryRowSchema = z.object({
-  category_id: z.string(),
   note: z.string().nullish().catch(null),
-  transaction_date: z.string().optional(),
-  category: z.object({ name: z.string(), icon: z.string() }).nullish().catch(null)
+  transaction_date: z.string().optional()
 });
 
 export const onboardingDraftSchema = z.object({
