@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import type { Category, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
+import { sortByCategoryOrder } from '../lib/categoryOrder';
 import { useAuthStore } from '../store/authStore';
 import { deriveReferenceLoading, useReferenceStore } from '../store/referenceStore';
 
 export function useCategories(type: TransactionType) {
   const profile = useAuthStore((state) => state.profile);
+  const categoryOrder = useAuthStore((state) => state.family?.category_order);
   const allCategories = useReferenceStore((state) => state.categories);
   const storeLoading = useReferenceStore((state) => state.categoriesLoading);
   const loadedFamilyId = useReferenceStore((state) => state.loadedCategoriesFamilyId);
@@ -21,13 +23,14 @@ export function useCategories(type: TransactionType) {
   // 但載入失敗時改回「非載入中」，避免卡在無限轉圈（沿用原本失敗即顯示空集合的行為）。
   const loading = deriveReferenceLoading(storeLoading, loadedFamilyId, profile?.family_id, error);
 
-  // 快取的分類含全部類型；依目前 type 過濾並排序（取代原本的 per-type 查詢）。
+  // 快取的分類含全部類型；依目前 type 過濾，再套用家庭自訂順序（未列到者退回 sort_order）。
   const categories = useMemo(
     () =>
-      allCategories
-        .filter((category) => category.type === type)
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
-    [allCategories, type]
+      sortByCategoryOrder(
+        allCategories.filter((category) => category.type === type),
+        categoryOrder ?? []
+      ),
+    [allCategories, type, categoryOrder]
   );
 
   // 新增家庭自訂類別，回傳建立後的類別（供表單立即選用）。

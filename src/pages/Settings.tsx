@@ -1,6 +1,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { FamilyInvite } from '../components/family/FamilyInvite';
 import { DataTools } from '../components/settings/DataTools';
+import { CategoryOrderManager } from '../components/settings/CategoryOrderManager';
 import { SiriShortcut } from '../components/settings/SiriShortcut';
 import { InlineEditField } from '../components/common/InlineEditField';
 import { isValidDisplayName, MAX_DISPLAY_NAME_LENGTH } from '../lib/profile';
@@ -47,6 +48,11 @@ export function Settings() {
       </section>
 
       <FamilyInvite variant="plain" />
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="font-bold text-slate-900">類別排序</h2>
+        <CategoryOrderManager />
+      </section>
 
       <DataTools />
 

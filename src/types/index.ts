@@ -7,6 +7,8 @@ export interface Family {
   id: string;
   name: string;
   invite_code: string;
+  /** 家庭自訂的類別顯示順序（依序排列的 category id）；未列到者退回各類別的 sort_order。 */
+  category_order?: string[] | null;
   created_at?: string;
 }
 

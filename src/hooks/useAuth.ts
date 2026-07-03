@@ -252,6 +252,28 @@ export function useAuth() {
     await loadProfileIntoStore(session.user.id);
   }
 
+  // 儲存家庭自訂的類別顯示順序（依序排列的 category id）。
+  // 先樂觀更新 store（讓拖曳結果立即反映、不等網路），失敗再還原。
+  async function updateCategoryOrder(orderedIds: string[]) {
+    if (!profile?.family_id) {
+      throw new Error('尚未加入家庭，無法調整類別順序。');
+    }
+
+    const { setFamily } = useAuthStore.getState();
+    const prevFamily = family;
+    if (prevFamily) setFamily({ ...prevFamily, category_order: orderedIds });
+
+    const { error } = await supabase
+      .from('families')
+      .update({ category_order: orderedIds })
+      .eq('id', profile.family_id);
+
+    if (error) {
+      if (prevFamily) setFamily(prevFamily); // 還原樂觀更新
+      throw error;
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     reset();
@@ -272,6 +294,7 @@ export function useAuth() {
     onboardingDraft: loadOnboardingDraft(),
     updateDisplayName,
     updateFamilyName,
+    updateCategoryOrder,
     signOut
   };
 }
