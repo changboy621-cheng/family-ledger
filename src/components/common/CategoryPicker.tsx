@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Category } from '../../types';
 import { cn } from '../../lib/utils';
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../../lib/categoryIcons';
@@ -10,23 +10,33 @@ interface CategoryPickerProps {
   onChange: (categoryId: string) => void;
   onCreate?: (name: string, icon: string) => Promise<Category>;
   onUpdate?: (id: string, name: string, icon: string) => Promise<Category>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 // editId 為 null 代表新增模式；為字串代表正在編輯該類別。
 type EditorState = { editId: string | null; name: string; icon: string } | null;
 
-export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate }: CategoryPickerProps) {
+export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate, onDelete }: CategoryPickerProps) {
   const [editor, setEditor] = useState<EditorState>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  const selected = categories.find((category) => category.id === value) ?? null;
+  // 只有家庭自有的類別（有 family_id）能編輯／刪除；migration 後內建類別亦具 family_id。
+  const canModifySelected = Boolean(selected?.family_id);
 
   function openAdd() {
     setEditor({ editId: null, name: '', icon: DEFAULT_CATEGORY_ICON });
+    setPendingDelete(false);
     setError('');
   }
 
-  function openEdit(category: Category) {
-    setEditor({ editId: category.id, name: category.name, icon: category.icon });
+  function openEdit() {
+    if (!selected) return;
+    setEditor({ editId: selected.id, name: selected.name, icon: selected.icon });
+    setPendingDelete(false);
     setError('');
   }
 
@@ -59,54 +69,98 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
     }
   }
 
+  async function handleDelete() {
+    if (!selected || !onDelete) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await onDelete(selected.id);
+      setPendingDelete(false);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '刪除失敗，請稍後再試。');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-medium text-slate-700">類別</span>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-        {categories.map((category) => {
-          // 只有家庭自訂類別（有 family_id）能改圖示；系統內建類別不可編輯。
-          const isCustom = Boolean(category.family_id) && Boolean(onUpdate);
-          return (
-            <div key={category.id} className="relative">
+      <label className="grid gap-2">
+        <span className="text-sm font-medium text-slate-700">類別</span>
+        <select
+          aria-label="類別"
+          className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.icon} {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {!editor ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {onCreate ? (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-family hover:text-family"
+            >
+              <Plus className="h-4 w-4" /> 新增
+            </button>
+          ) : null}
+
+          {onUpdate && canModifySelected ? (
+            <button
+              type="button"
+              onClick={openEdit}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-family hover:text-family"
+            >
+              <Pencil className="h-4 w-4" /> 編輯
+            </button>
+          ) : null}
+
+          {onDelete && canModifySelected && !pendingDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                setPendingDelete(true);
+                setError('');
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-red-400 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" /> 刪除
+            </button>
+          ) : null}
+
+          {onDelete && canModifySelected && pendingDelete ? (
+            <div className="inline-flex items-center gap-2">
+              <span className="text-sm text-slate-600">刪除「{selected?.name}」？</span>
               <button
                 type="button"
-                className={cn(
-                  'min-h-20 w-full rounded-lg border bg-white p-2 text-center transition focus:outline-none focus:ring-2 focus:ring-family/30',
-                  value === category.id ? 'border-family text-family' : 'border-slate-200 text-slate-700'
-                )}
-                onClick={() => onChange(category.id)}
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
               >
-                <span className="block text-2xl" aria-hidden="true">
-                  {category.icon}
-                </span>
-                <span className="mt-1 block text-sm font-medium">{category.name}</span>
+                {deleting ? '刪除中...' : '確認刪除'}
               </button>
-              {isCustom ? (
-                <button
-                  type="button"
-                  className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm hover:text-family"
-                  onClick={() => openEdit(category)}
-                  aria-label={`編輯類別 ${category.name}`}
-                  title="更改圖示／名稱"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => setPendingDelete(false)}
+                disabled={deleting}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600"
+              >
+                取消
+              </button>
             </div>
-          );
-        })}
+          ) : null}
+        </div>
+      ) : null}
 
-        {onCreate ? (
-          <button
-            type="button"
-            className="grid min-h-20 place-items-center rounded-lg border border-dashed border-slate-300 bg-white text-slate-500 transition hover:border-family hover:text-family focus:outline-none focus:ring-2 focus:ring-family/30"
-            onClick={openAdd}
-          >
-            <Plus className="h-6 w-6" />
-            <span className="mt-1 block text-sm font-medium">新增類別</span>
-          </button>
-        ) : null}
-      </div>
+      {!editor && error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {editor ? (
         <div className="mt-1 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">

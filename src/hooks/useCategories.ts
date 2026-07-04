@@ -5,6 +5,21 @@ import { sortByCategoryOrder } from '../lib/categoryOrder';
 import { useAuthStore } from '../store/authStore';
 import { deriveReferenceLoading, useReferenceStore } from '../store/referenceStore';
 
+// 刪除類別前的守門：若已有帳目（交易）使用此類別，擋下並丟出友善錯誤，
+// 避免破壞既有帳目的分類。查詢出錯時往外拋，不當作「可刪除」。
+export async function ensureCategoryDeletable(categoryId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('category_id', categoryId)
+    .limit(1);
+
+  if (error) throw error;
+  if (data && data.length > 0) {
+    throw new Error('此類別已有帳目使用，無法刪除');
+  }
+}
+
 export function useCategories(type: TransactionType) {
   const profile = useAuthStore((state) => state.profile);
   const categoryOrder = useAuthStore((state) => state.family?.category_order);
@@ -61,7 +76,7 @@ export function useCategories(type: TransactionType) {
     [categories, reloadCategories, profile?.family_id, type]
   );
 
-  // 更新自訂類別的名稱與圖示（系統內建類別因 RLS 無法更新）。
+  // 更新類別的名稱與圖示（migration 後內建類別已轉為家庭自有，同樣可更新）。
   const updateCategory = useCallback(
     async (id: string, name: string, icon: string): Promise<Category> => {
       const trimmed = name.trim();
@@ -81,9 +96,22 @@ export function useCategories(type: TransactionType) {
     [reloadCategories, profile?.family_id]
   );
 
+  // 刪除類別（含內建：migration 後內建已轉為家庭自有，RLS 允許刪除）。
+  // 先確認沒有帳目使用，再刪除並失效快取。
+  const deleteCategory = useCallback(
+    async (id: string): Promise<void> => {
+      await ensureCategoryDeletable(id);
+
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) throw error;
+      if (profile?.family_id) await reloadCategories(profile.family_id);
+    },
+    [reloadCategories, profile?.family_id]
+  );
+
   const reload = useCallback(async () => {
     if (profile?.family_id) await reloadCategories(profile.family_id);
   }, [reloadCategories, profile?.family_id]);
 
-  return { categories, loading, createCategory, updateCategory, reload };
+  return { categories, loading, createCategory, updateCategory, deleteCategory, reload };
 }

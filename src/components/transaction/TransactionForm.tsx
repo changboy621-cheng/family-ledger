@@ -35,7 +35,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [ownerId, setOwnerId] = useState(initialTransaction?.owner_id ?? profile?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const { categories, createCategory, updateCategory } = useCategories(type);
+  const { categories, createCategory, updateCategory, deleteCategory } = useCategories(type);
   const { members } = useFamilyMembers();
   const { noteHistory } = useEntrySuggestions(ledgerType, type);
   const noteSuggestions = filterNotes(noteHistory, note);
@@ -193,6 +193,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             onChange={setCategoryId}
             onCreate={createCategory}
             onUpdate={updateCategory}
+            onDelete={deleteCategory}
           />
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
