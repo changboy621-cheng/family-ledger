@@ -28,15 +28,17 @@ begin
     );
 
   -- 2) 重指交易：指向全域類別者，改指到「同家庭、同名同型」的家庭自有類別。
+  --    註：UPDATE ... FROM 中，目標表 t 不可出現在 JOIN 的 ON 子句，
+  --    因此「同家庭」條件 fc.family_id = t.family_id 需放在 WHERE。
   update public.transactions t
   set category_id = fc.id
   from public.categories gc
   join public.categories fc
     on fc.name = gc.name
    and fc.type = gc.type
-   and fc.family_id = t.family_id
   where t.category_id = gc.id
-    and gc.family_id is null;
+    and gc.family_id is null
+    and fc.family_id = t.family_id;
 
   -- 3) 重指預算（同理）。budgets.family_id 為 not null，可安全對齊到同家庭類別。
   update public.budgets b
@@ -45,9 +47,9 @@ begin
   join public.categories fc
     on fc.name = gc.name
    and fc.type = gc.type
-   and fc.family_id = b.family_id
   where b.category_id = gc.id
-    and gc.family_id is null;
+    and gc.family_id is null
+    and fc.family_id = b.family_id;
 
   -- 4) 刪除已無任何交易／預算參照的全域類別。
   --    transactions.category_id 無 on delete 動作（等同 RESTRICT），此 NOT EXISTS 守門確保不會誤刪仍被引用者。
