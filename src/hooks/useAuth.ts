@@ -13,6 +13,7 @@ import {
   type OnboardingMode
 } from '../lib/onboarding';
 import { normalizeDisplayName } from '../lib/profile';
+import { buildFamilyCategoryRows } from '../lib/defaultCategories';
 
 const AVATAR_COLORS = ['#4F46E5', '#0EA5E9', '#15803D', '#B45309', '#EF4444'];
 
@@ -41,6 +42,16 @@ async function createFamilyWithRetry() {
   }
 
   throw new Error('邀請碼產生失敗，請再試一次。');
+}
+
+// 家庭建立時植入預設類別（每個家庭各自持有一份，取代過去全域共用的內建類別）。
+// 必須在該使用者的 user_profiles 建立後呼叫，RLS 的 get_my_family_id() 才會回傳新家庭、通過 insert 檢查。
+// 非致命：植入失敗時僅記錄警告，不阻斷註冊流程（使用者仍可手動新增類別）。
+export async function seedFamilyCategories(familyId: string) {
+  const { error } = await supabase.from('categories').insert(buildFamilyCategoryRows(familyId));
+  if (error) {
+    console.warn('植入預設類別失敗：', error.message);
+  }
 }
 
 // 用邀請碼解析家庭：改走 SECURITY DEFINER 的 find_family_by_invite RPC，
@@ -97,6 +108,11 @@ export function useAuth() {
       );
 
       if (profileError) throw profileError;
+
+      // 只有新建家庭需要植入預設類別；加入既有家庭時沿用該家庭已有的類別。
+      if (mode === 'create') {
+        await seedFamilyCategories(familyId);
+      }
 
       await loadProfileIntoStore(userId);
       clearOnboardingDraft();

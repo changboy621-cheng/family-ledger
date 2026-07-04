@@ -1,13 +1,5 @@
-insert into public.categories (name, icon, type, is_shared, sort_order)
-values
-  ('餐飲', '🍽️', 'expense', true, 10),
-  ('交通', '🚗', 'expense', true, 20),
-  ('購物', '🛒', 'expense', true, 30),
-  ('居家', '🏠', 'expense', true, 40),
-  ('醫療', '💊', 'expense', true, 50),
-  ('娛樂', '🎬', 'expense', true, 60),
-  ('教育', '📚', 'expense', true, 70),
-  ('旅遊', '✈️', 'expense', true, 80),
-  ('薪資', '💰', 'income', true, 90),
-  ('其他收入', '💵', 'income', true, 100)
-on conflict do nothing;
+-- 類別（categories）已改為「每個家庭各自持有一份」，不再有全域共用（family_id 為 null）的內建類別。
+-- 因此這裡不再植入全域類別：
+--   * 新家庭在建立時由前端 useAuth.seedFamilyCategories（src/lib/defaultCategories.ts）植入預設類別。
+--   * 既有資料庫由 migration 007_per_family_categories.sql 將舊的全域類別搬移為家庭自有。
+-- 預設類別清單以 src/lib/defaultCategories.ts 為準；此檔刻意留空以避免重新產生全域類別。
