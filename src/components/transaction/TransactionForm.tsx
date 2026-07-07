@@ -220,7 +220,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                   <button
                     key={suggestion}
                     type="button"
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 active:bg-slate-50"
+                    className="max-w-[14rem] truncate rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 active:bg-slate-50"
                     onClick={() => setNote(suggestion)}
                   >
                     {suggestion}

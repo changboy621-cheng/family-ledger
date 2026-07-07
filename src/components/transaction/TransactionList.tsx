@@ -55,7 +55,8 @@ function TransactionListBase({
     .map(([date, items]) => [date, items.filter((item) => !hiddenIds.includes(item.id))] as const)
     .filter(([, items]) => items.length > 0);
 
-  if (Object.keys(groupedTransactions).length === 0) {
+  // 以「過濾後」的結果判斷空狀態：全部項目都在等待刪除時也應顯示空狀態，而非留白。
+  if (visibleGroups.length === 0) {
     return <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">這個月份還沒有交易。</div>;
   }
 
@@ -64,7 +65,8 @@ function TransactionListBase({
       {visibleGroups.map(([date, items]) => (
         <section key={date} className="grid gap-3">
           <h3 className="text-sm font-semibold text-slate-500">{date}</h3>
-          <ul className="grid gap-3">
+          {/* grid-cols-1（minmax(0,1fr)）：不讓長備註的 min-content 撐寬軌道，卡片才截得住 */}
+          <ul className="grid grid-cols-1 gap-3">
             {items.map((transaction) => (
               <TransactionItem
                 key={transaction.id}

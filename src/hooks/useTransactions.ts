@@ -104,35 +104,45 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
   // 避免較舊的失敗回應蓋掉較新成功結果（把畫面卡在 error/重試）。
   const requestIdRef = useRef(0);
 
-  const loadTransactions = useCallback(async () => {
-    if (!profile?.family_id) return;
+  const fetchIntoState = useCallback(
+    async (silent: boolean) => {
+      if (!profile?.family_id) return;
 
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    const { data, error: fetchError } = await fetchTransactions({
-      ledgerType,
-      profile: { id: profile.id, family_id: profile.family_id },
-      from: range.from,
-      to: range.to
-    });
-    if (requestId !== requestIdRef.current) return; // 已被較新的請求取代，忽略過時回應
+      const requestId = ++requestIdRef.current;
+      // silent 模式（異動後重抓、realtime 同步）不進入 loading 狀態，
+      // 保留畫面上的現有清單直到新資料回來，避免清單塌縮成「載入中」導致捲動位置跳掉。
+      if (!silent) setLoading(true);
+      const { data, error: fetchError } = await fetchTransactions({
+        ledgerType,
+        profile: { id: profile.id, family_id: profile.family_id },
+        from: range.from,
+        to: range.to
+      });
+      if (requestId !== requestIdRef.current) return; // 已被較新的請求取代，忽略過時回應
 
-    // 不再靜默吞錯：失敗時記錄並標記 error，讓 UI 顯示「載入失敗＋重試」而非假空狀態。
-    if (fetchError) {
-      console.error('[useTransactions] 讀取交易失敗', fetchError);
-      setError(true);
-    } else {
-      setTransactions(parseTransactions(data));
-      setError(false);
-    }
-    setLoading(false);
-  }, [ledgerType, profile?.family_id, profile?.id, range.from, range.to]);
+      // 不再靜默吞錯：失敗時記錄並標記 error，讓 UI 顯示「載入失敗＋重試」而非假空狀態。
+      if (fetchError) {
+        console.error('[useTransactions] 讀取交易失敗', fetchError);
+        setError(true);
+      } else {
+        setTransactions(parseTransactions(data));
+        setError(false);
+      }
+      setLoading(false);
+    },
+    [ledgerType, profile?.family_id, profile?.id, range.from, range.to]
+  );
+
+  /** 首次載入／換月等「畫面上還沒有可信資料」的讀取：顯示載入中。 */
+  const loadTransactions = useCallback(() => fetchIntoState(false), [fetchIntoState]);
+  /** 背景更新（新增/更新/刪除後、realtime 同步）：不動 loading，畫面不塌縮。 */
+  const refreshTransactions = useCallback(() => fetchIntoState(true), [fetchIntoState]);
 
   useEffect(() => {
     void loadTransactions();
   }, [loadTransactions]);
 
-  useRealtimeSync(ledgerType === 'family' ? profile?.family_id : undefined, loadTransactions);
+  useRealtimeSync(ledgerType === 'family' ? profile?.family_id : undefined, refreshTransactions);
 
   const createTransaction = useCallback(
     async (input: TransactionInput) => {
@@ -149,9 +159,9 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
       });
 
       if (error) throw error;
-      await loadTransactions();
+      await refreshTransactions();
     },
-    [loadTransactions, profile?.family_id, profile?.id]
+    [refreshTransactions, profile?.family_id, profile?.id]
   );
 
   const deleteTransaction = useCallback(
@@ -159,9 +169,9 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
       const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
 
       if (error) throw error;
-      await loadTransactions();
+      await refreshTransactions();
     },
-    [loadTransactions]
+    [refreshTransactions]
   );
 
   const updateTransaction = useCallback(
@@ -182,12 +192,21 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
         .eq('id', id);
 
       if (error) throw error;
-      await loadTransactions();
+      await refreshTransactions();
     },
-    [loadTransactions]
+    [refreshTransactions]
   );
 
-  return { transactions, loading, error, loadTransactions, createTransaction, deleteTransaction, updateTransaction };
+  return {
+    transactions,
+    loading,
+    error,
+    loadTransactions,
+    refreshTransactions,
+    createTransaction,
+    deleteTransaction,
+    updateTransaction
+  };
 }
 
 function groupByDate(transactions: Transaction[]): Record<string, Transaction[]> {

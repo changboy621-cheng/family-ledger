@@ -80,7 +80,7 @@ export function QuickAdd() {
   }, [loading, catLoading, session, profile, categories, text]);
 
   return (
-    <div className="grid min-h-screen place-items-center bg-page p-6">
+    <div className="grid min-h-screen grid-cols-1 place-items-center bg-page p-6">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center">
         {state.status === 'working' ? (
           <>
@@ -93,7 +93,7 @@ export function QuickAdd() {
           <>
             <CheckCircle2 className="mx-auto h-12 w-12 text-family" />
             <h1 className="mt-3 text-lg font-bold text-slate-900">已記一筆</h1>
-            <p className="mt-2 text-slate-700">{state.summary}</p>
+            <p className="mt-2 break-words text-slate-700">{state.summary}</p>
             <Link to="/" className="mt-5 block h-11 rounded-lg bg-family pt-2.5 font-semibold text-white">
               回首頁
             </Link>

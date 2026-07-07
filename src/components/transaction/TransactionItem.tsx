@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { Transaction } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { DEFAULT_AVATAR_COLOR, paymentMethodLabel } from '../../lib/constants';
@@ -15,20 +15,36 @@ interface TransactionItemProps {
 
 function TransactionItemBase({ transaction, onDelete, onEdit, recorderName }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
+  // 備註預設單行截斷（不撐開版面），點一下切換顯示全文。
+  const [noteExpanded, setNoteExpanded] = useState(false);
   const recordedByOther =
     transaction.recorded_by != null && transaction.recorded_by !== transaction.owner_id && Boolean(recorderName);
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-2xl" aria-hidden="true">
+            <span className="shrink-0 text-2xl" aria-hidden="true">
               {transaction.category?.icon ?? '•'}
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="font-semibold text-slate-900">{transaction.category?.name ?? '未分類'}</p>
-              <p className="truncate text-sm text-slate-500">{transaction.note || '無備註'}</p>
+              {transaction.note ? (
+                <button
+                  type="button"
+                  className={`block w-full text-left text-sm text-slate-500 ${
+                    noteExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'
+                  }`}
+                  onClick={() => setNoteExpanded((value) => !value)}
+                  aria-expanded={noteExpanded}
+                  title={noteExpanded ? '點一下收合備註' : '點一下展開完整備註'}
+                >
+                  {transaction.note}
+                </button>
+              ) : (
+                <p className="text-sm text-slate-500">無備註</p>
+              )}
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
