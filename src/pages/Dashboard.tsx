@@ -66,10 +66,10 @@ export function Dashboard() {
     try {
       if (editingTransaction.ledger_type === 'family') {
         await familyTransactions.updateTransaction({ id: editingTransaction.id, ...input });
-        await personalTransactions.loadTransactions();
+        await personalTransactions.refreshTransactions();
       } else {
         await personalTransactions.updateTransaction({ id: editingTransaction.id, ...input });
-        await familyTransactions.loadTransactions();
+        await familyTransactions.refreshTransactions();
       }
 
       showToast('交易已更新');
