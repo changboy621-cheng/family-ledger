@@ -24,6 +24,15 @@ textarea {
   font: inherit;
 }
 
+/* iOS Safari 只要聚焦「字級 < 16px」的輸入框，就會自動放大整個頁面，且不會自動縮回，
+   使用者被迫手動縮小（記帳點「備註／日期」輸入時最明顯）。
+   強制文字型輸入框至少 16px，從根本消除此放大；按鈕不受影響、手動縮放仍可用。 */
+input:not([type='checkbox']):not([type='radio']):not([type='range']),
+select,
+textarea {
+  font-size: 16px;
+}
+
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }

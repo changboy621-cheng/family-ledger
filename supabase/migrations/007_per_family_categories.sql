@@ -57,4 +57,22 @@ begin
   where c.family_id is null
     and not exists (select 1 from public.transactions t where t.category_id = c.id)
     and not exists (select 1 from public.budgets b where b.category_id = c.id);
+
+  -- 5) 清掉家庭自訂排序（families.category_order）中已失效的類別 id。
+  --    步驟 1–4 重建類別、id 全換新，舊排序會指向已刪除的全域類別 id。
+  --    僅保留「仍存在且屬於本家庭」的 id 並維持原順序，其餘剔除；全數失效則歸零為空陣列。
+  --    冪等：對已是有效 id 的排序重跑不受影響，不會誤清使用者日後設定的合法順序。
+  update public.families f
+  set category_order = coalesce(
+    (
+      select array_agg(t.cid order by t.ord)
+      from unnest(f.category_order) with ordinality as t(cid, ord)
+      where exists (
+        select 1 from public.categories c
+        where c.id = t.cid and c.family_id = f.id
+      )
+    ),
+    '{}'::uuid[]
+  )
+  where array_length(f.category_order, 1) is not null;
 end $$;
