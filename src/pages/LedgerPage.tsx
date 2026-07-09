@@ -9,11 +9,8 @@ import { FAB } from '../components/common/FAB';
 import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
-import { ExpenseCategorySummary } from '../components/transaction/ExpenseCategorySummary';
-import { PaymentMethodSummary } from '../components/transaction/PaymentMethodSummary';
-import { SpenderAnalysis } from '../components/transaction/SpenderAnalysis';
-import { TopExpenseCategories } from '../components/transaction/TopExpenseCategories';
-import { ExpenseTrendChart } from '../components/transaction/ExpenseTrendChart';
+import { LedgerAnalysis } from '../components/transaction/LedgerAnalysis';
+import { CollapsibleSection } from '../components/common/CollapsibleSection';
 import { useUIStore } from '../store/uiStore';
 
 interface LedgerPageProps {
@@ -120,53 +117,24 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         ))}
       </div>
 
-      {!error && (
-        <>
-      <TopExpenseCategories
-        items={analysis.topCategories}
-        currencyFilter={currencyFilter}
-        title={isFamily ? '本月前 3 大支出類別' : '本月個人前 3 大支出類別'}
-      />
+      {/* 最近支出明細移到圖表上方，預設收合、有需要再打開。 */}
+      <CollapsibleSection title="最近支出明細" subtitle="本月每一筆交易">
+        <TransactionList
+          groupedTransactions={groupedTransactions}
+          loading={loading}
+          error={error}
+          onRetry={loadTransactions}
+          onDelete={requestDelete}
+          onEdit={handleSelectEdit}
+          hiddenIds={pendingIds}
+        />
+      </CollapsibleSection>
 
-      <ExpenseCategorySummary
-        items={analysis.expenseByCategory}
-        currencyFilter={currencyFilter}
-        title={isFamily ? '本月支出分類' : '本月個人支出分類'}
-      />
-
-      <PaymentMethodSummary
-        items={analysis.expenseByPayment}
-        currencyFilter={currencyFilter}
-        title={isFamily ? '本月付款方式（現金／刷卡）' : '本月個人付款方式（現金／刷卡）'}
-      />
-
-      {isFamily ? <SpenderAnalysis items={analysis.expenseByOwner} currencyFilter={currencyFilter} /> : null}
-
-      <ExpenseTrendChart
-        title="本月每日支出"
-        points={analysis.dailyExpenseTrend}
-        currencyFilter={currencyFilter}
-        labelKey="day"
-      />
-
-      <ExpenseTrendChart
-        title="近 6 個月支出"
-        points={analysis.monthlyExpenseTrend}
-        currencyFilter={currencyFilter}
-        labelKey="label"
-      />
-        </>
-      )}
-
-      <TransactionList
-        groupedTransactions={groupedTransactions}
-        loading={loading}
-        error={error}
-        onRetry={loadTransactions}
-        onDelete={requestDelete}
-        onEdit={handleSelectEdit}
-        hiddenIds={pendingIds}
-      />
+      {!error ? (
+        <CollapsibleSection title="圖表分析" subtitle="前 3 大類別、支出分類、付款方式、趨勢">
+          <LedgerAnalysis analysis={analysis} isFamily={isFamily} currencyFilter={currencyFilter} />
+        </CollapsibleSection>
+      ) : null}
 
       <FAB ledgerType={ledgerType} onSelect={() => setShowForm(true)} />
 
