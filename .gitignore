@@ -7,3 +7,4 @@ dist
 
 # local agent/orchestration state (Codex review P3)
 .claude/
+.superpowers
