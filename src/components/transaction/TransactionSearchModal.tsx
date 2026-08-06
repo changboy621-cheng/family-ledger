@@ -78,6 +78,10 @@ export function TransactionSearchModal({
   const allCategories = useReferenceStore((state) => state.categories);
   const { members } = useFamilyMembers();
 
+  // 用 ref 持有最新 onClose，讓 Esc effect 維持 mount-only（比照 Modal.tsx，父層可傳 inline callback）。
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() =>
@@ -98,7 +102,7 @@ export function TransactionSearchModal({
   // Esc 關閉＋鎖背景捲動（比照 Modal；全螢幕覆蓋層同樣需要）。
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     }
     document.addEventListener('keydown', onKeyDown);
     const body = document.body;
@@ -108,8 +112,7 @@ export function TransactionSearchModal({
       document.removeEventListener('keydown', onKeyDown);
       body.style.overflow = prevOverflow;
     };
-    // onClose 以 render 當下的值即可（LedgerPage 傳入的為穩定 setState 包裝）。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // mount-only：Esc 透過 onCloseRef 取得最新 handler（故 deps 為空）。
   }, []);
 
   const mode: SearchMode | null = useMemo(() => {
