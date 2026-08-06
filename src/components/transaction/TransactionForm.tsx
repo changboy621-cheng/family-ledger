@@ -72,13 +72,15 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     showToast(next.includes(suggestion) ? '已釘選常用備註' : '已取消釘選');
   }
 
-  // 觸控長按釘選：500ms 觸發；觸發後抑制同一次點擊的帶入。
-  const longPressRef = useRef<{ timer: number; fired: boolean }>({ timer: 0, fired: false });
+  // 觸控長按釘選：500ms 觸發；觸發後抑制「同一顆」圓籤下一次點擊的帶入。
+  // firedFor 記錄觸發長按的備註字串（而非單一布林值），避免某顆圓籤的長按
+  // 因 iOS 原生選字選單吃掉合成 click 而殘留 true，誤把「另一顆」圓籤的下一次點擊也吃掉。
+  const longPressRef = useRef<{ timer: number; firedFor: string | null }>({ timer: 0, firedFor: null });
   function startLongPress(suggestion: string, pointerType: string) {
     if (pointerType !== 'touch') return; // 桌面用右鍵（contextmenu）
-    longPressRef.current.fired = false;
+    longPressRef.current.firedFor = null;
     longPressRef.current.timer = window.setTimeout(() => {
-      longPressRef.current.fired = true;
+      longPressRef.current.firedFor = suggestion;
       togglePinned(suggestion);
     }, 500);
   }
@@ -86,12 +88,16 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     window.clearTimeout(longPressRef.current.timer);
   }
   function handleSuggestionClick(suggestion: string) {
-    if (longPressRef.current.fired) {
-      longPressRef.current.fired = false;
+    if (longPressRef.current.firedFor === suggestion) {
+      longPressRef.current.firedFor = null;
       return;
     }
+    longPressRef.current.firedFor = null;
     applySuggestion(suggestion);
   }
+
+  // 元件卸載時清掉未觸發的長按計時器，避免對已關閉的表單觸發釘選。
+  useEffect(() => () => window.clearTimeout(longPressRef.current.timer), []);
 
   useEffect(() => {
     setLedgerType(initialTransaction?.ledger_type ?? initialLedgerType);
@@ -275,9 +281,10 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                     <button
                       key={suggestion}
                       type="button"
-                      className={`max-w-[14rem] truncate rounded-full border px-3 py-1 text-xs active:bg-slate-50 ${
+                      className={`max-w-[14rem] truncate select-none rounded-full border px-3 py-1 text-xs active:bg-slate-50 ${
                         pinned ? 'border-family bg-familySoft text-family' : 'border-slate-200 bg-white text-slate-600'
                       }`}
+                      style={{ WebkitTouchCallout: 'none' }}
                       onClick={() => handleSuggestionClick(suggestion)}
                       onContextMenu={(event) => {
                         event.preventDefault();

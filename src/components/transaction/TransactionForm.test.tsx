@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { NoteDefaults } from '../../lib/suggestions';
+
+// jsdom 沒有 PointerEvent 建構子，@testing-library 的 fireEvent.pointerDown 會退回
+// 用 window.Event 建立事件，導致 pointerType 屬性沒被帶上；手動組一個帶 pointerType 的
+// 事件物件再 dispatch，讓 React 的合成事件能讀到 event.pointerType === 'touch'。
+function firePointerDown(element: Element, pointerType: string) {
+  const event = new Event('pointerdown', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'pointerType', { value: pointerType, configurable: true });
+  fireEvent(element, event);
+}
 
 const noteDefaults = new Map<string, NoteDefaults>([
   ['星巴克', { category_id: 'c-food', amount: 150, currency: 'TWD', payment_method: 'card' }]
@@ -73,5 +82,56 @@ describe('釘選', () => {
     fireEvent.contextMenu(screen.getByRole('button', { name: '加油' }));
     expect(screen.getByRole('button', { name: /📌.*加油/ })).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('fl:pinned-notes:family:expense') ?? '[]')).toEqual(['加油']);
+  });
+});
+
+describe('觸控長按釘選', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('長按 500ms 觸發釘選；同一顆圓籤緊接著的 click 被抑制、不帶入', () => {
+    renderForm();
+    const chip = screen.getByRole('button', { name: '星巴克' });
+    firePointerDown(chip, 'touch');
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(screen.getByRole('button', { name: /📌.*星巴克/ })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('fl:pinned-notes:family:expense') ?? '[]')).toEqual(['星巴克']);
+
+    fireEvent.click(screen.getByRole('button', { name: /📌.*星巴克/ }));
+    expect(screen.getByPlaceholderText('晚餐、機票、生活用品...')).toHaveValue('');
+  });
+
+  it('迴歸：firedFor 應綁定觸發長按的圓籤，不會讓另一顆圓籤的下一次點擊被誤吃', () => {
+    renderForm();
+    const chipA = screen.getByRole('button', { name: '星巴克' });
+    firePointerDown(chipA, 'touch');
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    // 刻意不點 chipA（模擬 iOS 原生選字選單吃掉了長按後的合成 click）；
+    // 若用單一布林值 fired，這裡殘留的 true 會讓下面對「另一顆」圓籤的點擊也被吃掉。
+    const chipB = screen.getByRole('button', { name: '加油' });
+    fireEvent.click(chipB);
+    expect(screen.getByPlaceholderText('晚餐、機票、生活用品...')).toHaveValue('加油');
+  });
+
+  it('表單在長按計時器觸發前卸載：計時器被清除，不寫入 localStorage、不拋錯', () => {
+    const { unmount } = renderForm();
+    const chip = screen.getByRole('button', { name: '星巴克' });
+    firePointerDown(chip, 'touch');
+    unmount();
+    expect(() => {
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+    }).not.toThrow();
+    expect(localStorage.getItem('fl:pinned-notes:family:expense')).toBeNull();
   });
 });
