@@ -82,7 +82,12 @@ beforeEach(() => {
   useAuthStore.setState({
     profile: { id: 'u1', family_id: 'fam1', display_name: '我', avatar_color: '#000', default_currency: 'TWD' }
   });
-  useReferenceStore.setState({ categories: [] });
+  useReferenceStore.setState({ categories: [], ensureCategories: vi.fn() });
+});
+
+it('掛載時預熱分類快取（冷啟動走 LedgerPage→搜尋不經過 useCategories）', () => {
+  renderModal();
+  expect(useReferenceStore.getState().ensureCategories).toHaveBeenCalledWith('fam1');
 });
 
 describe('搜尋模式', () => {

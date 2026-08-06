@@ -77,6 +77,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   // 因 iOS 原生選字選單吃掉合成 click 而殘留 true，誤把「另一顆」圓籤的下一次點擊也吃掉。
   const longPressRef = useRef<{ timer: number; firedFor: string | null }>({ timer: 0, firedFor: null });
   function startLongPress(suggestion: string, pointerType: string) {
+    window.clearTimeout(longPressRef.current.timer); // 多點觸控時先清掉前一顆圓籤未觸發的計時器，避免孤兒 timer 誤觸
     if (pointerType !== 'touch') return; // 桌面用右鍵（contextmenu）
     longPressRef.current.firedFor = null;
     longPressRef.current.timer = window.setTimeout(() => {

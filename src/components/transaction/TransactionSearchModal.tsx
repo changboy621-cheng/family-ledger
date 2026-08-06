@@ -4,6 +4,7 @@ import type { Currency, LedgerType, Transaction, TransactionType } from '../../t
 import type { TransactionUpdateInput } from '../../hooks/useTransactions';
 import { useTransactionSearch, type SearchMode } from '../../hooks/useTransactionSearch';
 import { useFamilyMembers } from '../../hooks/useFamilyMembers';
+import { useAuthStore } from '../../store/authStore';
 import { useReferenceStore } from '../../store/referenceStore';
 import { useUIStore } from '../../store/uiStore';
 import { formatAmount, CURRENCIES } from '../../lib/currency';
@@ -75,7 +76,9 @@ export function TransactionSearchModal({
 }: TransactionSearchModalProps) {
   const isFamily = ledgerType === 'family';
   const showToast = useUIStore((state) => state.showToast);
+  const profile = useAuthStore((state) => state.profile);
   const allCategories = useReferenceStore((state) => state.categories);
+  const ensureCategories = useReferenceStore((state) => state.ensureCategories);
   const { members } = useFamilyMembers();
 
   // 用 ref 持有最新 onClose，讓 Esc effect 維持 mount-only（比照 Modal.tsx，父層可傳 inline callback）。
@@ -98,6 +101,11 @@ export function TransactionSearchModal({
     const timer = window.setTimeout(() => setDebouncedKeyword(keyword), DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [keyword]);
+
+  // 預熱分類快取：搜尋要比對分類名稱，但冷啟動走 LedgerPage→搜尋不會經過 useCategories。
+  useEffect(() => {
+    if (profile?.family_id) void ensureCategories(profile.family_id);
+  }, [profile?.family_id, ensureCategories]);
 
   // Esc 關閉＋鎖背景捲動（比照 Modal；全螢幕覆蓋層同樣需要）。
   useEffect(() => {
