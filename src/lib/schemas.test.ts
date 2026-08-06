@@ -90,3 +90,14 @@ describe('parseInviteFamily', () => {
     expect(parseInviteFamily(undefined)).toBeNull();
   });
 });
+
+describe('entryRowSchema 聰明帶入欄位', () => {
+  it('解析 category_id/amount/currency/payment_method；壞值退回 null 不丟列', () => {
+    const rows = parseEntryRows([
+      { note: '星巴克', category_id: 'c1', amount: 150, currency: 'TWD', payment_method: 'card' },
+      { note: '壞資料', category_id: 'c2', amount: 'NaN', currency: 'JPY', payment_method: 'check' }
+    ]);
+    expect(rows[0]).toMatchObject({ note: '星巴克', category_id: 'c1', amount: 150, currency: 'TWD', payment_method: 'card' });
+    expect(rows[1]).toMatchObject({ note: '壞資料', amount: null, currency: null, payment_method: null });
+  });
+});
