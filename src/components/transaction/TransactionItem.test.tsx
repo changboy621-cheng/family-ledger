@@ -50,4 +50,26 @@ describe('TransactionItem 備註顯示', () => {
     const placeholder = screen.getByText('無備註');
     expect(placeholder.tagName).toBe('P');
   });
+
+  it('有 highlightKeyword 時備註以 <mark> 高亮關鍵字', () => {
+    render(
+      <ul>
+        <TransactionItem
+          transaction={makeTransaction('機票 東京')}
+          highlightKeyword="機票"
+        />
+      </ul>
+    );
+    const marks = screen.getAllByText('機票', { selector: 'mark' });
+    expect(marks).toHaveLength(1);
+  });
+
+  it('未傳 highlightKeyword 時不渲染 <mark>', () => {
+    const { container } = render(
+      <ul>
+        <TransactionItem transaction={makeTransaction('機票 東京')} />
+      </ul>
+    );
+    expect(container.querySelector('mark')).toBeNull();
+  });
 });

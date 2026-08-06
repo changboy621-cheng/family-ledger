@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import type { Transaction } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { DEFAULT_AVATAR_COLOR, paymentMethodLabel } from '../../lib/constants';
+import { splitHighlight } from '../../lib/search';
 import { CurrencyBadge } from '../common/CurrencyBadge';
 import { Pencil, Trash2 } from 'lucide-react';
 
@@ -11,9 +12,11 @@ interface TransactionItemProps {
   onEdit?: (transaction: Transaction) => void;
   /** 實際記帳人的名稱（與歸屬人不同時才會傳入），用於顯示「○○ 代記」 */
   recorderName?: string;
+  /** 搜尋結果用：備註中此關鍵字以黃底 <mark> 高亮。 */
+  highlightKeyword?: string;
 }
 
-function TransactionItemBase({ transaction, onDelete, onEdit, recorderName }: TransactionItemProps) {
+function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, highlightKeyword }: TransactionItemProps) {
   const isExpense = transaction.type === 'expense';
   // 備註預設單行截斷（不撐開版面），點一下切換顯示全文。
   const [noteExpanded, setNoteExpanded] = useState(false);
@@ -40,7 +43,17 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName }: Tr
                   aria-expanded={noteExpanded}
                   title={noteExpanded ? '點一下收合備註' : '點一下展開完整備註'}
                 >
-                  {transaction.note}
+                  {highlightKeyword
+                    ? splitHighlight(transaction.note, highlightKeyword).map((segment, index) =>
+                        segment.hit ? (
+                          <mark key={index} className="rounded bg-yellow-200 px-0.5">
+                            {segment.text}
+                          </mark>
+                        ) : (
+                          <span key={index}>{segment.text}</span>
+                        )
+                      )
+                    : transaction.note}
                 </button>
               ) : (
                 <p className="text-sm text-slate-500">無備註</p>
