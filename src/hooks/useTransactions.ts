@@ -24,7 +24,7 @@ export interface TransactionUpdateInput extends TransactionInput {
   id: string;
 }
 
-const TRANSACTION_SELECT = '*, category:categories(*), owner:user_profiles(*)';
+export const TRANSACTION_SELECT = '*, category:categories(*), owner:user_profiles(*)';
 
 interface FetchTransactionsParams {
   ledgerType: LedgerType;

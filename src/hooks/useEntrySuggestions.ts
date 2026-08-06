@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { LedgerType, TransactionType } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
-import { computeRecentNotes } from '../lib/suggestions';
+import { buildNoteDefaults, computeRecentNotes } from '../lib/suggestions';
 import { parseEntryRows } from '../lib/schemas';
 
 // 抓最近交易，推算「備註歷史」供記帳表單快速輸入。
@@ -21,7 +21,7 @@ export function useEntrySuggestions(ledgerType: LedgerType, type: TransactionTyp
 
       let query = supabase
         .from('transactions')
-        .select('note, transaction_date')
+        .select('note, transaction_date, category_id, amount, currency, payment_method')
         .eq('ledger_type', ledgerType)
         .eq('type', type)
         .order('transaction_date', { ascending: false })
@@ -48,6 +48,7 @@ export function useEntrySuggestions(ledgerType: LedgerType, type: TransactionTyp
 
   // rows 變動才重算；否則表單每次輸入（rerender）都會重掃最多 200 列。
   const noteHistory = useMemo(() => computeRecentNotes(rows), [rows]);
+  const noteDefaults = useMemo(() => buildNoteDefaults(rows), [rows]);
 
-  return { noteHistory };
+  return { noteHistory, noteDefaults };
 }

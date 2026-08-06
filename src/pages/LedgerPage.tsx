@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { CURRENCIES, formatAmount } from '../lib/currency';
@@ -10,6 +11,7 @@ import { MonthPicker } from '../components/common/MonthPicker';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { TransactionList } from '../components/transaction/TransactionList';
 import { LedgerAnalysis } from '../components/transaction/LedgerAnalysis';
+import { TransactionSearchModal, type CategoryDetailTarget } from '../components/transaction/TransactionSearchModal';
 import { CollapsibleSection } from '../components/common/CollapsibleSection';
 import { useUIStore } from '../store/uiStore';
 
@@ -22,6 +24,8 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [categoryTarget, setCategoryTarget] = useState<CategoryDetailTarget | null>(null);
   const {
     transactions: analysisTransactions,
     groupedTransactions,
@@ -77,7 +81,20 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         <h1 className="mt-1 text-2xl font-bold text-slate-900">{isFamily ? '家庭帳本' : '個人帳本'}</h1>
       </header>
 
-      <MonthPicker value={yearMonth} onChange={setYearMonth} />
+      <div className="flex items-stretch gap-2">
+        <div className="flex-1">
+          <MonthPicker value={yearMonth} onChange={setYearMonth} />
+        </div>
+        <button
+          type="button"
+          className="grid w-14 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:text-family"
+          onClick={() => setSearchOpen(true)}
+          aria-label="搜尋交易"
+          title="搜尋備註（跨全部月份）"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+      </div>
 
       {error ? (
         <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
@@ -132,7 +149,12 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
       {!error ? (
         <CollapsibleSection title="圖表分析" subtitle="前 3 大類別、支出分類、付款方式、趨勢">
-          <LedgerAnalysis analysis={analysis} isFamily={isFamily} currencyFilter={currencyFilter} />
+          <LedgerAnalysis
+            analysis={analysis}
+            isFamily={isFamily}
+            currencyFilter={currencyFilter}
+            onSelectCategory={setCategoryTarget}
+          />
         </CollapsibleSection>
       ) : null}
 
@@ -147,6 +169,19 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
             setShowForm(false);
             setEditingTransaction(null);
           }}
+        />
+      ) : null}
+
+      {searchOpen || categoryTarget ? (
+        <TransactionSearchModal
+          ledgerType={ledgerType}
+          category={categoryTarget}
+          onClose={() => {
+            setSearchOpen(false);
+            setCategoryTarget(null);
+          }}
+          onUpdate={updateTransaction}
+          onDelete={deleteTransaction}
         />
       ) : null}
     </div>

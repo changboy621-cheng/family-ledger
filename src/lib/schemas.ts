@@ -55,7 +55,12 @@ export const transactionSchema = z.object({
 
 export const entryRowSchema = z.object({
   note: z.string().nullish().catch(null),
-  transaction_date: z.string().optional()
+  transaction_date: z.string().optional(),
+  // 聰明帶入用欄位：壞值退回 null，不整列丟棄。
+  category_id: z.string().nullish().catch(null),
+  amount: z.number().nullish().catch(null),
+  currency: currencySchema.nullish().catch(null),
+  payment_method: paymentMethodSchema.nullish().catch(null)
 });
 
 export const onboardingDraftSchema = z.object({

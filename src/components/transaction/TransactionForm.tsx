@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
 import { getErrorMessage } from '../../lib/errors';
@@ -8,7 +8,9 @@ import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
 import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 import { useEntrySuggestions } from '../../hooks/useEntrySuggestions';
-import { filterNotes } from '../../lib/suggestions';
+import { mergeNoteSuggestions, pinnedNotesKey, togglePin } from '../../lib/suggestions';
+import { loadStringList, saveStringList } from '../../lib/search';
+import { useUIStore } from '../../store/uiStore';
 import type { TransactionInput } from '../../hooks/useTransactions';
 import { AmountInput } from '../common/AmountInput';
 import { CategoryPicker } from '../common/CategoryPicker';
@@ -37,8 +39,66 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [error, setError] = useState('');
   const { categories, createCategory, updateCategory, deleteCategory } = useCategories(type);
   const { members } = useFamilyMembers();
-  const { noteHistory } = useEntrySuggestions(ledgerType, type);
-  const noteSuggestions = filterNotes(noteHistory, note);
+  const { noteHistory, noteDefaults } = useEntrySuggestions(ledgerType, type);
+  const showToast = useUIStore((state) => state.showToast);
+  const [pinnedNotes, setPinnedNotes] = useState<string[]>([]);
+
+  // 釘選清單依帳本／收支型別分開存；切換時重讀。
+  useEffect(() => {
+    setPinnedNotes(loadStringList(localStorage, pinnedNotesKey(ledgerType, type)));
+  }, [ledgerType, type]);
+
+  const noteSuggestions = mergeNoteSuggestions(pinnedNotes, noteHistory, note);
+
+  /** 點圓籤：帶入備註＋該備註上次的分類與付款方式；金額只在尚未輸入時帶入（不覆蓋）。 */
+  function applySuggestion(suggestion: string) {
+    setNote(suggestion);
+    const defaults = noteDefaults.get(suggestion);
+    if (!defaults) return;
+    if (defaults.category_id && categories.some((category) => category.id === defaults.category_id)) {
+      setCategoryId(defaults.category_id);
+    }
+    if (defaults.payment_method) setPaymentMethod(defaults.payment_method);
+    if (!amount.trim() && defaults.amount != null) {
+      if (defaults.currency) setCurrency(defaults.currency);
+      setAmount(String(defaults.amount));
+    }
+  }
+
+  function togglePinned(suggestion: string) {
+    const next = togglePin(pinnedNotes, suggestion);
+    setPinnedNotes(next);
+    saveStringList(localStorage, pinnedNotesKey(ledgerType, type), next);
+    showToast(next.includes(suggestion) ? '已釘選常用備註' : '已取消釘選');
+  }
+
+  // 觸控長按釘選：500ms 觸發；觸發後抑制「同一顆」圓籤下一次點擊的帶入。
+  // firedFor 記錄觸發長按的備註字串（而非單一布林值），避免某顆圓籤的長按
+  // 因 iOS 原生選字選單吃掉合成 click 而殘留 true，誤把「另一顆」圓籤的下一次點擊也吃掉。
+  const longPressRef = useRef<{ timer: number; firedFor: string | null }>({ timer: 0, firedFor: null });
+  function startLongPress(suggestion: string, pointerType: string) {
+    window.clearTimeout(longPressRef.current.timer); // 多點觸控時先清掉前一顆圓籤未觸發的計時器，避免孤兒 timer 誤觸
+    if (pointerType !== 'touch') return; // 桌面用右鍵（contextmenu）
+    longPressRef.current.firedFor = null;
+    longPressRef.current.timer = window.setTimeout(() => {
+      longPressRef.current.firedFor = suggestion;
+      togglePinned(suggestion);
+    }, 500);
+  }
+  function cancelLongPress() {
+    window.clearTimeout(longPressRef.current.timer);
+  }
+  function handleSuggestionClick(suggestion: string) {
+    if (longPressRef.current.firedFor === suggestion) {
+      longPressRef.current.firedFor = null;
+      return;
+    }
+    longPressRef.current.firedFor = null;
+    applySuggestion(suggestion);
+  }
+
+  // 元件卸載時清掉未觸發的長按計時器，避免對已關閉的表單觸發釘選。
+  useEffect(() => () => window.clearTimeout(longPressRef.current.timer), []);
 
   useEffect(() => {
     setLedgerType(initialTransaction?.ledger_type ?? initialLedgerType);
@@ -216,16 +276,31 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             />
             {noteSuggestions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {noteSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    className="max-w-[14rem] truncate rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 active:bg-slate-50"
-                    onClick={() => setNote(suggestion)}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+                {noteSuggestions.map((suggestion) => {
+                  const pinned = pinnedNotes.includes(suggestion);
+                  return (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className={`max-w-[14rem] truncate select-none rounded-full border px-3 py-1 text-xs active:bg-slate-50 ${
+                        pinned ? 'border-family bg-familySoft text-family' : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                      style={{ WebkitTouchCallout: 'none' }}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        togglePinned(suggestion);
+                      }}
+                      onPointerDown={(event) => startLongPress(suggestion, event.pointerType)}
+                      onPointerUp={cancelLongPress}
+                      onPointerLeave={cancelLongPress}
+                      title="點一下帶入；長按（或右鍵）釘選"
+                    >
+                      {pinned ? '📌 ' : ''}
+                      {suggestion}
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
           </label>

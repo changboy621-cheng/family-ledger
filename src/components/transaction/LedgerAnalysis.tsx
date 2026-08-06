@@ -5,6 +5,7 @@ import { PaymentMethodSummary } from './PaymentMethodSummary';
 import { SpenderAnalysis } from './SpenderAnalysis';
 import { TopExpenseCategories } from './TopExpenseCategories';
 import { ExpenseTrendChart } from './ExpenseTrendChart';
+import type { CategoryDetailTarget } from './TransactionSearchModal';
 
 type Analysis = ReturnType<typeof useLedgerAnalysis>;
 
@@ -12,11 +13,12 @@ interface LedgerAnalysisProps {
   analysis: Analysis;
   isFamily: boolean;
   currencyFilter: Currency | 'all';
+  onSelectCategory?: (target: CategoryDetailTarget) => void;
 }
 
 // 帳本的整組圖表分析（前 3 大類別、支出分類、付款方式、花費人、每日/近 6 月趨勢）。
 // 由帳本頁與首頁共用，避免兩處重複維護同一套圖表。
-export function LedgerAnalysis({ analysis, isFamily, currencyFilter }: LedgerAnalysisProps) {
+export function LedgerAnalysis({ analysis, isFamily, currencyFilter, onSelectCategory }: LedgerAnalysisProps) {
   return (
     <>
       <TopExpenseCategories
@@ -29,6 +31,7 @@ export function LedgerAnalysis({ analysis, isFamily, currencyFilter }: LedgerAna
         items={analysis.expenseByCategory}
         currencyFilter={currencyFilter}
         title={isFamily ? '本月支出分類' : '本月個人支出分類'}
+        onSelectCategory={onSelectCategory}
       />
 
       <PaymentMethodSummary

@@ -2,17 +2,21 @@ import { memo } from 'react';
 import { formatAmount } from '../../lib/currency';
 import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { CategoryExpenseSummary, Currency } from '../../types';
+import type { CategoryDetailTarget } from './TransactionSearchModal';
 
 interface ExpenseCategorySummaryProps {
   items: CategoryExpenseSummary[];
   currencyFilter: Currency | 'all';
   title?: string;
+  /** 傳入時分類列可點（開分類明細）；未傳入維持純顯示（Dashboard 用）。 */
+  onSelectCategory?: (target: CategoryDetailTarget) => void;
 }
 
 function ExpenseCategorySummaryBase({
   items,
   currencyFilter,
-  title = '本月支出分類'
+  title = '本月支出分類',
+  onSelectCategory
 }: ExpenseCategorySummaryProps) {
   const currencies = visibleCurrencies(currencyFilter);
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
@@ -33,31 +37,49 @@ function ExpenseCategorySummaryBase({
               <div key={currency} className="grid gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{currency}</p>
                 <div className="grid gap-2">
-                  {filteredItems.map((item) => (
-                    <div
-                      key={`${currency}-${item.categoryId}`}
-                      className="rounded-lg bg-slate-50 px-3 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl" aria-hidden="true">
-                            {item.categoryIcon}
-                          </span>
-                          <span className="font-medium text-slate-900">{item.categoryName}</span>
+                  {filteredItems.map((item) => {
+                    const row = (
+                      <div className="rounded-lg bg-slate-50 px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl" aria-hidden="true">
+                              {item.categoryIcon}
+                            </span>
+                            <span className="font-medium text-slate-900">{item.categoryName}</span>
+                          </div>
+                          <div className="text-right">
+                            <strong className="block text-slate-900">{formatAmount(item.totals[currency], currency)}</strong>
+                            <span className="text-xs font-medium text-slate-500">{formatRatio(item.ratios[currency])}</span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <strong className="block text-slate-900">{formatAmount(item.totals[currency], currency)}</strong>
-                          <span className="text-xs font-medium text-slate-500">{formatRatio(item.ratios[currency])}</span>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="h-full rounded-full bg-family transition-all"
+                            style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className="h-full rounded-full bg-family transition-all"
-                          style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    );
+
+                    return onSelectCategory ? (
+                      <button
+                        key={`${currency}-${item.categoryId}`}
+                        type="button"
+                        className="w-full text-left transition active:opacity-70"
+                        onClick={() =>
+                          onSelectCategory({
+                            categoryId: item.categoryId,
+                            categoryName: item.categoryName,
+                            categoryIcon: item.categoryIcon
+                          })
+                        }
+                      >
+                        {row}
+                      </button>
+                    ) : (
+                      <div key={`${currency}-${item.categoryId}`}>{row}</div>
+                    );
+                  })}
                 </div>
               </div>
             );
