@@ -12,11 +12,20 @@ import { FAB } from '../components/common/FAB';
 import { TransactionForm } from '../components/transaction/TransactionForm';
 import { CollapsibleSection } from '../components/common/CollapsibleSection';
 import { LedgerAnalysis } from '../components/transaction/LedgerAnalysis';
+import { ExpenseBreakdownModal } from '../components/transaction/ExpenseBreakdownModal';
+import { TransactionSearchModal, type CategoryDetailTarget } from '../components/transaction/TransactionSearchModal';
 import { useUIStore } from '../store/uiStore';
+
+interface CategoryDrillTarget {
+  ledgerType: LedgerType;
+  target: CategoryDetailTarget;
+}
 
 export function Dashboard() {
   const { profile, family } = useAuth();
   const [formLedgerType, setFormLedgerType] = useState<LedgerType | null>(null);
+  const [breakdownLedger, setBreakdownLedger] = useState<LedgerType | null>(null);
+  const [categoryDrill, setCategoryDrill] = useState<CategoryDrillTarget | null>(null);
   const yearMonth = currentYearMonth();
   const familyTransactions = useTransactions('family', yearMonth);
   const personalTransactions = useTransactions('personal', yearMonth);
@@ -47,6 +56,14 @@ export function Dashboard() {
     showToast('交易已新增');
   }
 
+  // 從圓餅圖／圖表分析下鑽分類明細：開明細前先收掉圓餅圖視窗，避免兩層全螢幕覆蓋層疊在一起。
+  function openCategoryDrill(ledgerType: LedgerType, target: CategoryDetailTarget) {
+    setBreakdownLedger(null);
+    setCategoryDrill({ ledgerType, target });
+  }
+
+  const drillLedger = categoryDrill?.ledgerType === 'personal' ? personalTransactions : familyTransactions;
+
   return (
     <div className="grid gap-6">
       <header className="rounded-xl bg-white p-5">
@@ -58,12 +75,20 @@ export function Dashboard() {
         {familyTransactions.error ? (
           <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">家庭本月支出載入失敗</div>
         ) : (
-          <DualCurrencyDisplay title="家庭本月支出" values={familySummary.expense} />
+          <DualCurrencyDisplay
+            title="家庭本月支出"
+            values={familySummary.expense}
+            onClick={() => setBreakdownLedger('family')}
+          />
         )}
         {personalTransactions.error ? (
           <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">個人本月支出載入失敗</div>
         ) : (
-          <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
+          <DualCurrencyDisplay
+            title="我的個人支出"
+            values={personalSummary.expense}
+            onClick={() => setBreakdownLedger('personal')}
+          />
         )}
       </section>
 
@@ -81,7 +106,12 @@ export function Dashboard() {
           <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">家庭圖表分析載入失敗</div>
         ) : (
           <CollapsibleSection title="家庭圖表分析" subtitle="本月家庭支出的類別與趨勢">
-            <LedgerAnalysis analysis={familyAnalysis} isFamily currencyFilter="all" />
+            <LedgerAnalysis
+              analysis={familyAnalysis}
+              isFamily
+              currencyFilter="all"
+              onSelectCategory={(target) => openCategoryDrill('family', target)}
+            />
           </CollapsibleSection>
         )}
 
@@ -89,7 +119,12 @@ export function Dashboard() {
           <div className="rounded-xl border border-red-200 bg-white p-5 text-sm text-slate-600">個人圖表分析載入失敗</div>
         ) : (
           <CollapsibleSection title="個人圖表分析" subtitle="本月個人支出的類別與趨勢">
-            <LedgerAnalysis analysis={personalAnalysis} isFamily={false} currencyFilter="all" />
+            <LedgerAnalysis
+              analysis={personalAnalysis}
+              isFamily={false}
+              currencyFilter="all"
+              onSelectCategory={(target) => openCategoryDrill('personal', target)}
+            />
           </CollapsibleSection>
         )}
       </div>
@@ -101,6 +136,25 @@ export function Dashboard() {
           initialLedgerType={formLedgerType}
           onSubmit={handleCreate}
           onClose={() => setFormLedgerType(null)}
+        />
+      ) : null}
+
+      {breakdownLedger ? (
+        <ExpenseBreakdownModal
+          title={breakdownLedger === 'family' ? '家庭本月支出分析' : '我的個人本月支出分析'}
+          items={(breakdownLedger === 'family' ? familyAnalysis : personalAnalysis).expenseByCategory}
+          onClose={() => setBreakdownLedger(null)}
+          onSelectCategory={(target) => openCategoryDrill(breakdownLedger, target)}
+        />
+      ) : null}
+
+      {categoryDrill ? (
+        <TransactionSearchModal
+          ledgerType={categoryDrill.ledgerType}
+          category={categoryDrill.target}
+          onClose={() => setCategoryDrill(null)}
+          onUpdate={drillLedger.updateTransaction}
+          onDelete={drillLedger.deleteTransaction}
         />
       ) : null}
     </div>

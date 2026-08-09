@@ -1,5 +1,6 @@
 import type { Currency } from '../../types';
 import type { useLedgerAnalysis } from '../../hooks/useLedgerAnalysis';
+import { ExpenseCategoryPieChart } from './ExpenseCategoryPieChart';
 import { ExpenseCategorySummary } from './ExpenseCategorySummary';
 import { PaymentMethodSummary } from './PaymentMethodSummary';
 import { SpenderAnalysis } from './SpenderAnalysis';
@@ -25,6 +26,13 @@ export function LedgerAnalysis({ analysis, isFamily, currencyFilter, onSelectCat
         items={analysis.topCategories}
         currencyFilter={currencyFilter}
         title={isFamily ? '本月前 3 大支出類別' : '本月個人前 3 大支出類別'}
+      />
+
+      <ExpenseCategoryPieChart
+        items={analysis.expenseByCategory}
+        currencyFilter={currencyFilter}
+        title={isFamily ? '本月支出圓餅圖' : '本月個人支出圓餅圖'}
+        onSelectCategory={onSelectCategory}
       />
 
       <ExpenseCategorySummary
