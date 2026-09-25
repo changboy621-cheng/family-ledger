@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Budget, Category, Transaction, UserProfile } from '../types';
+import type { Budget, Category, RecurringTransaction, Transaction, UserProfile } from '../types';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
 import { DEFAULT_AVATAR_COLOR } from './constants';
@@ -46,6 +46,8 @@ export const transactionSchema = z.object({
   payment_method: paymentMethodSchema.nullish(),
   transaction_date: z.string(),
   receipt_url: z.string().nullish(),
+  recurring_id: z.string().nullish().catch(null),
+  recurring_month: z.string().nullish().catch(null),
   // join 出來的巢狀資料若壞掉，退回 null 而非整列丟棄。
   created_at: z.string().catch(''),
   updated_at: z.string().catch(''),
@@ -64,6 +66,29 @@ export const budgetSchema = z.object({
   // numeric 欄位經 PostgREST 可能以字串回傳，統一轉成數字。
   amount: z.coerce.number(),
   currency: currencySchema
+});
+
+// char(7) 可能帶尾端空白；格式不對的列直接丟棄，避免產生邏輯拿到壞月份。
+const yearMonthSchema = z
+  .string()
+  .transform((value) => value.trim())
+  .pipe(z.string().regex(/^\d{4}-\d{2}$/));
+
+export const recurringTransactionSchema = z.object({
+  id: z.string(),
+  family_id: z.string(),
+  owner_id: z.string(),
+  ledger_type: ledgerTypeSchema,
+  type: transactionTypeSchema,
+  amount: z.coerce.number().positive(),
+  currency: currencySchema,
+  category_id: z.string(),
+  note: z.string().nullish(),
+  payment_method: paymentMethodSchema.nullish().catch(null),
+  day_of_month: z.coerce.number().int().min(1).max(31),
+  start_month: yearMonthSchema,
+  last_generated_month: yearMonthSchema.nullable(),
+  active: z.boolean()
 });
 
 export const entryRowSchema = z.object({
@@ -106,6 +131,8 @@ export const parseCategories = (data: unknown): Category[] =>
 export const parseUserProfiles = (data: unknown): UserProfile[] =>
   safeParseRows<UserProfile>(userProfileSchema, data, '成員');
 export const parseBudgets = (data: unknown): Budget[] => safeParseRows<Budget>(budgetSchema, data, '預算');
+export const parseRecurringTransactions = (data: unknown): RecurringTransaction[] =>
+  safeParseRows<RecurringTransaction>(recurringTransactionSchema, data, '固定收支');
 export const parseEntryRows = (data: unknown): EntryRow[] =>
   safeParseRows<EntryRow>(entryRowSchema, data, '建議');
 

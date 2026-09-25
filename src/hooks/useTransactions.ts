@@ -5,6 +5,7 @@ import { parseTransactions } from '../lib/schemas';
 import { TREND_MONTHS_BACK } from '../lib/constants';
 import { monthRange, rollingMonthRange } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
 import { useRealtimeSync } from './useRealtimeSync';
 
 export interface TransactionInput {
@@ -143,6 +144,16 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
   }, [loadTransactions]);
 
   useRealtimeSync(ledgerType === 'family' ? profile?.family_id : undefined, refreshTransactions);
+
+  // 清單以外的寫入（如固定收支自動記入）遞增 dataVersion；個人帳本沒有 realtime，靠這裡同步。
+  // 用 ref 記住掛載時的版本，只對之後的變動重抓，不重複首次載入。
+  const dataVersion = useUIStore((state) => state.dataVersion);
+  const seenVersionRef = useRef(dataVersion);
+  useEffect(() => {
+    if (dataVersion === seenVersionRef.current) return;
+    seenVersionRef.current = dataVersion;
+    void refreshTransactions();
+  }, [dataVersion, refreshTransactions]);
 
   const createTransaction = useCallback(
     async (input: TransactionInput) => {

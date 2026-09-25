@@ -21,6 +21,9 @@ interface UIState {
   toasts: ToastItem[];
   showToast: (message: string, tone?: ToastTone, options?: ToastOptions) => void;
   dismissToast: (id: number) => void;
+  /** 交易資料在清單以外被改動（例如固定收支自動記入）時遞增，讓各交易清單重抓。 */
+  dataVersion: number;
+  bumpDataVersion: () => void;
 }
 
 const DEFAULT_DURATION = 2400;
@@ -52,5 +55,7 @@ export const useUIStore = create<UIState>((set) => ({
       next.splice(removableIndex, 1);
       return { toasts: next };
     }),
-  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) }))
+  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) })),
+  dataVersion: 0,
+  bumpDataVersion: () => set((state) => ({ dataVersion: state.dataVersion + 1 }))
 }));

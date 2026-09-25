@@ -13,7 +13,7 @@ FamilyLedger 是依照 v1.2 規格建立的 PWA，P0 版本包含：
 ## 啟動
 
 1. 複製 `.env.example` 為 `.env.local`，填入 Supabase URL 與 anon key。
-2. 在 Supabase SQL Editor 執行 `supabase/migrations/001_initial_schema.sql`。
+2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 008）。之後新增的 migration 也要在上線前補跑。
 3. 執行：
 
 ```bash

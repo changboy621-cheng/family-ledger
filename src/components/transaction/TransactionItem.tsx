@@ -71,7 +71,10 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
                 {paymentMethodLabel(transaction.payment_method)}
               </span>
             ) : null}
-            {recordedByOther ? (
+            {/* 固定收支由開 App 的人自動記入，「代記」沒有意義，改標示為固定。 */}
+            {transaction.recurring_id ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">🔁 固定</span>
+            ) : recordedByOther ? (
               <span className="rounded-full bg-familySoft px-2 py-0.5 font-medium text-family">
                 {recorderName} 代記
               </span>

@@ -73,3 +73,17 @@ describe('TransactionItem 備註顯示', () => {
     expect(container.querySelector('mark')).toBeNull();
   });
 });
+
+describe('TransactionItem 固定收支標記', () => {
+  it('固定收支自動記入的交易顯示「🔁 固定」，不顯示代記', () => {
+    const transaction = {
+      ...makeTransaction('房租'),
+      recorded_by: 'u2',
+      recurring_id: 'r1',
+      recurring_month: '2026-07'
+    } as Transaction;
+    render(<ul><TransactionItem transaction={transaction} recorderName="太太" /></ul>);
+    expect(screen.getByText('🔁 固定')).toBeTruthy();
+    expect(screen.queryByText(/代記/)).toBeNull();
+  });
+});
