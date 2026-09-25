@@ -13,11 +13,29 @@ function firePointerDown(element: Element, pointerType: string) {
   fireEvent(element, event);
 }
 
+// 餐飲用過「星巴克」「午餐」；交通用過「加油」「午餐」（同一備註在不同分類，金額各自記住）。
 const noteDefaults = new Map<string, NoteDefaults>([
-  ['星巴克', { category_id: 'c-food', amount: 150, currency: 'TWD', payment_method: 'card' }]
+  ['星巴克', { category_id: 'c-food', amount: 150, currency: 'TWD', payment_method: 'card' }],
+  ['加油', { category_id: 'c-car', amount: 1200, currency: 'TWD', payment_method: 'card' }],
+  ['午餐', { category_id: 'c-food', amount: 120, currency: 'TWD', payment_method: 'cash' }]
+]);
+const notesByCategory = new Map<string, string[]>([
+  ['c-food', ['星巴克', '午餐']],
+  ['c-car', ['加油', '午餐']]
+]);
+const categoryNoteDefaults = new Map<string, NoteDefaults>([
+  ['c-food\u0000星巴克', { category_id: 'c-food', amount: 150, currency: 'TWD', payment_method: 'card' }],
+  ['c-food\u0000午餐', { category_id: 'c-food', amount: 120, currency: 'TWD', payment_method: 'cash' }],
+  ['c-car\u0000加油', { category_id: 'c-car', amount: 1200, currency: 'TWD', payment_method: 'card' }],
+  ['c-car\u0000午餐', { category_id: 'c-car', amount: 80, currency: 'TWD', payment_method: 'cash' }]
 ]);
 vi.mock('../../hooks/useEntrySuggestions', () => ({
-  useEntrySuggestions: () => ({ noteHistory: ['星巴克', '加油'], noteDefaults })
+  useEntrySuggestions: () => ({
+    noteHistory: ['星巴克', '加油', '午餐'],
+    noteDefaults,
+    notesByCategory,
+    categoryNoteDefaults
+  })
 }));
 vi.mock('../../hooks/useFamilyMembers', () => ({
   useFamilyMembers: () => ({ members: [], loading: false })
@@ -76,12 +94,52 @@ describe('聰明帶入', () => {
   });
 });
 
+describe('備註跟著分類', () => {
+  const noteInput = () => screen.getByPlaceholderText('晚餐、機票、生活用品...');
+  const chip = (name: string) => screen.queryByRole('button', { name });
+
+  it('只列目前分類用過的備註，切換分類就換一組', () => {
+    renderForm();
+    expect(chip('星巴克')).toBeInTheDocument();
+    expect(chip('加油')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('類別'), { target: { value: 'c-car' } });
+    expect(chip('加油')).toBeInTheDocument();
+    expect(chip('星巴克')).toBeNull();
+  });
+
+  it('同一備註在不同分類，帶入的是該分類的金額，且不切換分類', () => {
+    renderForm();
+    fireEvent.change(screen.getByLabelText('類別'), { target: { value: 'c-car' } });
+    fireEvent.click(screen.getByRole('button', { name: '午餐' }));
+    expect(noteInput()).toHaveValue('午餐');
+    expect(screen.getByText('80')).toBeInTheDocument();
+    expect(screen.getByLabelText('類別')).toHaveValue('c-car');
+  });
+
+  it('輸入文字時補上其他分類的相符備註，點了切換到該分類', () => {
+    renderForm();
+    fireEvent.change(noteInput(), { target: { value: '加' } });
+    fireEvent.click(screen.getByRole('button', { name: '加油' }));
+    expect(screen.getByLabelText('類別')).toHaveValue('c-car');
+    expect(screen.getByText('1200')).toBeInTheDocument();
+  });
+
+  it('釘選的備註只出現在用過它的分類', () => {
+    localStorage.setItem('fl:pinned-notes:family:expense', JSON.stringify(['加油']));
+    renderForm();
+    expect(chip('📌 加油')).toBeNull();
+    fireEvent.change(screen.getByLabelText('類別'), { target: { value: 'c-car' } });
+    expect(screen.getByRole('button', { name: /📌.*加油/ })).toBeInTheDocument();
+  });
+});
+
 describe('釘選', () => {
   it('右鍵（contextmenu）釘選後圓籤帶 📌 並寫入 localStorage', () => {
     renderForm();
-    fireEvent.contextMenu(screen.getByRole('button', { name: '加油' }));
-    expect(screen.getByRole('button', { name: /📌.*加油/ })).toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('fl:pinned-notes:family:expense') ?? '[]')).toEqual(['加油']);
+    fireEvent.contextMenu(screen.getByRole('button', { name: '午餐' }));
+    expect(screen.getByRole('button', { name: /📌.*午餐/ })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('fl:pinned-notes:family:expense') ?? '[]')).toEqual(['午餐']);
   });
 });
 
@@ -117,9 +175,9 @@ describe('觸控長按釘選', () => {
     });
     // 刻意不點 chipA（模擬 iOS 原生選字選單吃掉了長按後的合成 click）；
     // 若用單一布林值 fired，這裡殘留的 true 會讓下面對「另一顆」圓籤的點擊也被吃掉。
-    const chipB = screen.getByRole('button', { name: '加油' });
+    const chipB = screen.getByRole('button', { name: '午餐' });
     fireEvent.click(chipB);
-    expect(screen.getByPlaceholderText('晚餐、機票、生活用品...')).toHaveValue('加油');
+    expect(screen.getByPlaceholderText('晚餐、機票、生活用品...')).toHaveValue('午餐');
   });
 
   it('表單在長按計時器觸發前卸載：計時器被清除，不寫入 localStorage、不拋錯', () => {

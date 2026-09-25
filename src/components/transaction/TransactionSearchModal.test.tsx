@@ -17,7 +17,12 @@ vi.mock('../../hooks/useFamilyMembers', () => ({
   useFamilyMembers: () => ({ members: [], loading: false })
 }));
 vi.mock('../../hooks/useEntrySuggestions', () => ({
-  useEntrySuggestions: () => ({ noteHistory: [], noteDefaults: new Map() })
+  useEntrySuggestions: () => ({
+    noteHistory: [],
+    noteDefaults: new Map(),
+    notesByCategory: new Map(),
+    categoryNoteDefaults: new Map()
+  })
 }));
 vi.mock('../../hooks/useCategories', () => ({
   useCategories: () => ({

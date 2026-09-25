@@ -4,6 +4,10 @@ import {
   computeRecentNotes,
   filterNotes,
   mergeNoteSuggestions,
+  buildNotesByCategory,
+  buildCategoryNoteDefaults,
+  categoryNoteKey,
+  selectNoteSuggestions,
   pinnedNotesKey,
   togglePin,
   type EntryRow
@@ -109,5 +113,51 @@ describe('mergeNoteSuggestions', () => {
 describe('pinnedNotesKey', () => {
   it('依帳本型別與收支型別命名', () => {
     expect(pinnedNotesKey('family', 'expense')).toBe('fl:pinned-notes:family:expense');
+  });
+});
+
+describe('依分類的備註', () => {
+  const rows = [
+    { note: '午餐', category_id: 'food', amount: 120, currency: 'TWD' as const, payment_method: 'cash' as const },
+    { note: '加油', category_id: 'car', amount: 1200 },
+    { note: '午餐', category_id: 'car', amount: 80 },
+    { note: '星巴克', category_id: 'food', amount: 150 },
+    { note: '午餐', category_id: 'food', amount: 999 },
+    { note: '無分類', category_id: null }
+  ];
+
+  it('buildNotesByCategory：各分類不重複、最近在前、略過無分類', () => {
+    const byCategory = buildNotesByCategory(rows);
+    expect(byCategory.get('food')).toEqual(['午餐', '星巴克']);
+    expect(byCategory.get('car')).toEqual(['加油', '午餐']);
+    expect(byCategory.size).toBe(2);
+  });
+
+  it('buildCategoryNoteDefaults：同一備註在不同分類各自取最近一次', () => {
+    const defaults = buildCategoryNoteDefaults(rows);
+    expect(defaults.get(categoryNoteKey('food', '午餐'))?.amount).toBe(120);
+    expect(defaults.get(categoryNoteKey('car', '午餐'))?.amount).toBe(80);
+  });
+
+  const notesByCategory = buildNotesByCategory(rows);
+  const noteDefaults = buildNoteDefaults(rows);
+  const allNotes = computeRecentNotes(rows);
+  const base = { notesByCategory, noteDefaults, allNotes, pinned: [] as string[], query: '' };
+
+  it('未輸入：只列目前分類', () => {
+    expect(selectNoteSuggestions({ ...base, categoryId: 'food' })).toEqual(['午餐', '星巴克']);
+    expect(selectNoteSuggestions({ ...base, categoryId: 'unused' })).toEqual([]);
+  });
+
+  it('有輸入：本分類相符在前，再補其他分類', () => {
+    expect(selectNoteSuggestions({ ...base, categoryId: 'food', query: '加' })).toEqual(['加油']);
+    expect(selectNoteSuggestions({ ...base, categoryId: 'car', query: '午' })).toEqual(['午餐']);
+    expect(selectNoteSuggestions({ ...base, categoryId: 'car', query: '星' })).toEqual(['星巴克']);
+  });
+
+  it('釘選：只在用過的分類出現；從未記過帳的釘選每個分類都出現', () => {
+    const pinned = ['星巴克', '新釘選'];
+    expect(selectNoteSuggestions({ ...base, pinned, categoryId: 'food' })).toEqual(['星巴克', '新釘選', '午餐']);
+    expect(selectNoteSuggestions({ ...base, pinned, categoryId: 'car' })).toEqual(['新釘選', '加油', '午餐']);
   });
 });

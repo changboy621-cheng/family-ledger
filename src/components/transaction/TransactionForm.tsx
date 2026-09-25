@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
 import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 import { useEntrySuggestions } from '../../hooks/useEntrySuggestions';
-import { mergeNoteSuggestions, pinnedNotesKey, togglePin } from '../../lib/suggestions';
+import { categoryNoteKey, pinnedNotesKey, selectNoteSuggestions, togglePin } from '../../lib/suggestions';
 import { loadStringList, saveStringList } from '../../lib/search';
 import { useUIStore } from '../../store/uiStore';
 import type { TransactionInput } from '../../hooks/useTransactions';
@@ -39,7 +39,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [error, setError] = useState('');
   const { categories, createCategory, updateCategory, deleteCategory } = useCategories(type);
   const { members } = useFamilyMembers();
-  const { noteHistory, noteDefaults } = useEntrySuggestions(ledgerType, type);
+  const { noteHistory, noteDefaults, notesByCategory, categoryNoteDefaults } = useEntrySuggestions(ledgerType, type);
   const showToast = useUIStore((state) => state.showToast);
   const [pinnedNotes, setPinnedNotes] = useState<string[]>([]);
 
@@ -48,14 +48,25 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     setPinnedNotes(loadStringList(localStorage, pinnedNotesKey(ledgerType, type)));
   }, [ledgerType, type]);
 
-  const noteSuggestions = mergeNoteSuggestions(pinnedNotes, noteHistory, note);
+  // 備註圓籤跟著分類走：選哪個分類就列那個分類用過的備註；輸入文字時再補上其他分類的相符備註。
+  const noteSuggestions = selectNoteSuggestions({
+    categoryId,
+    query: note,
+    pinned: pinnedNotes,
+    notesByCategory,
+    allNotes: noteHistory,
+    noteDefaults
+  });
 
   /** 點圓籤：帶入備註＋該備註上次的分類與付款方式；金額只在尚未輸入時帶入（不覆蓋）。 */
   function applySuggestion(suggestion: string) {
     setNote(suggestion);
-    const defaults = noteDefaults.get(suggestion);
+    // 這個分類用過的備註：帶入它在此分類的金額／付款方式，分類不動。
+    // 其他分類的備註（輸入搜尋時出現）：沿用它最近一次的分類並切換過去。
+    const scoped = categoryNoteDefaults.get(categoryNoteKey(categoryId, suggestion));
+    const defaults = scoped ?? noteDefaults.get(suggestion);
     if (!defaults) return;
-    if (defaults.category_id && categories.some((category) => category.id === defaults.category_id)) {
+    if (!scoped && defaults.category_id && categories.some((category) => category.id === defaults.category_id)) {
       setCategoryId(defaults.category_id);
     }
     if (defaults.payment_method) setPaymentMethod(defaults.payment_method);
