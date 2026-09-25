@@ -14,6 +14,11 @@ import { CollapsibleSection } from '../components/common/CollapsibleSection';
 import { LedgerAnalysis } from '../components/transaction/LedgerAnalysis';
 import { TransactionSearchModal, type CategoryDetailTarget } from '../components/transaction/TransactionSearchModal';
 import { useUIStore } from '../store/uiStore';
+import { useBudgets } from '../hooks/useBudgets';
+import { useCategories } from '../hooks/useCategories';
+import { monthElapsedRatio } from '../lib/budget';
+import { SavingsCard } from '../components/budget/SavingsCard';
+import { BudgetProgressCard } from '../components/budget/BudgetProgressCard';
 
 interface CategoryDrillTarget {
   ledgerType: LedgerType;
@@ -33,6 +38,8 @@ export function Dashboard() {
   const personalAnalysis = useLedgerAnalysis(personalTransactions.transactions, yearMonth);
   const showToast = useUIStore((state) => state.showToast);
   const { members } = useFamilyMembers();
+  const { budgets } = useBudgets(yearMonth);
+  const { categories: expenseCategories } = useCategories('expense');
 
   // 新使用者引導：資料載入完成且無誤時才判斷，避免載入中誤顯示。
   const ledgersReady =
@@ -80,6 +87,20 @@ export function Dashboard() {
           <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} />
         )}
       </section>
+
+      {ledgersReady && profile ? (
+        <section className="grid gap-3 md:grid-cols-2">
+          <SavingsCard familySummary={familySummary} personalSummary={personalSummary} />
+          <BudgetProgressCard
+            budgets={budgets}
+            profileId={profile.id}
+            familyTransactions={familyTransactions.transactions}
+            personalTransactions={personalTransactions.transactions}
+            categories={expenseCategories}
+            monthElapsed={monthElapsedRatio()}
+          />
+        </section>
+      ) : null}
 
       {ledgersReady && !hasTransactionThisMonth ? (
         <section className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
