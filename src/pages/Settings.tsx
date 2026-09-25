@@ -5,6 +5,7 @@ import { FamilyInvite } from '../components/family/FamilyInvite';
 import { DataTools } from '../components/settings/DataTools';
 import { CategoryOrderManager } from '../components/settings/CategoryOrderManager';
 import { BudgetManager } from '../components/settings/BudgetManager';
+import { RecurringManager } from '../components/settings/RecurringManager';
 import { SiriShortcut } from '../components/settings/SiriShortcut';
 import { InlineEditField } from '../components/common/InlineEditField';
 import { isValidDisplayName, MAX_DISPLAY_NAME_LENGTH } from '../lib/profile';
@@ -57,6 +58,8 @@ export function Settings() {
       </section>
 
       <BudgetManager />
+
+      <RecurringManager />
 
       <FamilyInvite variant="plain" />
 

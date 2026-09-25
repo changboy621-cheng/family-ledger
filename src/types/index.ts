@@ -46,6 +46,9 @@ export interface Transaction {
   payment_method?: PaymentMethod | null;
   transaction_date: string;
   receipt_url?: string | null;
+  /** 由固定收支自動記入時，來源規則與所屬月份。 */
+  recurring_id?: string | null;
+  recurring_month?: string | null;
   created_at: string;
   updated_at: string;
   category?: Category | null;
@@ -64,6 +67,26 @@ export interface Budget {
   year_month: string;
   amount: number;
   currency: Currency;
+}
+
+export interface RecurringTransaction {
+  id: string;
+  family_id: string;
+  owner_id: string;
+  ledger_type: LedgerType;
+  type: TransactionType;
+  amount: number;
+  currency: Currency;
+  category_id: string;
+  note?: string | null;
+  payment_method?: PaymentMethod | null;
+  /** 每月幾號（1–31），短月份記在月底。 */
+  day_of_month: number;
+  /** 第一個要記入的月份（YYYY-MM）。 */
+  start_month: string;
+  /** 已處理到的月份（YYYY-MM）；null = 尚未產生過。 */
+  last_generated_month: string | null;
+  active: boolean;
 }
 
 export interface CurrencySummary {

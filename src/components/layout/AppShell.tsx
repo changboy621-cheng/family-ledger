@@ -2,9 +2,11 @@ import { Outlet } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { SideNav } from './SideNav';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { useRecurringGenerator } from '../../hooks/useRecurring';
 
 export function AppShell() {
   const online = useOnlineStatus();
+  useRecurringGenerator();
 
   return (
     <div className="min-h-screen bg-page lg:flex">
