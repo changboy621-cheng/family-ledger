@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Category, Transaction, UserProfile } from '../types';
+import type { Budget, Category, Transaction, UserProfile } from '../types';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
 import { DEFAULT_AVATAR_COLOR } from './constants';
@@ -53,6 +53,19 @@ export const transactionSchema = z.object({
   owner: userProfileSchema.nullish().catch(null)
 });
 
+export const budgetSchema = z.object({
+  id: z.string(),
+  family_id: z.string(),
+  owner_id: z.string().nullable(),
+  ledger_type: ledgerTypeSchema,
+  category_id: z.string().nullable(),
+  // DB 為 char(7)，保險起見去掉可能的尾端空白。
+  year_month: z.string().transform((value) => value.trim()),
+  // numeric 欄位經 PostgREST 可能以字串回傳，統一轉成數字。
+  amount: z.coerce.number(),
+  currency: currencySchema
+});
+
 export const entryRowSchema = z.object({
   note: z.string().nullish().catch(null),
   transaction_date: z.string().optional(),
@@ -92,6 +105,7 @@ export const parseCategories = (data: unknown): Category[] =>
   safeParseRows<Category>(categorySchema, data, '分類');
 export const parseUserProfiles = (data: unknown): UserProfile[] =>
   safeParseRows<UserProfile>(userProfileSchema, data, '成員');
+export const parseBudgets = (data: unknown): Budget[] => safeParseRows<Budget>(budgetSchema, data, '預算');
 export const parseEntryRows = (data: unknown): EntryRow[] =>
   safeParseRows<EntryRow>(entryRowSchema, data, '建議');
 

@@ -1,13 +1,22 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { FamilyInvite } from '../components/family/FamilyInvite';
 import { DataTools } from '../components/settings/DataTools';
 import { CategoryOrderManager } from '../components/settings/CategoryOrderManager';
+import { BudgetManager } from '../components/settings/BudgetManager';
 import { SiriShortcut } from '../components/settings/SiriShortcut';
 import { InlineEditField } from '../components/common/InlineEditField';
 import { isValidDisplayName, MAX_DISPLAY_NAME_LENGTH } from '../lib/profile';
 
 export function Settings() {
   const { profile, family, updateDisplayName, updateFamilyName, signOut } = useAuth();
+  const { hash } = useLocation();
+
+  // 從首頁預算卡「設定／調整」連過來（/settings#budget）時捲到預算區塊。
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+  }, [hash]);
 
   return (
     <div className="grid gap-5">
@@ -46,6 +55,8 @@ export function Settings() {
           />
         </dl>
       </section>
+
+      <BudgetManager />
 
       <FamilyInvite variant="plain" />
 

@@ -52,6 +52,20 @@ export interface Transaction {
   owner?: UserProfile | null;
 }
 
+export interface Budget {
+  id: string;
+  family_id: string;
+  /** 個人預算為本人 id；家庭預算為 null。 */
+  owner_id: string | null;
+  ledger_type: LedgerType;
+  /** null = 該帳本的每月總預算。 */
+  category_id: string | null;
+  /** 生效月份（YYYY-MM），之後每月沿用直到再次調整。 */
+  year_month: string;
+  amount: number;
+  currency: Currency;
+}
+
 export interface CurrencySummary {
   TWD: number;
   USD: number;
