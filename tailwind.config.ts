@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        family: '#1D9E75',
+        family: '#15805E',
         familySoft: '#E1F5EE',
         personal: '#378ADD',
         personalSoft: '#E6F1FB',
