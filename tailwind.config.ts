@@ -7,7 +7,7 @@ export default {
     extend: {
       colors: {
         family: '#15805E',
-        familySoft: '#E1F5EE',
+        familySoft: '#EEF9F5',
         personal: '#256BB5',
         personalSoft: '#E6F1FB',
         page: '#EEF2F7',
