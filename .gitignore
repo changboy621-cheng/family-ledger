@@ -6,5 +6,7 @@ dist
 *.tsbuildinfo
 
 # local agent/orchestration state (Codex review P3)
-.claude/
+.claude/*
+!.claude/skills/
 .superpowers
+.impeccable/
