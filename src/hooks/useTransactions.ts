@@ -17,6 +17,10 @@ export interface TransactionInput {
   transaction_date: string;
   note?: string;
   payment_method?: PaymentMethod | null;
+  /** 消費地點（可選）；全部省略或 null 代表不記錄位置。 */
+  latitude?: number | null;
+  longitude?: number | null;
+  place_name?: string | null;
   /** 這筆帳歸屬的成員；未指定時即記帳人本人。家庭帳本可代其他成員記錄。 */
   owner_id?: string;
 }
@@ -77,6 +81,19 @@ export function resolveUpdateOwnerPatch(
   inputOwnerId: string | undefined
 ): { owner_id?: string } {
   return ledgerType === 'family' && inputOwnerId ? { owner_id: inputOwnerId } : {};
+}
+
+/**
+ * 寫入用的位置欄位：經緯度必須成對，缺一就整組清成 null；地點名稱空白視為無。
+ * 更新時一律回傳三個欄位，讓使用者在表單移除位置能真的清掉資料庫裡的值。
+ */
+export function resolveLocationPatch(input: Pick<TransactionInput, 'latitude' | 'longitude' | 'place_name'>) {
+  const hasCoords = input.latitude != null && input.longitude != null;
+  return {
+    latitude: hasCoords ? input.latitude : null,
+    longitude: hasCoords ? input.longitude : null,
+    place_name: hasCoords ? input.place_name?.trim() || null : null
+  };
 }
 
 /** 從較大的交易集合（如近 6 個月）挑出指定月份（YYYY-MM），維持原順序。 */
@@ -166,7 +183,8 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
         owner_id: resolveInsertOwnerId(input.ledger_type, owner_id, profile.id),
         recorded_by: profile.id,
         note: input.note?.trim() || null,
-        payment_method: input.payment_method ?? null
+        payment_method: input.payment_method ?? null,
+        ...resolveLocationPatch(input)
       });
 
       if (error) throw error;
@@ -198,6 +216,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
           transaction_date: input.transaction_date,
           note: input.note?.trim() || null,
           payment_method: input.payment_method ?? null,
+          ...resolveLocationPatch(input),
           ...resolveUpdateOwnerPatch(input.ledger_type, input.owner_id)
         })
         .eq('id', id);

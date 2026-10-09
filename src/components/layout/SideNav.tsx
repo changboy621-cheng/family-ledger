@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Lock, Settings, Users } from 'lucide-react';
+import { Home, Lock, MapPin, Settings, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const items = [
   { to: '/', label: '首頁', icon: Home },
   { to: '/family', label: '家庭帳本', icon: Users },
   { to: '/personal', label: '個人帳本', icon: Lock },
+  { to: '/map', label: '地圖', icon: MapPin },
   { to: '/settings', label: '設定', icon: Settings }
 ];
 

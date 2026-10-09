@@ -46,6 +46,10 @@ export const transactionSchema = z.object({
   payment_method: paymentMethodSchema.nullish(),
   transaction_date: z.string(),
   receipt_url: z.string().nullish(),
+  // numeric 欄位經 PostgREST 可能以字串回傳；壞值退回 null（不整列丟棄）。
+  latitude: z.coerce.number().min(-90).max(90).nullish().catch(null),
+  longitude: z.coerce.number().min(-180).max(180).nullish().catch(null),
+  place_name: z.string().nullish().catch(null),
   recurring_id: z.string().nullish().catch(null),
   recurring_month: z.string().nullish().catch(null),
   // join 出來的巢狀資料若壞掉，退回 null 而非整列丟棄。
