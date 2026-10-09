@@ -46,6 +46,10 @@ export interface Transaction {
   payment_method?: PaymentMethod | null;
   transaction_date: string;
   receipt_url?: string | null;
+  /** 消費地點（可選）：經緯度與使用者可編輯的地點名稱。 */
+  latitude?: number | null;
+  longitude?: number | null;
+  place_name?: string | null;
   /** 由固定收支自動記入時，來源規則與所屬月份。 */
   recurring_id?: string | null;
   recurring_month?: string | null;

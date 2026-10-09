@@ -4,7 +4,7 @@ import { formatAmount } from '../../lib/currency';
 import { DEFAULT_AVATAR_COLOR, paymentMethodLabel } from '../../lib/constants';
 import { splitHighlight } from '../../lib/search';
 import { CurrencyBadge } from '../common/CurrencyBadge';
-import { Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Pencil, Trash2 } from 'lucide-react';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -69,6 +69,15 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
             {transaction.payment_method ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
                 {paymentMethodLabel(transaction.payment_method)}
+              </span>
+            ) : null}
+            {transaction.latitude != null && transaction.longitude != null ? (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600"
+                title="已記錄消費地點"
+              >
+                <MapPin className="h-3 w-3" aria-hidden="true" />
+                {transaction.place_name || '已定位'}
               </span>
             ) : null}
             {/* 固定收支由開 App 的人自動記入，「代記」沒有意義，改標示為固定。 */}
