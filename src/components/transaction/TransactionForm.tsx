@@ -5,6 +5,7 @@ import { normalizeAmount } from '../../lib/currency';
 import { getErrorMessage } from '../../lib/errors';
 import { paymentMethodLabel } from '../../lib/constants';
 import { todayISO } from '../../lib/utils';
+import { reverseGeocode } from '../../lib/geocode';
 import { readPhotoMeta } from '../../lib/photoMeta';
 import { getCurrentCoordinates, locationErrorMessage, type Coordinates } from '../../lib/geo';
 import { useAuthStore } from '../../store/authStore';
@@ -111,6 +112,22 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
       setLocationError('這張照片沒有位置資訊（iPhone 從相簿選取常會被移除），可改按「記錄目前位置」。');
     }
   }
+
+  // 取得座標後，若地點名稱還空著就自動查地名（只送經緯度給 OpenStreetMap）；
+  // 查詢途中使用者自己打了名稱就不覆蓋。編輯既有交易時，原本的座標不重查。
+  const initialLat = initialTransaction?.latitude;
+  const initialLng = initialTransaction?.longitude;
+  useEffect(() => {
+    if (!coords || placeName.trim()) return undefined;
+    if (coords.latitude === initialLat && coords.longitude === initialLng) return undefined;
+    const controller = new AbortController();
+    void reverseGeocode(coords, controller.signal).then((name) => {
+      if (name && !controller.signal.aborted) setPlaceName((current) => current.trim() || name);
+    });
+    return () => controller.abort();
+    // 只在座標改變時查；placeName 變動（使用者輸入）不應重查。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords, initialLat, initialLng]);
 
   function toggleAutoLocate() {
     const next = !autoLocate;
@@ -417,7 +434,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                   className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
                   value={placeName}
                   onChange={(event) => setPlaceName(event.target.value)}
-                  placeholder="地點名稱（選填），例如：全聯、東京車站"
+                  placeholder="地點名稱（會自動查詢，可自行修改）"
                   aria-label="地點名稱"
                 />
                 <button
