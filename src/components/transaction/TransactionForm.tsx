@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MapPin, X } from 'lucide-react';
+import { Camera, MapPin, X } from 'lucide-react';
 import type { Currency, LedgerType, PaymentMethod, Transaction, TransactionType } from '../../types';
 import { normalizeAmount } from '../../lib/currency';
 import { getErrorMessage } from '../../lib/errors';
 import { paymentMethodLabel } from '../../lib/constants';
 import { todayISO } from '../../lib/utils';
+import { readPhotoMeta } from '../../lib/photoMeta';
 import { getCurrentCoordinates, locationErrorMessage, type Coordinates } from '../../lib/geo';
 import { useAuthStore } from '../../store/authStore';
 import { useCategories } from '../../hooks/useCategories';
@@ -90,6 +91,26 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     // 只在開表單時跑一次；之後 autoLocate 切換由 toggleAutoLocate 自行處理。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  /** 選／拍一張收據照片：讀 EXIF 帶入拍攝位置與日期（照片不上傳）。 */
+  async function handlePhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // 允許再選同一張
+    if (!file) return;
+    setLocating(true);
+    setLocationError('');
+    const meta = await readPhotoMeta(file);
+    setLocating(false);
+    if (meta.coordinates) setCoords(meta.coordinates);
+    if (meta.date) setTransactionDate(meta.date);
+    if (meta.coordinates) {
+      showToast(meta.date ? '已從照片帶入位置與日期' : '已從照片帶入位置');
+    } else {
+      setLocationError('這張照片沒有位置資訊（iPhone 從相簿選取常會被移除），可改按「記錄目前位置」。');
+    }
+  }
 
   function toggleAutoLocate() {
     const next = !autoLocate;
@@ -420,6 +441,22 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                 {locating ? '定位中...' : '記錄目前位置'}
               </button>
             )}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => void handlePhoto(event)}
+            />
+            <button
+              type="button"
+              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={locating}
+            >
+              <Camera className="h-4 w-4" aria-hidden="true" />
+              用收據／照片帶入位置
+            </button>
             {coords ? (
               <p className="text-xs text-slate-400">
                 已定位（{coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}），會顯示在「消費地圖」。
