@@ -50,30 +50,30 @@ export function ExpenseMap({ places, currency, colorBy, selectedKey, onSelect }:
     for (const place of places) {
       const amount = place.totals[currency];
       const slices = colorSlices(place, currency, colorBy);
-      const radius = markerRadius(amount, max);
       const selected = place.key === selectedKey;
-      // 圓餅圖圓點：同一地點有多種項目／來源時，依金額比例疊出多種顏色。
-      const icon = L.divIcon({
-        className: '',
-        iconSize: [radius * 2, radius * 2],
-        iconAnchor: [radius, radius],
-        html: `<div style="width:100%;height:100%;border-radius:50%;background:${sliceGradient(slices)};opacity:0.9;border:${
-          selected ? '3px solid #0f172a' : '1.5px solid rgba(255,255,255,0.9)'
-        };box-shadow:0 1px 3px rgba(0,0,0,0.35);box-sizing:border-box"></div>`
-      });
-      const marker = L.marker([place.latitude, place.longitude], { icon, keyboard: false });
       const breakdown = slices.map((slice) => `${slice.label} ${Math.round(slice.ratio * 100)}%`).join('・');
-      // 用 DOM 節點 + textContent 組提示框：地點名稱是使用者輸入，不能當 HTML 解析。
-      const tip = document.createElement('div');
-      tip.textContent = `${place.name ?? '未命名地點'}・${place.count} 筆・${formatAmount(amount, currency)}`;
-      if (breakdown) {
-        const detail = document.createElement('div');
-        detail.textContent = breakdown;
-        tip.appendChild(detail);
+      // 每種項目／帳本各畫一個半透明圓，大小依該色的金額；金額大的先畫在底層，
+      // 小的疊在上面，重疊處顏色自然混合（紅＋綠＝偏黃）。
+      for (const slice of slices) {
+        const marker = L.circleMarker([place.latitude, place.longitude], {
+          radius: markerRadius(slice.amount, max),
+          color: selected ? '#0f172a' : slice.color,
+          weight: selected ? 2.5 : 1.5,
+          fillColor: slice.color,
+          fillOpacity: 0.45
+        });
+        // 用 DOM 節點 + textContent 組提示框：地點名稱是使用者輸入，不能當 HTML 解析。
+        const tip = document.createElement('div');
+        tip.textContent = `${place.name ?? '未命名地點'}・${place.count} 筆・${formatAmount(amount, currency)}`;
+        if (breakdown) {
+          const detail = document.createElement('div');
+          detail.textContent = breakdown;
+          tip.appendChild(detail);
+        }
+        marker.bindTooltip(tip);
+        marker.on('click', () => onSelectRef.current(place.key));
+        marker.addTo(layer);
       }
-      marker.bindTooltip(tip);
-      marker.on('click', () => onSelectRef.current(place.key));
-      marker.addTo(layer);
     }
     if (places.length > 0) {
       const bounds = L.latLngBounds(places.map((place) => [place.latitude, place.longitude] as [number, number]));

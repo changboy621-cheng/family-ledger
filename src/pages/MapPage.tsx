@@ -121,7 +121,7 @@ export function MapPage() {
           </span>
         ))}
       </div>
-      <p className="-mt-3 text-xs text-slate-400">每個圓點是圓餅圖：同一地點有幾種{colorBy === 'category' ? '項目' : '帳本'}，就切成幾種顏色，大小依金額比例。</p>
+      <p className="-mt-3 text-xs text-slate-400">同一地點有幾種{colorBy === 'category' ? '項目' : '帳本'}，就疊幾個半透明的圓，重疊處會混色；圓的大小依該色的金額。</p>
 
       {!loading && !error && visiblePlaces.length === 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
