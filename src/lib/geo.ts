@@ -1,6 +1,8 @@
 // 記帳定位與消費地圖的純邏輯：取得目前位置、把有定位的支出聚合成地圖上的地點。
-import type { CurrencySummary, Transaction } from '../types';
+import type { Currency, CurrencySummary, Transaction } from '../types';
 import { emptyCurrencySummary } from './currency';
+import { toTwd, type TripExpense } from './trips';
+import { groupForCategoryName, groupForTripCategory, type ColorGroupKey } from './mapColors';
 
 export interface Coordinates {
   latitude: number;
@@ -62,6 +64,56 @@ export function getCurrentCoordinates(): Promise<Coordinates> {
   });
 }
 
+/** 消費地圖上的帳來源：家庭帳本、個人帳本、旅遊帳。 */
+export type MapSource = 'family' | 'personal' | 'trip';
+
+/** 地圖上的一筆有定位的支出；三種帳本統一成這個形狀再聚合。 */
+export interface MapSpot {
+  id: string;
+  source: MapSource;
+  latitude: number;
+  longitude: number;
+  placeName: string | null;
+  date: string;
+  currency: Currency;
+  amount: number;
+  /** 項目色群（餐飲、交通、旅遊…），地圖「依項目分色」用。 */
+  group: ColorGroupKey;
+}
+
+export function transactionToSpot(transaction: Transaction): MapSpot | null {
+  const { latitude, longitude } = transaction;
+  if (transaction.type !== 'expense' || latitude == null || longitude == null) return null;
+  return {
+    id: transaction.id,
+    source: transaction.ledger_type,
+    latitude,
+    longitude,
+    placeName: transaction.place_name ?? null,
+    date: transaction.transaction_date,
+    currency: transaction.currency,
+    amount: Number(transaction.amount),
+    group: groupForCategoryName(transaction.category?.name)
+  };
+}
+
+/** 旅遊花費一律折合新台幣，才能和其他帳本的金額加總。 */
+export function tripExpenseToSpot(expense: TripExpense): MapSpot | null {
+  const { latitude, longitude } = expense;
+  if (latitude == null || longitude == null) return null;
+  return {
+    id: expense.id,
+    source: 'trip',
+    latitude,
+    longitude,
+    placeName: expense.place_name ?? null,
+    date: expense.expense_date,
+    currency: 'TWD',
+    amount: toTwd(expense),
+    group: groupForTripCategory(expense.category)
+  };
+}
+
 export interface MapPlace {
   /** 聚合後的鍵：四捨五入到 CLUSTER_DECIMALS 位的 "lat,lng"。 */
   key: string;
@@ -72,23 +124,31 @@ export interface MapPlace {
   count: number;
   totals: CurrencySummary;
   lastDate: string;
-  transactions: Transaction[];
+  /** 這個地點各來源的筆數。 */
+  sources: Record<MapSource, number>;
+  /** 各項目色群、各來源的金額（依幣別），用來決定圓點顏色。 */
+  groupTotals: Partial<Record<ColorGroupKey, CurrencySummary>>;
+  sourceTotals: Record<MapSource, CurrencySummary>;
 }
 
 /** 約 1.1 公里的網格：同一間店／同一個商圈的多筆消費合併成一個點。 */
 const CLUSTER_DECIMALS = 2;
 
-/** 把有定位的支出聚合成地點，依消費筆數由多到少排序（同筆數則較新者在前）。 */
+/** 把有定位的交易聚合成地點（家庭／個人帳本）。 */
 export function buildMapPlaces(transactions: Transaction[]): MapPlace[] {
+  return buildMapPlacesFromSpots(transactions.map(transactionToSpot).filter((spot): spot is MapSpot => spot !== null));
+}
+
+/** 把有定位的支出聚合成地點，依消費筆數由多到少排序（同筆數則較新者在前）。 */
+export function buildMapPlacesFromSpots(spots: MapSpot[]): MapPlace[] {
   const groups = new Map<
     string,
     { latSum: number; lngSum: number; names: Map<string, number>; place: MapPlace }
   >();
 
-  for (const transaction of transactions) {
-    if (transaction.type !== 'expense') continue;
-    const { latitude, longitude } = transaction;
-    if (latitude == null || longitude == null || !isValidCoordinates(latitude, longitude)) continue;
+  for (const spot of spots) {
+    const { latitude, longitude } = spot;
+    if (!isValidCoordinates(latitude, longitude)) continue;
 
     const key = `${latitude.toFixed(CLUSTER_DECIMALS)},${longitude.toFixed(CLUSTER_DECIMALS)}`;
     let group = groups.get(key);
@@ -105,7 +165,9 @@ export function buildMapPlaces(transactions: Transaction[]): MapPlace[] {
           count: 0,
           totals: emptyCurrencySummary(),
           lastDate: '',
-          transactions: []
+          sources: { family: 0, personal: 0, trip: 0 },
+          groupTotals: {},
+          sourceTotals: { family: emptyCurrencySummary(), personal: emptyCurrencySummary(), trip: emptyCurrencySummary() }
         }
       };
       groups.set(key, group);
@@ -113,10 +175,13 @@ export function buildMapPlaces(transactions: Transaction[]): MapPlace[] {
     group.latSum += latitude;
     group.lngSum += longitude;
     group.place.count += 1;
-    group.place.totals[transaction.currency] += Number(transaction.amount);
-    if (transaction.transaction_date > group.place.lastDate) group.place.lastDate = transaction.transaction_date;
-    group.place.transactions.push(transaction);
-    const name = transaction.place_name?.trim();
+    group.place.totals[spot.currency] += spot.amount;
+    group.place.sources[spot.source] += 1;
+    const groupTotal = (group.place.groupTotals[spot.group] ??= emptyCurrencySummary());
+    groupTotal[spot.currency] += spot.amount;
+    group.place.sourceTotals[spot.source][spot.currency] += spot.amount;
+    if (spot.date > group.place.lastDate) group.place.lastDate = spot.date;
+    const name = spot.placeName?.trim();
     if (name) group.names.set(name, (group.names.get(name) ?? 0) + 1);
   }
 
@@ -137,4 +202,30 @@ export function buildMapPlaces(transactions: Transaction[]): MapPlace[] {
 export function markerRadius(value: number, max: number, min = 6, maxRadius = 28): number {
   if (max <= 0 || value <= 0) return min;
   return Math.round(min + (maxRadius - min) * Math.sqrt(Math.min(value / max, 1)));
+}
+
+/** 該地點在指定幣別下花最多的項目色群；沒有金額時退回「其他」。 */
+export function dominantGroup(place: Pick<MapPlace, 'groupTotals'>, currency: Currency): ColorGroupKey {
+  let best: ColorGroupKey = 'other';
+  let bestAmount = 0;
+  for (const [key, totals] of Object.entries(place.groupTotals) as [ColorGroupKey, CurrencySummary][]) {
+    if (totals[currency] > bestAmount) {
+      best = key;
+      bestAmount = totals[currency];
+    }
+  }
+  return best;
+}
+
+/** 該地點在指定幣別下花最多的帳本來源。 */
+export function dominantSource(place: Pick<MapPlace, 'sourceTotals'>, currency: Currency): MapSource {
+  let best: MapSource = 'family';
+  let bestAmount = -1;
+  for (const key of ['family', 'personal', 'trip'] as MapSource[]) {
+    if (place.sourceTotals[key][currency] > bestAmount) {
+      best = key;
+      bestAmount = place.sourceTotals[key][currency];
+    }
+  }
+  return best;
 }

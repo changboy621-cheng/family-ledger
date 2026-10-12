@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../types';
-import { buildMapPlaces, isValidCoordinates, markerRadius, roundCoordinate } from './geo';
+import {
+  buildMapPlaces,
+  buildMapPlacesFromSpots,
+  isValidCoordinates,
+  markerRadius,
+  roundCoordinate,
+  transactionToSpot,
+  tripExpenseToSpot
+} from './geo';
+import type { TripExpense } from './trips';
 import { resolveLocationPatch } from '../hooks/useTransactions';
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -55,6 +64,45 @@ describe('buildMapPlaces', () => {
   });
 });
 
+describe('三種帳合併上地圖', () => {
+  const tripExpense: TripExpense = {
+    id: 't1',
+    trip_id: 'trip',
+    family_id: 'f',
+    expense_date: '2026-11-02',
+    amount: 5000,
+    currency: 'JPY',
+    rate: 0.21,
+    category: 'food',
+    latitude: 35.6595,
+    longitude: 139.7005,
+    place_name: '澀谷'
+  };
+
+  it('旅遊花費折合新台幣，沒定位的不上地圖', () => {
+    expect(tripExpenseToSpot(tripExpense)).toMatchObject({ source: 'trip', currency: 'TWD', amount: 1050 });
+    expect(tripExpenseToSpot({ ...tripExpense, latitude: null, longitude: null })).toBeNull();
+  });
+
+  it('交易依帳本類型標記來源，收入不上地圖', () => {
+    expect(transactionToSpot(tx({ ledger_type: 'personal', latitude: 1, longitude: 2 }))?.source).toBe('personal');
+    expect(transactionToSpot(tx({ type: 'income', latitude: 1, longitude: 2 }))).toBeNull();
+  });
+
+  it('同一地點三種來源合併累計，並分別計數', () => {
+    const spots = [
+      transactionToSpot(tx({ id: 'a', ledger_type: 'family', latitude: 35.66, longitude: 139.7, amount: 100 })),
+      transactionToSpot(tx({ id: 'b', ledger_type: 'personal', latitude: 35.6601, longitude: 139.7004, amount: 50 })),
+      tripExpenseToSpot(tripExpense)
+    ].filter((spot) => spot !== null);
+    const places = buildMapPlacesFromSpots(spots);
+    expect(places).toHaveLength(1);
+    expect(places[0].count).toBe(3);
+    expect(places[0].totals.TWD).toBe(1200);
+    expect(places[0].sources).toEqual({ family: 1, personal: 1, trip: 1 });
+  });
+});
+
 describe('座標工具', () => {
   it('roundCoordinate 取到小數 6 位', () => {
     expect(roundCoordinate(25.03312345678)).toBe(25.033123);
@@ -88,5 +136,55 @@ describe('resolveLocationPatch', () => {
       place_name: null
     });
     expect(resolveLocationPatch({})).toEqual({ latitude: null, longitude: null, place_name: null });
+  });
+});
+
+describe('地圖分色', () => {
+  it('自訂類別名稱歸到色群，對不上的為其他', async () => {
+    const { groupForCategoryName, groupForTripCategory } = await import('./mapColors');
+    expect(groupForCategoryName('餐飲食品')).toBe('food');
+    expect(groupForCategoryName('早餐')).toBe('food');
+    expect(groupForCategoryName('旅遊')).toBe('travel');
+    expect(groupForCategoryName('機票住宿')).toBe('travel');
+    expect(groupForCategoryName('交通')).toBe('transport');
+    expect(groupForCategoryName('寵物')).toBe('other');
+    expect(groupForCategoryName(null)).toBe('other');
+    expect(groupForTripCategory('lodging')).toBe('travel');
+    expect(groupForTripCategory('snack')).toBe('food');
+    expect(groupForTripCategory('unknown')).toBe('other');
+  });
+
+  it('地點的顏色取花最多的項目／來源', async () => {
+    const { dominantGroup, dominantSource } = await import('./geo');
+    const category = (name: string) => ({
+      id: name, name, icon: '', type: 'expense' as const, is_shared: true
+    });
+    const places = buildMapPlaces([
+      tx({ id: '1', latitude: 10, longitude: 10, amount: 100, category: category('餐飲') }),
+      tx({ id: '2', latitude: 10, longitude: 10, amount: 100, category: category('餐飲') }),
+      tx({ id: '3', latitude: 10, longitude: 10, amount: 500, category: category('旅遊'), ledger_type: 'personal' })
+    ]);
+    expect(dominantGroup(places[0], 'TWD')).toBe('travel');
+    expect(dominantSource(places[0], 'TWD')).toBe('personal');
+    expect(dominantGroup(places[0], 'USD')).toBe('other');
+  });
+});
+
+describe('圓餅色塊', () => {
+  it('依金額比例拆出色塊，並產生 conic-gradient', async () => {
+    const { colorSlices, sliceGradient } = await import('./mapColors');
+    const category = (name: string) => ({ id: name, name, icon: '', type: 'expense' as const, is_shared: true });
+    const [place] = buildMapPlaces([
+      tx({ id: '1', latitude: 10, longitude: 10, amount: 300, category: category('餐飲') }),
+      tx({ id: '2', latitude: 10, longitude: 10, amount: 100, category: category('旅遊') })
+    ]);
+    const slices = colorSlices(place, 'TWD', 'category');
+    expect(slices.map((slice) => [slice.key, slice.ratio])).toEqual([
+      ['food', 0.75],
+      ['travel', 0.25]
+    ]);
+    expect(sliceGradient(slices)).toBe('conic-gradient(#EAB308 0.00% 75.00%, #EF4444 75.00% 100.00%)');
+    expect(sliceGradient(slices.slice(0, 1))).toBe('#EAB308');
+    expect(colorSlices(place, 'USD', 'category')).toEqual([]);
   });
 });

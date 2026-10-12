@@ -16,6 +16,10 @@ const CompleteOnboarding = lazy(() =>
 const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
 const LedgerPage = lazy(() => import('./pages/LedgerPage').then((m) => ({ default: m.LedgerPage })));
 const MapPage = lazy(() => import('./pages/MapPage').then((m) => ({ default: m.MapPage })));
+const TripsPage = lazy(() => import('./pages/TripsPage').then((m) => ({ default: m.TripsPage })));
+const TripDetailPage = lazy(() =>
+  import('./pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage }))
+);
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const QuickAdd = lazy(() => import('./pages/QuickAdd').then((m) => ({ default: m.QuickAdd })));
 
@@ -62,6 +66,8 @@ export default function App() {
             <Route path="family" element={<LedgerPage ledgerType="family" />} />
             <Route path="personal" element={<LedgerPage ledgerType="personal" />} />
             <Route path="map" element={<MapPage />} />
+            <Route path="trips" element={<TripsPage />} />
+            <Route path="trips/:tripId" element={<TripDetailPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

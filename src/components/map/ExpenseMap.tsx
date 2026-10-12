@@ -4,19 +4,20 @@ import 'leaflet/dist/leaflet.css';
 import type { Currency } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { markerRadius, type MapPlace } from '../../lib/geo';
+import { colorSlices } from '../../lib/mapColors';
 
 interface ExpenseMapProps {
   places: MapPlace[];
   /** 圓點大小依哪個幣別的金額縮放。 */
   currency: Currency;
+  /** 圓點顏色依項目（餐飲、交通、旅遊…）或依帳本來源（家庭、個人、旅遊）。 */
+  colorBy: 'category' | 'source';
   selectedKey: string | null;
   onSelect: (key: string) => void;
 }
 
-const MARKER_COLOR = '#1D9E75';
-
 // 以 Leaflet + OpenStreetMap 圖磚繪製世界地圖；每個消費地點一個圓點，面積隨金額放大。
-export function ExpenseMap({ places, currency, selectedKey, onSelect }: ExpenseMapProps) {
+export function ExpenseMap({ places, currency, colorBy, selectedKey, onSelect }: ExpenseMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -48,18 +49,31 @@ export function ExpenseMap({ places, currency, selectedKey, onSelect }: ExpenseM
     const max = Math.max(0, ...places.map((place) => place.totals[currency]));
     for (const place of places) {
       const amount = place.totals[currency];
-      const marker = L.circleMarker([place.latitude, place.longitude], {
-        radius: markerRadius(amount, max),
-        color: place.key === selectedKey ? '#0f172a' : MARKER_COLOR,
-        weight: place.key === selectedKey ? 3 : 1.5,
-        fillColor: MARKER_COLOR,
-        fillOpacity: 0.45
-      });
-      marker.bindTooltip(
-        `${place.name ?? '未命名地點'}・${place.count} 筆・${formatAmount(amount, currency)}`
-      );
-      marker.on('click', () => onSelectRef.current(place.key));
-      marker.addTo(layer);
+      const slices = colorSlices(place, currency, colorBy);
+      const selected = place.key === selectedKey;
+      const breakdown = slices.map((slice) => `${slice.label} ${Math.round(slice.ratio * 100)}%`).join('・');
+      // 每種項目／帳本各畫一個半透明圓，大小依該色的金額；金額大的先畫在底層，
+      // 小的疊在上面，重疊處顏色自然混合（紅＋綠＝偏黃）。
+      for (const slice of slices) {
+        const marker = L.circleMarker([place.latitude, place.longitude], {
+          radius: markerRadius(slice.amount, max),
+          color: selected ? '#0f172a' : slice.color,
+          weight: selected ? 2.5 : 1.5,
+          fillColor: slice.color,
+          fillOpacity: 0.45
+        });
+        // 用 DOM 節點 + textContent 組提示框：地點名稱是使用者輸入，不能當 HTML 解析。
+        const tip = document.createElement('div');
+        tip.textContent = `${place.name ?? '未命名地點'}・${place.count} 筆・${formatAmount(amount, currency)}`;
+        if (breakdown) {
+          const detail = document.createElement('div');
+          detail.textContent = breakdown;
+          tip.appendChild(detail);
+        }
+        marker.bindTooltip(tip);
+        marker.on('click', () => onSelectRef.current(place.key));
+        marker.addTo(layer);
+      }
     }
     if (places.length > 0) {
       const bounds = L.latLngBounds(places.map((place) => [place.latitude, place.longitude] as [number, number]));
@@ -67,7 +81,7 @@ export function ExpenseMap({ places, currency, selectedKey, onSelect }: ExpenseM
     }
     // 選取高亮只改外框，不應每次都重新縮放視野。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, currency]);
+  }, [places, currency, colorBy]);
 
   // 選取某地點：飛過去。
   useEffect(() => {

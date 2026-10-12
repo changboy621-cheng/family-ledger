@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Lock, MapPin, Settings, Users } from 'lucide-react';
+import { Home, Lock, MapPin, Plane, Settings, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const items = [
@@ -7,20 +7,21 @@ const items = [
   { to: '/family', label: '家庭帳本', icon: Users },
   { to: '/personal', label: '個人帳本', icon: Lock },
   { to: '/map', label: '地圖', icon: MapPin },
+  { to: '/trips', label: '旅遊', icon: Plane },
   { to: '/settings', label: '設定', icon: Settings }
 ];
 
 export function BottomNav() {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-2 pt-2 lg:hidden">
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-6 gap-1">
         {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'grid justify-items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium',
+                'grid justify-items-center gap-1 rounded-lg px-1 py-2 text-xs font-medium',
                 isActive ? 'bg-familySoft text-family' : 'text-slate-500'
               )
             }

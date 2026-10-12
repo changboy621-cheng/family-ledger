@@ -7,6 +7,10 @@ interface AmountInputProps {
   currency: Currency;
   value: string;
   onChange: (value: string) => void;
+  /** 自訂算式結果的顯示（旅遊記帳的多幣別用）；預設依 TWD/USD 格式化。 */
+  formatResult?: (amount: number) => string;
+  /** 自訂輸入框下方的提示文字。 */
+  hint?: string;
 }
 
 type Key = { key: string; label: string; kind: 'num' | 'op' | 'back' };
@@ -42,7 +46,7 @@ function prettyExpression(value: string) {
   return value.replace(/\*/g, ' × ').replace(/\//g, ' ÷ ').replace(/-/g, ' − ').replace(/\+/g, ' + ');
 }
 
-export function AmountInput({ currency, value, onChange }: AmountInputProps) {
+export function AmountInput({ currency, value, onChange, formatResult, hint }: AmountInputProps) {
   const hasOperator = /[+\-*/]/.test(value);
   const result = hasOperator ? evaluateExpression(value) : null;
 
@@ -60,9 +64,9 @@ export function AmountInput({ currency, value, onChange }: AmountInputProps) {
       <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-right">
         <p className="min-h-9 text-3xl font-semibold text-slate-900">{value ? prettyExpression(value).trim() : '0'}</p>
         {hasOperator ? (
-          <p className="text-sm font-semibold text-family">= {result !== null ? formatAmount(result, currency) : '—'}</p>
+          <p className="text-sm font-semibold text-family">= {result !== null ? (formatResult ?? ((amount) => formatAmount(amount, currency)))(result) : '—'}</p>
         ) : (
-          <p className="text-xs font-normal text-slate-400">{currency === 'TWD' ? '新台幣自動取整數' : '美金兩位小數'}</p>
+          <p className="text-xs font-normal text-slate-400">{hint ?? (currency === 'TWD' ? '新台幣自動取整數' : '美金兩位小數')}</p>
         )}
       </div>
 
