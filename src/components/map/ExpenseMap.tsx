@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import type { Currency } from '../../types';
 import { formatAmount } from '../../lib/currency';
 import { markerRadius, type MapPlace } from '../../lib/geo';
-import { colorSlices, sliceGradient } from '../../lib/mapColors';
+import { colorSlices } from '../../lib/mapColors';
 
 interface ExpenseMapProps {
   places: MapPlace[];
