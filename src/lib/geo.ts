@@ -2,6 +2,7 @@
 import type { Currency, CurrencySummary, Transaction } from '../types';
 import { emptyCurrencySummary } from './currency';
 import { toTwd, type TripExpense } from './trips';
+import { groupForCategoryName, groupForTripCategory, type ColorGroupKey } from './mapColors';
 
 export interface Coordinates {
   latitude: number;
@@ -76,6 +77,8 @@ export interface MapSpot {
   date: string;
   currency: Currency;
   amount: number;
+  /** 項目色群（餐飲、交通、旅遊…），地圖「依項目分色」用。 */
+  group: ColorGroupKey;
 }
 
 export function transactionToSpot(transaction: Transaction): MapSpot | null {
@@ -89,7 +92,8 @@ export function transactionToSpot(transaction: Transaction): MapSpot | null {
     placeName: transaction.place_name ?? null,
     date: transaction.transaction_date,
     currency: transaction.currency,
-    amount: Number(transaction.amount)
+    amount: Number(transaction.amount),
+    group: groupForCategoryName(transaction.category?.name)
   };
 }
 
@@ -105,7 +109,8 @@ export function tripExpenseToSpot(expense: TripExpense): MapSpot | null {
     placeName: expense.place_name ?? null,
     date: expense.expense_date,
     currency: 'TWD',
-    amount: toTwd(expense)
+    amount: toTwd(expense),
+    group: groupForTripCategory(expense.category)
   };
 }
 
@@ -121,6 +126,9 @@ export interface MapPlace {
   lastDate: string;
   /** 這個地點各來源的筆數。 */
   sources: Record<MapSource, number>;
+  /** 各項目色群、各來源的金額（依幣別），用來決定圓點顏色。 */
+  groupTotals: Partial<Record<ColorGroupKey, CurrencySummary>>;
+  sourceTotals: Record<MapSource, CurrencySummary>;
 }
 
 /** 約 1.1 公里的網格：同一間店／同一個商圈的多筆消費合併成一個點。 */
@@ -157,7 +165,9 @@ export function buildMapPlacesFromSpots(spots: MapSpot[]): MapPlace[] {
           count: 0,
           totals: emptyCurrencySummary(),
           lastDate: '',
-          sources: { family: 0, personal: 0, trip: 0 }
+          sources: { family: 0, personal: 0, trip: 0 },
+          groupTotals: {},
+          sourceTotals: { family: emptyCurrencySummary(), personal: emptyCurrencySummary(), trip: emptyCurrencySummary() }
         }
       };
       groups.set(key, group);
@@ -167,6 +177,9 @@ export function buildMapPlacesFromSpots(spots: MapSpot[]): MapPlace[] {
     group.place.count += 1;
     group.place.totals[spot.currency] += spot.amount;
     group.place.sources[spot.source] += 1;
+    const groupTotal = (group.place.groupTotals[spot.group] ??= emptyCurrencySummary());
+    groupTotal[spot.currency] += spot.amount;
+    group.place.sourceTotals[spot.source][spot.currency] += spot.amount;
     if (spot.date > group.place.lastDate) group.place.lastDate = spot.date;
     const name = spot.placeName?.trim();
     if (name) group.names.set(name, (group.names.get(name) ?? 0) + 1);
@@ -189,4 +202,30 @@ export function buildMapPlacesFromSpots(spots: MapSpot[]): MapPlace[] {
 export function markerRadius(value: number, max: number, min = 6, maxRadius = 28): number {
   if (max <= 0 || value <= 0) return min;
   return Math.round(min + (maxRadius - min) * Math.sqrt(Math.min(value / max, 1)));
+}
+
+/** 該地點在指定幣別下花最多的項目色群；沒有金額時退回「其他」。 */
+export function dominantGroup(place: Pick<MapPlace, 'groupTotals'>, currency: Currency): ColorGroupKey {
+  let best: ColorGroupKey = 'other';
+  let bestAmount = 0;
+  for (const [key, totals] of Object.entries(place.groupTotals) as [ColorGroupKey, CurrencySummary][]) {
+    if (totals[currency] > bestAmount) {
+      best = key;
+      bestAmount = totals[currency];
+    }
+  }
+  return best;
+}
+
+/** 該地點在指定幣別下花最多的帳本來源。 */
+export function dominantSource(place: Pick<MapPlace, 'sourceTotals'>, currency: Currency): MapSource {
+  let best: MapSource = 'family';
+  let bestAmount = -1;
+  for (const key of ['family', 'personal', 'trip'] as MapSource[]) {
+    if (place.sourceTotals[key][currency] > bestAmount) {
+      best = key;
+      bestAmount = place.sourceTotals[key][currency];
+    }
+  }
+  return best;
 }

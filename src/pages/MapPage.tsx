@@ -3,6 +3,8 @@ import type { Currency } from '../types';
 import { formatAmount } from '../lib/currency';
 import { useExpenseMap, type MapPeriod, type MapSourceFilter } from '../hooks/useExpenseMap';
 import { ExpenseMap } from '../components/map/ExpenseMap';
+import { COLOR_GROUPS, SOURCE_STYLE } from '../lib/mapColors';
+import { dominantGroup, dominantSource } from '../lib/geo';
 
 const SOURCES: { value: MapSourceFilter; label: string }[] = [
   { value: 'all', label: '全部' },
@@ -19,6 +21,7 @@ const PERIODS: { value: MapPeriod; label: string }[] = [
 
 export function MapPage() {
   const [source, setSource] = useState<MapSourceFilter>('all');
+  const [colorBy, setColorBy] = useState<'category' | 'source'>('category');
   const [period, setPeriod] = useState<MapPeriod>('year');
   const [currency, setCurrency] = useState<Currency>('TWD');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -94,7 +97,32 @@ export function MapPage() {
         <p className="text-xs text-slate-400">旅遊花費已折合新台幣，只會出現在 TWD 檢視。</p>
       ) : null}
 
-      <ExpenseMap places={visiblePlaces} currency={currency} selectedKey={selectedKey} onSelect={setSelectedKey} />
+      <ExpenseMap places={visiblePlaces} currency={currency} colorBy={colorBy} selectedKey={selectedKey} onSelect={setSelectedKey} />
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600">
+        <span className="flex overflow-hidden rounded-full bg-white font-semibold">
+          {(['category', 'source'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`px-3 py-1.5 ${colorBy === mode ? 'bg-slate-900 text-white' : ''}`}
+              onClick={() => setColorBy(mode)}
+            >
+              {mode === 'category' ? '依項目分色' : '依帳本分色'}
+            </button>
+          ))}
+        </span>
+        {(colorBy === 'category'
+          ? COLOR_GROUPS.map((group) => ({ key: group.key, label: group.label, color: group.color }))
+          : (Object.keys(SOURCE_STYLE) as (keyof typeof SOURCE_STYLE)[]).map((key) => ({ key, ...SOURCE_STYLE[key] }))
+        ).map((item) => (
+          <span key={item.key} className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </span>
+        ))}
+      </div>
+      <p className="-mt-3 text-xs text-slate-400">圓點顏色是該地點花最多的{colorBy === 'category' ? '項目' : '帳本'}。</p>
 
       {!loading && !error && visiblePlaces.length === 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
@@ -119,6 +147,15 @@ export function MapPage() {
                 >
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-slate-900">
+                      <span
+                        className="mr-1 inline-block h-2.5 w-2.5 rounded-full align-middle"
+                        style={{
+                          backgroundColor:
+                            colorBy === 'source'
+                              ? SOURCE_STYLE[dominantSource(place, currency)].color
+                              : COLOR_GROUPS.find((group) => group.key === dominantGroup(place, currency))?.color
+                        }}
+                      />
                       📍 {place.name ?? `${place.latitude.toFixed(2)}, ${place.longitude.toFixed(2)}`}
                     </span>
                     <span className="text-xs text-slate-500">

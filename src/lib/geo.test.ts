@@ -138,3 +138,34 @@ describe('resolveLocationPatch', () => {
     expect(resolveLocationPatch({})).toEqual({ latitude: null, longitude: null, place_name: null });
   });
 });
+
+describe('地圖分色', () => {
+  it('自訂類別名稱歸到色群，對不上的為其他', async () => {
+    const { groupForCategoryName, groupForTripCategory } = await import('./mapColors');
+    expect(groupForCategoryName('餐飲食品')).toBe('food');
+    expect(groupForCategoryName('早餐')).toBe('food');
+    expect(groupForCategoryName('旅遊')).toBe('travel');
+    expect(groupForCategoryName('機票住宿')).toBe('travel');
+    expect(groupForCategoryName('交通')).toBe('transport');
+    expect(groupForCategoryName('寵物')).toBe('other');
+    expect(groupForCategoryName(null)).toBe('other');
+    expect(groupForTripCategory('lodging')).toBe('travel');
+    expect(groupForTripCategory('snack')).toBe('food');
+    expect(groupForTripCategory('unknown')).toBe('other');
+  });
+
+  it('地點的顏色取花最多的項目／來源', async () => {
+    const { dominantGroup, dominantSource } = await import('./geo');
+    const category = (name: string) => ({
+      id: name, name, icon: '', type: 'expense' as const, is_shared: true
+    });
+    const places = buildMapPlaces([
+      tx({ id: '1', latitude: 10, longitude: 10, amount: 100, category: category('餐飲') }),
+      tx({ id: '2', latitude: 10, longitude: 10, amount: 100, category: category('餐飲') }),
+      tx({ id: '3', latitude: 10, longitude: 10, amount: 500, category: category('旅遊'), ledger_type: 'personal' })
+    ]);
+    expect(dominantGroup(places[0], 'TWD')).toBe('travel');
+    expect(dominantSource(places[0], 'TWD')).toBe('personal');
+    expect(dominantGroup(places[0], 'USD')).toBe('other');
+  });
+});
