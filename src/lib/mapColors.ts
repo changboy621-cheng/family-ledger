@@ -1,4 +1,5 @@
-import type { MapSource } from './geo';
+import type { Currency } from '../types';
+import type { MapPlace, MapSource } from './geo';
 
 // 消費地圖的分色：依「項目」或依「帳本來源」。
 // 家庭帳本的類別可自訂名稱，所以用名稱關鍵字歸到幾個固定色群；對不上的歸「其他」。
@@ -59,3 +60,47 @@ export const SOURCE_STYLE: Record<MapSource, { label: string; color: string }> =
   personal: { label: '個人帳本', color: '#378ADD' },
   trip: { label: '旅遊', color: '#EF4444' }
 };
+
+export interface ColorSlice {
+  key: string;
+  label: string;
+  color: string;
+  amount: number;
+  /** 佔該地點在指定幣別下總額的比例（0–1）。 */
+  ratio: number;
+}
+
+/** 地點圓點的色塊：依項目或帳本來源拆開，金額大的在前；只含該幣別有金額的項目。 */
+export function colorSlices(place: Pick<MapPlace, 'groupTotals' | 'sourceTotals'>, currency: Currency, colorBy: 'category' | 'source'): ColorSlice[] {
+  const raw =
+    colorBy === 'source'
+      ? (Object.keys(SOURCE_STYLE) as MapSource[]).map((key) => ({
+          key,
+          label: SOURCE_STYLE[key].label,
+          color: SOURCE_STYLE[key].color,
+          amount: place.sourceTotals[key][currency]
+        }))
+      : COLOR_GROUPS.map((group) => ({
+          key: group.key,
+          label: group.label,
+          color: group.color,
+          amount: place.groupTotals[group.key]?.[currency] ?? 0
+        }));
+  const slices = raw.filter((slice) => slice.amount > 0).sort((a, b) => b.amount - a.amount);
+  const total = slices.reduce((sum, slice) => sum + slice.amount, 0);
+  return slices.map((slice) => ({ ...slice, ratio: total > 0 ? slice.amount / total : 0 }));
+}
+
+/** 轉成 CSS conic-gradient（從正上方順時針）；單一色塊為純色。 */
+export function sliceGradient(slices: ColorSlice[]): string {
+  if (slices.length === 0) return COLOR_GROUPS[COLOR_GROUPS.length - 1].color;
+  if (slices.length === 1) return slices[0].color;
+  let start = 0;
+  const stops = slices.map((slice, index) => {
+    const end = index === slices.length - 1 ? 100 : start + slice.ratio * 100;
+    const stop = `${slice.color} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+    start = end;
+    return stop;
+  });
+  return `conic-gradient(${stops.join(', ')})`;
+}

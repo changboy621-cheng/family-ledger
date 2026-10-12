@@ -3,8 +3,7 @@ import type { Currency } from '../types';
 import { formatAmount } from '../lib/currency';
 import { useExpenseMap, type MapPeriod, type MapSourceFilter } from '../hooks/useExpenseMap';
 import { ExpenseMap } from '../components/map/ExpenseMap';
-import { COLOR_GROUPS, SOURCE_STYLE } from '../lib/mapColors';
-import { dominantGroup, dominantSource } from '../lib/geo';
+import { COLOR_GROUPS, SOURCE_STYLE, colorSlices, sliceGradient } from '../lib/mapColors';
 
 const SOURCES: { value: MapSourceFilter; label: string }[] = [
   { value: 'all', label: '全部' },
@@ -122,7 +121,7 @@ export function MapPage() {
           </span>
         ))}
       </div>
-      <p className="-mt-3 text-xs text-slate-400">圓點顏色是該地點花最多的{colorBy === 'category' ? '項目' : '帳本'}。</p>
+      <p className="-mt-3 text-xs text-slate-400">每個圓點是圓餅圖：同一地點有幾種{colorBy === 'category' ? '項目' : '帳本'}，就切成幾種顏色，大小依金額比例。</p>
 
       {!loading && !error && visiblePlaces.length === 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
@@ -148,13 +147,8 @@ export function MapPage() {
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-slate-900">
                       <span
-                        className="mr-1 inline-block h-2.5 w-2.5 rounded-full align-middle"
-                        style={{
-                          backgroundColor:
-                            colorBy === 'source'
-                              ? SOURCE_STYLE[dominantSource(place, currency)].color
-                              : COLOR_GROUPS.find((group) => group.key === dominantGroup(place, currency))?.color
-                        }}
+                        className="mr-1 inline-block h-3 w-3 rounded-full align-middle"
+                        style={{ background: sliceGradient(colorSlices(place, currency, colorBy)) }}
                       />
                       📍 {place.name ?? `${place.latitude.toFixed(2)}, ${place.longitude.toFixed(2)}`}
                     </span>

@@ -3,8 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Currency } from '../../types';
 import { formatAmount } from '../../lib/currency';
-import { dominantGroup, dominantSource, markerRadius, type MapPlace } from '../../lib/geo';
-import { SOURCE_STYLE, colorGroup } from '../../lib/mapColors';
+import { markerRadius, type MapPlace } from '../../lib/geo';
+import { colorSlices, sliceGradient } from '../../lib/mapColors';
 
 interface ExpenseMapProps {
   places: MapPlace[];
@@ -49,18 +49,29 @@ export function ExpenseMap({ places, currency, colorBy, selectedKey, onSelect }:
     const max = Math.max(0, ...places.map((place) => place.totals[currency]));
     for (const place of places) {
       const amount = place.totals[currency];
-      const style =
-        colorBy === 'source' ? SOURCE_STYLE[dominantSource(place, currency)] : colorGroup(dominantGroup(place, currency));
-      const marker = L.circleMarker([place.latitude, place.longitude], {
-        radius: markerRadius(amount, max),
-        color: place.key === selectedKey ? '#0f172a' : style.color,
-        weight: place.key === selectedKey ? 3 : 1.5,
-        fillColor: style.color,
-        fillOpacity: 0.55
+      const slices = colorSlices(place, currency, colorBy);
+      const radius = markerRadius(amount, max);
+      const selected = place.key === selectedKey;
+      // 圓餅圖圓點：同一地點有多種項目／來源時，依金額比例疊出多種顏色。
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [radius * 2, radius * 2],
+        iconAnchor: [radius, radius],
+        html: `<div style="width:100%;height:100%;border-radius:50%;background:${sliceGradient(slices)};opacity:0.9;border:${
+          selected ? '3px solid #0f172a' : '1.5px solid rgba(255,255,255,0.9)'
+        };box-shadow:0 1px 3px rgba(0,0,0,0.35);box-sizing:border-box"></div>`
       });
-      marker.bindTooltip(
-        `${place.name ?? '未命名地點'}・${style.label}・${place.count} 筆・${formatAmount(amount, currency)}`
-      );
+      const marker = L.marker([place.latitude, place.longitude], { icon, keyboard: false });
+      const breakdown = slices.map((slice) => `${slice.label} ${Math.round(slice.ratio * 100)}%`).join('・');
+      // 用 DOM 節點 + textContent 組提示框：地點名稱是使用者輸入，不能當 HTML 解析。
+      const tip = document.createElement('div');
+      tip.textContent = `${place.name ?? '未命名地點'}・${place.count} 筆・${formatAmount(amount, currency)}`;
+      if (breakdown) {
+        const detail = document.createElement('div');
+        detail.textContent = breakdown;
+        tip.appendChild(detail);
+      }
+      marker.bindTooltip(tip);
       marker.on('click', () => onSelectRef.current(place.key));
       marker.addTo(layer);
     }

@@ -169,3 +169,22 @@ describe('地圖分色', () => {
     expect(dominantGroup(places[0], 'USD')).toBe('other');
   });
 });
+
+describe('圓餅色塊', () => {
+  it('依金額比例拆出色塊，並產生 conic-gradient', async () => {
+    const { colorSlices, sliceGradient } = await import('./mapColors');
+    const category = (name: string) => ({ id: name, name, icon: '', type: 'expense' as const, is_shared: true });
+    const [place] = buildMapPlaces([
+      tx({ id: '1', latitude: 10, longitude: 10, amount: 300, category: category('餐飲') }),
+      tx({ id: '2', latitude: 10, longitude: 10, amount: 100, category: category('旅遊') })
+    ]);
+    const slices = colorSlices(place, 'TWD', 'category');
+    expect(slices.map((slice) => [slice.key, slice.ratio])).toEqual([
+      ['food', 0.75],
+      ['travel', 0.25]
+    ]);
+    expect(sliceGradient(slices)).toBe('conic-gradient(#EAB308 0.00% 75.00%, #EF4444 75.00% 100.00%)');
+    expect(sliceGradient(slices.slice(0, 1))).toBe('#EAB308');
+    expect(colorSlices(place, 'USD', 'category')).toEqual([]);
+  });
+});
