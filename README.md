@@ -8,12 +8,13 @@ FamilyLedger 是依照 v1.2 規格建立的 PWA，P0 版本包含：
 - 新增家庭帳本或個人帳本交易
 - TWD / USD 幣別選擇與格式化
 - 家庭帳本清單與個人帳本清單
+- 旅遊記帳：每趟旅行一本獨立帳，多幣別、每筆記下當時匯率並折合新台幣
 - PWA manifest 與 service worker 設定
 
 ## 啟動
 
 1. 複製 `.env.example` 為 `.env.local`，填入 Supabase URL 與 anon key。
-2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 008）。之後新增的 migration 也要在上線前補跑。
+2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 010；旅遊記帳需要 010_trips.sql）。之後新增的 migration 也要在上線前補跑。
 3. 執行：
 
 ```bash

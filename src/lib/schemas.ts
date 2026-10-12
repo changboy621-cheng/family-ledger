@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Budget, Category, RecurringTransaction, Transaction, UserProfile } from '../types';
+import type { Trip, TripExpense } from './trips';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
 import { DEFAULT_AVATAR_COLOR } from './constants';
@@ -95,6 +96,37 @@ export const recurringTransactionSchema = z.object({
   active: z.boolean()
 });
 
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}/).transform((value) => value.slice(0, 10));
+const currencyCodeSchema = z.string().regex(/^[A-Z]{3}$/);
+
+export const tripSchema = z.object({
+  id: z.string(),
+  family_id: z.string(),
+  created_by: z.string().nullish().catch(null),
+  name: z.string(),
+  destination: z.string().nullish().catch(null),
+  start_date: isoDateSchema,
+  end_date: isoDateSchema,
+  local_currency: currencyCodeSchema,
+  rate: z.coerce.number().positive(),
+  budget_twd: z.coerce.number().positive().nullish().catch(null)
+});
+
+export const tripExpenseSchema = z.object({
+  id: z.string(),
+  trip_id: z.string(),
+  family_id: z.string(),
+  paid_by: z.string().nullish().catch(null),
+  recorded_by: z.string().nullish().catch(null),
+  expense_date: isoDateSchema,
+  amount: z.coerce.number().positive(),
+  currency: currencyCodeSchema,
+  rate: z.coerce.number().positive(),
+  category: z.string().catch('other'),
+  payment_method: paymentMethodSchema.nullish().catch(null),
+  note: z.string().nullish().catch(null)
+});
+
 export const entryRowSchema = z.object({
   note: z.string().nullish().catch(null),
   transaction_date: z.string().optional(),
@@ -137,6 +169,9 @@ export const parseUserProfiles = (data: unknown): UserProfile[] =>
 export const parseBudgets = (data: unknown): Budget[] => safeParseRows<Budget>(budgetSchema, data, '預算');
 export const parseRecurringTransactions = (data: unknown): RecurringTransaction[] =>
   safeParseRows<RecurringTransaction>(recurringTransactionSchema, data, '固定收支');
+export const parseTrips = (data: unknown): Trip[] => safeParseRows<Trip>(tripSchema, data, '旅行');
+export const parseTripExpenses = (data: unknown): TripExpense[] =>
+  safeParseRows<TripExpense>(tripExpenseSchema, data, '旅行花費');
 export const parseEntryRows = (data: unknown): EntryRow[] =>
   safeParseRows<EntryRow>(entryRowSchema, data, '建議');
 
