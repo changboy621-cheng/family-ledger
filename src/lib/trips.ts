@@ -32,6 +32,10 @@ export interface TripExpense {
   category: string;
   payment_method?: PaymentMethod | null;
   note?: string | null;
+  /** 消費地點（可選），與家庭／個人記帳的定位一起顯示在消費地圖。 */
+  latitude?: number | null;
+  longitude?: number | null;
+  place_name?: string | null;
 }
 
 export interface TripCurrency {

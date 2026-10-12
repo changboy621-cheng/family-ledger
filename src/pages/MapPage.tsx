@@ -1,8 +1,15 @@
 import { useState } from 'react';
-import type { Currency, LedgerType } from '../types';
+import type { Currency } from '../types';
 import { formatAmount } from '../lib/currency';
-import { useExpenseMap, type MapPeriod } from '../hooks/useExpenseMap';
+import { useExpenseMap, type MapPeriod, type MapSourceFilter } from '../hooks/useExpenseMap';
 import { ExpenseMap } from '../components/map/ExpenseMap';
+
+const SOURCES: { value: MapSourceFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'family', label: '家庭' },
+  { value: 'personal', label: '個人' },
+  { value: 'trip', label: '旅遊' }
+];
 
 const PERIODS: { value: MapPeriod; label: string }[] = [
   { value: '90d', label: '近 90 天' },
@@ -11,11 +18,11 @@ const PERIODS: { value: MapPeriod; label: string }[] = [
 ];
 
 export function MapPage() {
-  const [ledgerType, setLedgerType] = useState<LedgerType>('family');
+  const [source, setSource] = useState<MapSourceFilter>('all');
   const [period, setPeriod] = useState<MapPeriod>('year');
   const [currency, setCurrency] = useState<Currency>('TWD');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const { places, loading, error, reload } = useExpenseMap(ledgerType, period);
+  const { places, counts, loading, error, reload } = useExpenseMap(source, period);
 
   const visiblePlaces = places.filter((place) => place.totals[currency] > 0);
   const total = visiblePlaces.reduce((sum, place) => sum + place.totals[currency], 0);
@@ -30,19 +37,20 @@ export function MapPage() {
       </header>
 
       <div className="flex flex-wrap gap-2">
-        {(['family', 'personal'] as LedgerType[]).map((option) => (
+        {SOURCES.map((option) => (
           <button
-            key={option}
+            key={option.value}
             type="button"
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              ledgerType === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+              source === option.value ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
             }`}
             onClick={() => {
-              setLedgerType(option);
+              setSource(option.value);
               setSelectedKey(null);
             }}
           >
-            {option === 'family' ? '家庭帳本' : '個人帳本'}
+            {option.label}
+            {option.value !== 'all' ? <span className="ml-1 text-xs opacity-60">{counts[option.value]}</span> : null}
           </button>
         ))}
         <span className="w-2" />
@@ -82,6 +90,10 @@ export function MapPage() {
         </section>
       ) : null}
 
+      {source !== 'family' && source !== 'personal' && currency === 'USD' ? (
+        <p className="text-xs text-slate-400">旅遊花費已折合新台幣，只會出現在 TWD 檢視。</p>
+      ) : null}
+
       <ExpenseMap places={visiblePlaces} currency={currency} selectedKey={selectedKey} onSelect={setSelectedKey} />
 
       {!loading && !error && visiblePlaces.length === 0 ? (
@@ -111,6 +123,7 @@ export function MapPage() {
                     </span>
                     <span className="text-xs text-slate-500">
                       {place.count} 筆・最近 {place.lastDate}
+                      {place.sources.trip > 0 ? `・✈️ 旅遊 ${place.sources.trip}` : ''}
                     </span>
                   </span>
                   <strong className="shrink-0 text-red-500">{formatAmount(place.totals[currency], currency)}</strong>

@@ -3,6 +3,7 @@ import type { PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase';
 import { parseTripExpenses, parseTrips } from '../lib/schemas';
 import type { Trip, TripExpense } from '../lib/trips';
+import { resolveLocationPatch } from './useTransactions';
 import { useAuthStore } from '../store/authStore';
 
 export interface TripInput {
@@ -24,6 +25,9 @@ export interface TripExpenseInput {
   payment_method?: PaymentMethod | null;
   note?: string;
   paid_by?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_name?: string | null;
 }
 
 /** 旅行清單：新到舊。 */
@@ -135,6 +139,7 @@ export function useTripDetail(tripId: string | undefined) {
       if (!familyId || !tripId) throw new Error('找不到這趟旅行。');
       const { error: insertError } = await supabase.from('trip_expenses').insert({
         ...input,
+        ...resolveLocationPatch(input),
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null,
         paid_by: input.paid_by ?? profileId ?? null,
@@ -154,6 +159,7 @@ export function useTripDetail(tripId: string | undefined) {
         .from('trip_expenses')
         .update({
           ...input,
+          ...resolveLocationPatch(input),
           note: input.note?.trim() || null,
           payment_method: input.payment_method ?? null,
           paid_by: input.paid_by ?? profileId ?? null

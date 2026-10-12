@@ -20,7 +20,9 @@ import type { TripExpenseInput } from '../../hooks/useTrips';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { useFamilyMembers } from '../../hooks/useFamilyMembers';
+import type { Coordinates } from '../../lib/geo';
 import { AmountInput } from '../common/AmountInput';
+import { LocationPicker } from '../common/LocationPicker';
 import { Modal } from '../common/Modal';
 
 interface TripExpenseFormProps {
@@ -47,6 +49,12 @@ export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onCl
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialExpense?.payment_method ?? 'cash');
   const [paidBy, setPaidBy] = useState(initialExpense?.paid_by ?? profile?.id ?? '');
   const [note, setNote] = useState(initialExpense?.note ?? '');
+  const [coords, setCoords] = useState<Coordinates | null>(
+    initialExpense?.latitude != null && initialExpense?.longitude != null
+      ? { latitude: initialExpense.latitude, longitude: initialExpense.longitude }
+      : null
+  );
+  const [placeName, setPlaceName] = useState(initialExpense?.place_name ?? '');
   const [saving, setSaving] = useState(false);
 
   // 各幣別在本趟最近用過的匯率（expenses 由新到舊，先看到的就是最近的）。
@@ -93,7 +101,10 @@ export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onCl
         category,
         payment_method: paymentMethod,
         note,
-        paid_by: paidBy || null
+        paid_by: paidBy || null,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+        place_name: coords ? placeName : null
       });
       onClose();
     } catch (error) {
@@ -221,6 +232,17 @@ export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onCl
           備註（可選）
           <input className={inputClass} value={note} placeholder="一蘭拉麵、地鐵一日券…" onChange={(e) => setNote(e.target.value)} />
         </label>
+
+        <LocationPicker
+          coords={coords}
+          placeName={placeName}
+          onChange={(nextCoords, nextName) => {
+            setCoords(nextCoords);
+            setPlaceName(nextName);
+          }}
+          onPhotoDate={setDate}
+          autoLocateOnMount={!initialExpense}
+        />
 
         <div className="grid grid-cols-2 gap-3">
           <button type="button" className="rounded-lg bg-slate-100 px-4 py-3 font-semibold text-slate-600" onClick={onClose}>

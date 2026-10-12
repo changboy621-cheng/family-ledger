@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../types';
-import { buildMapPlaces, isValidCoordinates, markerRadius, roundCoordinate } from './geo';
+import {
+  buildMapPlaces,
+  buildMapPlacesFromSpots,
+  isValidCoordinates,
+  markerRadius,
+  roundCoordinate,
+  transactionToSpot,
+  tripExpenseToSpot
+} from './geo';
+import type { TripExpense } from './trips';
 import { resolveLocationPatch } from '../hooks/useTransactions';
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -52,6 +61,45 @@ describe('buildMapPlaces', () => {
       tx({ id: '3', latitude: 20, longitude: 20 })
     ]);
     expect(places.map((place) => place.count)).toEqual([2, 1]);
+  });
+});
+
+describe('三種帳合併上地圖', () => {
+  const tripExpense: TripExpense = {
+    id: 't1',
+    trip_id: 'trip',
+    family_id: 'f',
+    expense_date: '2026-11-02',
+    amount: 5000,
+    currency: 'JPY',
+    rate: 0.21,
+    category: 'food',
+    latitude: 35.6595,
+    longitude: 139.7005,
+    place_name: '澀谷'
+  };
+
+  it('旅遊花費折合新台幣，沒定位的不上地圖', () => {
+    expect(tripExpenseToSpot(tripExpense)).toMatchObject({ source: 'trip', currency: 'TWD', amount: 1050 });
+    expect(tripExpenseToSpot({ ...tripExpense, latitude: null, longitude: null })).toBeNull();
+  });
+
+  it('交易依帳本類型標記來源，收入不上地圖', () => {
+    expect(transactionToSpot(tx({ ledger_type: 'personal', latitude: 1, longitude: 2 }))?.source).toBe('personal');
+    expect(transactionToSpot(tx({ type: 'income', latitude: 1, longitude: 2 }))).toBeNull();
+  });
+
+  it('同一地點三種來源合併累計，並分別計數', () => {
+    const spots = [
+      transactionToSpot(tx({ id: 'a', ledger_type: 'family', latitude: 35.66, longitude: 139.7, amount: 100 })),
+      transactionToSpot(tx({ id: 'b', ledger_type: 'personal', latitude: 35.6601, longitude: 139.7004, amount: 50 })),
+      tripExpenseToSpot(tripExpense)
+    ].filter((spot) => spot !== null);
+    const places = buildMapPlacesFromSpots(spots);
+    expect(places).toHaveLength(1);
+    expect(places[0].count).toBe(3);
+    expect(places[0].totals.TWD).toBe(1200);
+    expect(places[0].sources).toEqual({ family: 1, personal: 1, trip: 1 });
   });
 });
 

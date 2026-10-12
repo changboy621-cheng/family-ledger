@@ -124,7 +124,10 @@ export const tripExpenseSchema = z.object({
   rate: z.coerce.number().positive(),
   category: z.string().catch('other'),
   payment_method: paymentMethodSchema.nullish().catch(null),
-  note: z.string().nullish().catch(null)
+  note: z.string().nullish().catch(null),
+  latitude: z.coerce.number().min(-90).max(90).nullish().catch(null),
+  longitude: z.coerce.number().min(-180).max(180).nullish().catch(null),
+  place_name: z.string().nullish().catch(null)
 });
 
 export const entryRowSchema = z.object({
