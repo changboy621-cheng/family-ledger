@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cashOnHand,
   defaultExpenseDate,
   formatRate,
   formatTripAmount,
@@ -12,9 +13,10 @@ import {
   tripExpensesToCsv,
   tripStatus,
   type Trip,
+  type TripCashExchange,
   type TripExpense
 } from './trips';
-import { parseTripExpenses, parseTrips } from './schemas';
+import { parseTripCashExchanges, parseTripExpenses, parseTrips } from './schemas';
 
 const trip: Trip = {
   id: 't1',
@@ -159,5 +161,57 @@ describe('其他', () => {
     ]);
     expect(expenses[0].amount).toBe(1200);
     expect(expenses[0].category).toBe('other');
+  });
+});
+
+describe('手邊現金', () => {
+  function exchange(overrides: Partial<TripCashExchange>): TripCashExchange {
+    return {
+      id: 'x',
+      trip_id: 't1',
+      family_id: 'f1',
+      exchange_date: '2026-10-30',
+      currency: 'JPY',
+      amount: 50000,
+      rate: 0.21,
+      ...overrides
+    };
+  }
+
+  it('換匯合計扣掉該幣別的現金花費，刷卡與其他幣別不扣', () => {
+    const result = cashOnHand(
+      [exchange({ amount: 50000 }), exchange({ amount: 30000, rate: 0.2 })],
+      [
+        expense({ amount: 1200, payment_method: 'cash' }),
+        expense({ amount: 800, payment_method: 'cash' }),
+        expense({ amount: 5000, payment_method: 'card' }),
+        expense({ amount: 300, payment_method: null }),
+        expense({ amount: 20, currency: 'USD', payment_method: 'cash' })
+      ]
+    );
+    expect(result).toEqual([{ currency: 'JPY', exchanged: 80000, spent: 2000, remaining: 78000, costTwd: 16500 }]);
+  });
+
+  it('多幣別依換匯成本排序，並依小數位消除浮點誤差', () => {
+    const result = cashOnHand(
+      [exchange({ amount: 10000 }), exchange({ currency: 'USD', amount: 100, rate: 31 })],
+      [expense({ currency: 'USD', amount: 0.1, payment_method: 'cash' }), expense({ currency: 'USD', amount: 0.2, payment_method: 'cash' })]
+    );
+    expect(result.map((item) => item.currency)).toEqual(['USD', 'JPY']);
+    expect(result[0]).toMatchObject({ spent: 0.3, remaining: 99.7 });
+  });
+
+  it('現金花費多於換匯時剩餘為負；沒有換匯紀錄則為空', () => {
+    expect(cashOnHand([exchange({ amount: 1000 })], [expense({ amount: 1500, payment_method: 'cash' })])[0].remaining).toBe(-500);
+    expect(cashOnHand([], [expense({ payment_method: 'cash' })])).toEqual([]);
+  });
+
+  it('解析換匯資料列，丟棄金額無效者', () => {
+    const rows = parseTripCashExchanges([
+      { ...exchange({}), amount: '50000', rate: '0.21', exchange_date: '2026-10-30T00:00:00' },
+      { ...exchange({ id: 'bad' }), amount: 0 }
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ amount: 50000, rate: 0.21, exchange_date: '2026-10-30' });
   });
 });
