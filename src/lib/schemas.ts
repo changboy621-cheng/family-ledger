@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Budget, Category, RecurringTransaction, Transaction, UserProfile } from '../types';
-import type { Trip, TripExpense } from './trips';
+import type { Trip, TripCashExchange, TripExpense } from './trips';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
 import { DEFAULT_AVATAR_COLOR } from './constants';
@@ -130,6 +130,18 @@ export const tripExpenseSchema = z.object({
   place_name: z.string().nullish().catch(null)
 });
 
+export const tripCashExchangeSchema = z.object({
+  id: z.string(),
+  trip_id: z.string(),
+  family_id: z.string(),
+  recorded_by: z.string().nullish().catch(null),
+  exchange_date: isoDateSchema,
+  currency: currencyCodeSchema,
+  amount: z.coerce.number().positive(),
+  rate: z.coerce.number().positive(),
+  note: z.string().nullish().catch(null)
+});
+
 export const entryRowSchema = z.object({
   note: z.string().nullish().catch(null),
   transaction_date: z.string().optional(),
@@ -175,6 +187,8 @@ export const parseRecurringTransactions = (data: unknown): RecurringTransaction[
 export const parseTrips = (data: unknown): Trip[] => safeParseRows<Trip>(tripSchema, data, '旅行');
 export const parseTripExpenses = (data: unknown): TripExpense[] =>
   safeParseRows<TripExpense>(tripExpenseSchema, data, '旅行花費');
+export const parseTripCashExchanges = (data: unknown): TripCashExchange[] =>
+  safeParseRows<TripCashExchange>(tripCashExchangeSchema, data, '換匯紀錄');
 export const parseEntryRows = (data: unknown): EntryRow[] =>
   safeParseRows<EntryRow>(entryRowSchema, data, '建議');
 

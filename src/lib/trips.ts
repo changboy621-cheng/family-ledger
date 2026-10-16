@@ -38,6 +38,21 @@ export interface TripExpense {
   place_name?: string | null;
 }
 
+/** 換匯紀錄：換到手的外幣現金。 */
+export interface TripCashExchange {
+  id: string;
+  trip_id: string;
+  family_id: string;
+  recorded_by?: string | null;
+  exchange_date: string;
+  currency: string;
+  /** 換到的原幣金額。 */
+  amount: number;
+  /** 換匯當下：1 單位 currency = rate 新台幣。 */
+  rate: number;
+  note?: string | null;
+}
+
 export interface TripCurrency {
   code: string;
   label: string;
@@ -271,4 +286,46 @@ export function tripExpensesToCsv(expenses: TripExpense[], memberName: (id: stri
       .join(',')
   );
   return [header.join(','), ...rows].join('\n');
+}
+
+export interface TripCashBalance {
+  currency: string;
+  /** 換到手的原幣合計。 */
+  exchanged: number;
+  /** 用現金付掉的原幣合計。 */
+  spent: number;
+  /** 手邊剩下的原幣（可能為負：現金花費多於換匯紀錄，代表漏記換匯或記錯付款方式）。 */
+  remaining: number;
+  /** 換匯花掉的新台幣（換匯成本）。 */
+  costTwd: number;
+}
+
+/**
+ * 每個「有換匯紀錄」的幣別手邊還剩多少現金：換匯合計 − 該幣別付款方式為現金的花費。
+ * 沒換過匯的幣別（例如刷卡、或直接帶台幣）不列入，避免出現莫名的負數。
+ * 依原幣小數位取整，消除浮點誤差。
+ */
+export function cashOnHand(exchanges: TripCashExchange[], expenses: TripExpense[]): TripCashBalance[] {
+  const balances = new Map<string, { exchanged: number; spent: number; costTwd: number }>();
+  for (const exchange of exchanges) {
+    const balance = balances.get(exchange.currency) ?? { exchanged: 0, spent: 0, costTwd: 0 };
+    balance.exchanged += exchange.amount;
+    balance.costTwd += toTwd(exchange);
+    balances.set(exchange.currency, balance);
+  }
+  for (const expense of expenses) {
+    if (expense.payment_method !== 'cash') continue;
+    const balance = balances.get(expense.currency);
+    if (balance) balance.spent += expense.amount;
+  }
+
+  return [...balances.entries()]
+    .map(([currency, value]) => {
+      const factor = 10 ** tripCurrency(currency).decimals;
+      const round = (amount: number) => Math.round(amount * factor) / factor;
+      const exchanged = round(value.exchanged);
+      const spent = round(value.spent);
+      return { currency, exchanged, spent, remaining: round(exchanged - spent), costTwd: value.costTwd };
+    })
+    .sort((a, b) => b.costTwd - a.costTwd);
 }

@@ -13,6 +13,7 @@ import {
   parseTripAmount,
   tripCurrency,
   type Trip,
+  type TripCashBalance,
   type TripExpense
 } from '../../lib/trips';
 import { todayISO } from '../../lib/utils';
@@ -29,6 +30,8 @@ interface TripExpenseFormProps {
   trip: Trip;
   /** 本趟已記過的花費：用來帶入各幣別上次用的匯率。 */
   expenses: TripExpense[];
+  /** 各幣別手邊現金：付現金時提示付完還剩多少。 */
+  cashBalances?: TripCashBalance[];
   initialExpense?: TripExpense | null;
   onSubmit: (input: TripExpenseInput) => Promise<void>;
   onClose: () => void;
@@ -36,7 +39,7 @@ interface TripExpenseFormProps {
 
 const inputClass = 'rounded-lg border border-slate-300 px-3 py-3 text-base';
 
-export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onClose }: TripExpenseFormProps) {
+export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpense, onSubmit, onClose }: TripExpenseFormProps) {
   const profile = useAuthStore((state) => state.profile);
   const showToast = useUIStore((state) => state.showToast);
   const { members } = useFamilyMembers();
@@ -85,6 +88,14 @@ export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onCl
   const parsedAmount = parseTripAmount(amount, currency);
   const parsedRate = currency === 'TWD' ? 1 : parseRate(rate);
   const twdPreview = parsedRate ? Math.round(parsedAmount * parsedRate) : null;
+
+  // 付現金時：手邊這個幣別的現金，付完這筆還剩多少（編輯時先把原本這筆加回去）。
+  const cashBalance = paymentMethod === 'cash' ? cashBalances.find((item) => item.currency === currency) : undefined;
+  const cashAfter = cashBalance
+    ? cashBalance.remaining +
+      (initialExpense?.payment_method === 'cash' && initialExpense.currency === currency ? initialExpense.amount : 0) -
+      parsedAmount
+    : null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -227,6 +238,11 @@ export function TripExpenseForm({ trip, expenses, initialExpense, onSubmit, onCl
             </button>
           ))}
         </div>
+        {cashAfter !== null ? (
+          <p className={`-mt-2 text-right text-xs font-semibold ${cashAfter < 0 ? 'text-red-500' : 'text-slate-500'}`}>
+            付完手邊剩 {formatTripAmount(cashAfter, currency)}
+          </p>
+        ) : null}
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           備註（可選）

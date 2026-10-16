@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase';
-import { parseTripExpenses, parseTrips } from '../lib/schemas';
-import type { Trip, TripExpense } from '../lib/trips';
+import { parseTripCashExchanges, parseTripExpenses, parseTrips } from '../lib/schemas';
+import type { Trip, TripCashExchange, TripExpense } from '../lib/trips';
 import { resolveLocationPatch } from './useTransactions';
 import { useAuthStore } from '../store/authStore';
 
@@ -28,6 +28,14 @@ export interface TripExpenseInput {
   latitude?: number | null;
   longitude?: number | null;
   place_name?: string | null;
+}
+
+export interface TripCashExchangeInput {
+  exchange_date: string;
+  currency: string;
+  amount: number;
+  rate: number;
+  note?: string;
 }
 
 /** 旅行清單：新到舊。 */
@@ -84,12 +92,13 @@ export function useTrips() {
   return { trips, loading, error, reload: load, createTrip };
 }
 
-/** 單趟旅行：旅行本身＋全部花費，並提供花費的新增／修改／刪除。 */
+/** 單趟旅行：旅行本身＋全部花費＋換匯紀錄，並提供新增／修改／刪除。 */
 export function useTripDetail(tripId: string | undefined) {
   const familyId = useAuthStore((state) => state.profile?.family_id);
   const profileId = useAuthStore((state) => state.profile?.id);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [expenses, setExpenses] = useState<TripExpense[]>([]);
+  const [cashExchanges, setCashExchanges] = useState<TripCashExchange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const requestIdRef = useRef(0);
@@ -97,7 +106,7 @@ export function useTripDetail(tripId: string | undefined) {
   const load = useCallback(async () => {
     if (!familyId || !tripId) return;
     const requestId = ++requestIdRef.current;
-    const [tripResult, expenseResult] = await Promise.all([
+    const [tripResult, expenseResult, exchangeResult] = await Promise.all([
       supabase.from('trips').select('*').eq('id', tripId).eq('family_id', familyId).maybeSingle(),
       supabase
         .from('trip_expenses')
@@ -105,7 +114,13 @@ export function useTripDetail(tripId: string | undefined) {
         .eq('trip_id', tripId)
         .order('expense_date', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(5000)
+        .limit(5000),
+      supabase
+        .from('trip_cash_exchanges')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('exchange_date', { ascending: false })
+        .order('created_at', { ascending: false })
     ]);
     if (requestId !== requestIdRef.current) return;
 
@@ -116,6 +131,13 @@ export function useTripDetail(tripId: string | undefined) {
       setTrip(tripResult.data ? (parseTrips([tripResult.data])[0] ?? null) : null);
       setExpenses(parseTripExpenses(expenseResult.data));
       setError(false);
+    }
+    // 換匯紀錄讀不到（例如尚未跑 012 migration）不擋整頁，只是不顯示手邊現金。
+    if (exchangeResult.error) {
+      console.error('[useTripDetail] 讀取換匯紀錄失敗', exchangeResult.error);
+      setCashExchanges([]);
+    } else {
+      setCashExchanges(parseTripCashExchanges(exchangeResult.data));
     }
     setLoading(false);
   }, [familyId, tripId]);
@@ -204,5 +226,57 @@ export function useTripDetail(tripId: string | undefined) {
     if (deleteError) throw deleteError;
   }, [tripId]);
 
-  return { trip, expenses, loading, error, reload: load, addExpense, updateExpense, deleteExpense, updateTrip, deleteTrip };
+  const addCashExchange = useCallback(
+    async (input: TripCashExchangeInput) => {
+      if (!familyId || !tripId) throw new Error('找不到這趟旅行。');
+      const { error: insertError } = await supabase.from('trip_cash_exchanges').insert({
+        ...input,
+        note: input.note?.trim() || null,
+        recorded_by: profileId ?? null,
+        trip_id: tripId,
+        family_id: familyId
+      });
+      if (insertError) throw insertError;
+      await load();
+    },
+    [familyId, load, profileId, tripId]
+  );
+
+  const updateCashExchange = useCallback(
+    async (id: string, input: TripCashExchangeInput) => {
+      const { error: updateError } = await supabase
+        .from('trip_cash_exchanges')
+        .update({ ...input, note: input.note?.trim() || null })
+        .eq('id', id);
+      if (updateError) throw updateError;
+      await load();
+    },
+    [load]
+  );
+
+  const deleteCashExchange = useCallback(
+    async (id: string) => {
+      const { error: deleteError } = await supabase.from('trip_cash_exchanges').delete().eq('id', id);
+      if (deleteError) throw deleteError;
+      await load();
+    },
+    [load]
+  );
+
+  return {
+    trip,
+    expenses,
+    cashExchanges,
+    loading,
+    error,
+    reload: load,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    addCashExchange,
+    updateCashExchange,
+    deleteCashExchange,
+    updateTrip,
+    deleteTrip
+  };
 }
