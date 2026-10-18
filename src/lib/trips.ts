@@ -36,6 +36,21 @@ export interface TripExpense {
   latitude?: number | null;
   longitude?: number | null;
   place_name?: string | null;
+  /** 這筆裡幫朋友代墊的部分（之後朋友會還）。 */
+  friend_shares?: FriendShare[];
+}
+
+export type RepaidMethod = 'cash' | 'transfer';
+
+/** 代墊：一筆花費中替某位朋友付的金額（與花費同幣別、同匯率）。 */
+export interface FriendShare {
+  id: string;
+  name: string;
+  amount: number;
+  /** 朋友還錢的日期；null = 還沒還。 */
+  repaid_at: string | null;
+  /** 還現金會加回手邊現金；轉帳則不影響。 */
+  repaid_method: RepaidMethod | null;
 }
 
 /** 換匯紀錄：換到手的外幣現金。 */
@@ -127,6 +142,26 @@ export function toTwd(expense: Pick<TripExpense, 'amount' | 'rate'>): number {
   return Math.round(expense.amount * expense.rate);
 }
 
+function roundTo(amount: number, currencyCode: string): number {
+  const factor = 10 ** tripCurrency(currencyCode).decimals;
+  return Math.round(amount * factor) / factor;
+}
+
+/** 這筆幫朋友代墊的原幣合計。 */
+export function sharedAmount(expense: Pick<TripExpense, 'currency' | 'friend_shares'>): number {
+  return roundTo((expense.friend_shares ?? []).reduce((sum, share) => sum + share.amount, 0), expense.currency);
+}
+
+/** 自己負擔的原幣金額 = 花費 − 代墊（不會小於 0）。 */
+export function ownAmount(expense: Pick<TripExpense, 'amount' | 'currency' | 'friend_shares'>): number {
+  return Math.max(0, roundTo(expense.amount - sharedAmount(expense), expense.currency));
+}
+
+/** 自己負擔的部分折合新台幣。 */
+export function ownTwd(expense: Pick<TripExpense, 'amount' | 'currency' | 'rate' | 'friend_shares'>): number {
+  return Math.round(ownAmount(expense) * expense.rate);
+}
+
 export function formatTripAmount(amount: number, currencyCode: string): string {
   const { decimals } = tripCurrency(currencyCode);
   return `${currencyCode} ${amount.toLocaleString('zh-TW', {
@@ -197,8 +232,11 @@ export function summarizeTrip(trip: Trip, expenses: TripExpense[]): TripSummary 
   const days = new Map<string, { twd: number; count: number }>();
   const currencies = new Map<string, { amount: number; twd: number }>();
 
+  // 只算自己負擔的部分；幫朋友代墊的錢之後會拿回來，不算這趟旅行的花費。
   for (const expense of expenses) {
-    const twd = toTwd(expense);
+    const own = ownAmount(expense);
+    if (own <= 0) continue;
+    const twd = ownTwd(expense);
     totalTwd += twd;
 
     const category = categories.get(expense.category) ?? { twd: 0, count: 0 };
@@ -212,7 +250,7 @@ export function summarizeTrip(trip: Trip, expenses: TripExpense[]): TripSummary 
     days.set(expense.expense_date, day);
 
     const currency = currencies.get(expense.currency) ?? { amount: 0, twd: 0 };
-    currency.amount += expense.amount;
+    currency.amount += own;
     currency.twd += twd;
     currencies.set(expense.currency, currency);
   }
@@ -233,7 +271,7 @@ export function summarizeTrip(trip: Trip, expenses: TripExpense[]): TripSummary 
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const byCurrency = [...currencies.entries()]
-    .map(([currency, value]) => ({ currency, amount: value.amount, twd: value.twd }))
+    .map(([currency, value]) => ({ currency, amount: roundTo(value.amount, currency), twd: value.twd }))
     .sort((a, b) => b.twd - a.twd);
 
   const budget = trip.budget_twd ?? null;
@@ -269,7 +307,7 @@ export function tripStatus(trip: Pick<Trip, 'start_date' | 'end_date'>, today: s
 /** 匯出旅行花費為 CSV 文字（含新台幣折算），供回國後對帳或貼進試算表。 */
 export function tripExpensesToCsv(expenses: TripExpense[], memberName: (id: string | null | undefined) => string): string {
   const escape = (value: string) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
-  const header = ['日期', '分類', '金額', '幣別', '匯率', '折合新台幣', '付款方式', '付款人', '備註'];
+  const header = ['日期', '分類', '金額', '幣別', '匯率', '折合新台幣', '自付金額', '代墊給朋友', '付款方式', '付款人', '備註'];
   const rows = expenses.map((expense) =>
     [
       expense.expense_date,
@@ -278,6 +316,10 @@ export function tripExpensesToCsv(expenses: TripExpense[], memberName: (id: stri
       expense.currency,
       String(expense.rate),
       String(toTwd(expense)),
+      String(ownAmount(expense)),
+      (expense.friend_shares ?? [])
+        .map((share) => `${share.name} ${share.amount}${share.repaid_at ? '（已還）' : ''}`)
+        .join('、'),
       expense.payment_method === 'card' ? '刷卡' : expense.payment_method === 'cash' ? '現金' : '',
       memberName(expense.paid_by),
       expense.note ?? ''
@@ -292,6 +334,8 @@ export interface TripCashBalance {
   currency: string;
   /** 換到手的原幣合計。 */
   exchanged: number;
+  /** 朋友用現金還的代墊款（原幣合計）。 */
+  received: number;
   /** 用現金付掉的原幣合計。 */
   spent: number;
   /** 手邊剩下的原幣（可能為負：現金花費多於換匯紀錄，代表漏記換匯或記錯付款方式）。 */
@@ -301,31 +345,260 @@ export interface TripCashBalance {
 }
 
 /**
- * 每個「有換匯紀錄」的幣別手邊還剩多少現金：換匯合計 − 該幣別付款方式為現金的花費。
+ * 每個「有換匯紀錄」的幣別手邊還剩多少現金：換匯合計 ＋ 朋友還的現金 − 該幣別付款方式為現金的花費。
  * 沒換過匯的幣別（例如刷卡、或直接帶台幣）不列入，避免出現莫名的負數。
  * 依原幣小數位取整，消除浮點誤差。
  */
 export function cashOnHand(exchanges: TripCashExchange[], expenses: TripExpense[]): TripCashBalance[] {
-  const balances = new Map<string, { exchanged: number; spent: number; costTwd: number }>();
+  const balances = new Map<string, { exchanged: number; received: number; spent: number; costTwd: number }>();
   for (const exchange of exchanges) {
-    const balance = balances.get(exchange.currency) ?? { exchanged: 0, spent: 0, costTwd: 0 };
+    const balance = balances.get(exchange.currency) ?? { exchanged: 0, received: 0, spent: 0, costTwd: 0 };
     balance.exchanged += exchange.amount;
     balance.costTwd += toTwd(exchange);
     balances.set(exchange.currency, balance);
   }
   for (const expense of expenses) {
-    if (expense.payment_method !== 'cash') continue;
     const balance = balances.get(expense.currency);
-    if (balance) balance.spent += expense.amount;
+    if (!balance) continue;
+    if (expense.payment_method === 'cash') balance.spent += expense.amount;
+    for (const share of expense.friend_shares ?? []) {
+      if (share.repaid_at && share.repaid_method === 'cash') balance.received += share.amount;
+    }
   }
 
   return [...balances.entries()]
     .map(([currency, value]) => {
-      const factor = 10 ** tripCurrency(currency).decimals;
-      const round = (amount: number) => Math.round(amount * factor) / factor;
-      const exchanged = round(value.exchanged);
-      const spent = round(value.spent);
-      return { currency, exchanged, spent, remaining: round(exchanged - spent), costTwd: value.costTwd };
+      const exchanged = roundTo(value.exchanged, currency);
+      const received = roundTo(value.received, currency);
+      const spent = roundTo(value.spent, currency);
+      return {
+        currency,
+        exchanged,
+        received,
+        spent,
+        remaining: roundTo(exchanged + received - spent, currency),
+        costTwd: value.costTwd
+      };
     })
     .sort((a, b) => b.costTwd - a.costTwd);
+}
+
+export interface FriendShareItem {
+  expense: TripExpense;
+  share: FriendShare;
+  twd: number;
+}
+
+export interface FriendDebt {
+  name: string;
+  /** 還沒還的代墊（新到舊）。 */
+  outstanding: FriendShareItem[];
+  outstandingTwd: number;
+  /** 還沒還的原幣金額，依幣別分開（不同幣別不能直接相加）。 */
+  outstandingByCurrency: Array<{ currency: string; amount: number }>;
+  repaid: FriendShareItem[];
+  repaidTwd: number;
+}
+
+/** 依朋友彙總代墊：誰還欠多少（未還多的排前面），以及已經還了多少。名字前後空白不影響歸戶。 */
+export function friendDebts(expenses: TripExpense[]): FriendDebt[] {
+  const byName = new Map<string, FriendDebt & { currencies: Map<string, number> }>();
+  for (const expense of expenses) {
+    for (const share of expense.friend_shares ?? []) {
+      const name = share.name.trim();
+      if (!name) continue;
+      const debt = byName.get(name) ?? {
+        name,
+        outstanding: [] as FriendShareItem[],
+        outstandingTwd: 0,
+        outstandingByCurrency: [],
+        repaid: [] as FriendShareItem[],
+        repaidTwd: 0,
+        currencies: new Map<string, number>()
+      };
+      const item: FriendShareItem = { expense, share, twd: Math.round(share.amount * expense.rate) };
+      if (share.repaid_at) {
+        debt.repaid.push(item);
+        debt.repaidTwd += item.twd;
+      } else {
+        debt.outstanding.push(item);
+        debt.outstandingTwd += item.twd;
+        debt.currencies.set(expense.currency, (debt.currencies.get(expense.currency) ?? 0) + share.amount);
+      }
+      byName.set(name, debt);
+    }
+  }
+
+  return [...byName.values()]
+    .map(({ currencies, ...debt }) => ({
+      ...debt,
+      outstandingByCurrency: [...currencies.entries()].map(([currency, amount]) => ({
+        currency,
+        amount: roundTo(amount, currency)
+      }))
+    }))
+    .sort((a, b) => b.outstandingTwd - a.outstandingTwd || a.name.localeCompare(b.name));
+}
+
+/** 這趟用過的朋友名字（最近先），供記帳時快速選。 */
+export function knownFriendNames(expenses: TripExpense[]): string[] {
+  const names: string[] = [];
+  for (const expense of expenses) {
+    for (const share of expense.friend_shares ?? []) {
+      const name = share.name.trim();
+      if (name && !names.includes(name)) names.push(name);
+    }
+  }
+  return names;
+}
+
+/** 把某筆代墊標成已還（或改回未還），回傳新的 friend_shares 陣列。 */
+export function setShareRepaid(
+  shares: FriendShare[],
+  shareId: string,
+  repaid: { date: string; method: RepaidMethod } | null
+): FriendShare[] {
+  return shares.map((share) =>
+    share.id === shareId
+      ? { ...share, repaid_at: repaid?.date ?? null, repaid_method: repaid?.method ?? null }
+      : share
+  );
+}
+
+export interface MemberSettlement {
+  /** 付款人 id；沒記付款人為 null。 */
+  memberId: string | null;
+  /** 刷卡付出（整筆，含幫朋友代墊的部分），折合新台幣。 */
+  cardTwd: number;
+  /** 現金付出（整筆）。 */
+  cashTwd: number;
+  /** 沒記付款方式的付出（整筆）。 */
+  otherTwd: number;
+  /** 付出合計 = 刷卡 ＋ 現金 ＋ 其他。 */
+  paidTwd: number;
+  /** 其中幫朋友代墊的部分（朋友會還／已還給這個人）。 */
+  friendTwd: number;
+  /** 實際負擔 = 付出 − 代墊。 */
+  ownTwd: number;
+}
+
+export interface TripSettlement {
+  members: MemberSettlement[];
+  cardTwd: number;
+  cashTwd: number;
+  otherTwd: number;
+  paidTwd: number;
+  friendTwd: number;
+  ownTwd: number;
+}
+
+/**
+ * 依付款人結算：每個人刷卡、現金各付了多少，扣掉幫朋友代墊後實際負擔多少。
+ * 代墊以「付款人」歸戶：誰付的那筆，朋友的錢就是還給誰。付出多的排前面。
+ */
+export function settleByMember(expenses: TripExpense[]): TripSettlement {
+  const byMember = new Map<string | null, MemberSettlement>();
+  for (const expense of expenses) {
+    const memberId = expense.paid_by ?? null;
+    const row = byMember.get(memberId) ?? {
+      memberId,
+      cardTwd: 0,
+      cashTwd: 0,
+      otherTwd: 0,
+      paidTwd: 0,
+      friendTwd: 0,
+      ownTwd: 0
+    };
+    const paid = toTwd(expense);
+    const own = ownTwd(expense);
+    if (expense.payment_method === 'card') row.cardTwd += paid;
+    else if (expense.payment_method === 'cash') row.cashTwd += paid;
+    else row.otherTwd += paid;
+    row.paidTwd += paid;
+    row.friendTwd += paid - own;
+    row.ownTwd += own;
+    byMember.set(memberId, row);
+  }
+
+  const members = [...byMember.values()].sort((a, b) => b.paidTwd - a.paidTwd);
+  const sum = (key: keyof Omit<MemberSettlement, 'memberId'>) => members.reduce((total, row) => total + row[key], 0);
+  return {
+    members,
+    cardTwd: sum('cardTwd'),
+    cashTwd: sum('cashTwd'),
+    otherTwd: sum('otherTwd'),
+    paidTwd: sum('paidTwd'),
+    friendTwd: sum('friendTwd'),
+    ownTwd: sum('ownTwd')
+  };
+}
+
+/**
+ * 兩人平分時誰該補給誰多少（以實際負擔計）。家庭剛好兩位成員才有意義；
+ * 有沒記付款人、或付款人不在名單上的花費時無法判斷，回傳 null；差額為 0 也回傳 null。
+ */
+export function equalSplitTransfer(
+  members: MemberSettlement[],
+  memberIds: string[]
+): { from: string; to: string; twd: number } | null {
+  if (memberIds.length !== 2) return null;
+  if (members.some((row) => row.memberId === null || !memberIds.includes(row.memberId))) return null;
+  const [a, b] = memberIds;
+  const own = (id: string) => members.find((row) => row.memberId === id)?.ownTwd ?? 0;
+  const diff = Math.round((own(a) - own(b)) / 2);
+  if (diff === 0) return null;
+  return diff > 0 ? { from: b, to: a, twd: diff } : { from: a, to: b, twd: -diff };
+}
+
+export interface CategorySettlement {
+  category: TripCategory;
+  /** 這個分類的實際花費（不含幫朋友代墊）。 */
+  ownTwd: number;
+  /** 依付款人分開（付款人 id → 實際負擔）；付出多的在前。 */
+  byMember: Array<{ memberId: string | null; twd: number }>;
+  cardTwd: number;
+  cashTwd: number;
+  otherTwd: number;
+}
+
+/**
+ * 結算的分類加總：每個分類實際花了多少，各是誰付的、刷卡還是現金。
+ * 一律以「實際負擔」計（扣掉幫朋友代墊），所以各分類加起來等於這趟實際花費。花最多的分類排前面。
+ */
+export function settleByCategory(expenses: TripExpense[]): CategorySettlement[] {
+  const byCategory = new Map<
+    string,
+    { ownTwd: number; members: Map<string | null, number>; cardTwd: number; cashTwd: number; otherTwd: number }
+  >();
+  for (const expense of expenses) {
+    const own = ownTwd(expense);
+    if (own <= 0) continue;
+    const key = tripCategory(expense.category).key;
+    const row = byCategory.get(key) ?? { ownTwd: 0, members: new Map(), cardTwd: 0, cashTwd: 0, otherTwd: 0 };
+    row.ownTwd += own;
+    const memberId = expense.paid_by ?? null;
+    row.members.set(memberId, (row.members.get(memberId) ?? 0) + own);
+    if (expense.payment_method === 'card') row.cardTwd += own;
+    else if (expense.payment_method === 'cash') row.cashTwd += own;
+    else row.otherTwd += own;
+    byCategory.set(key, row);
+  }
+
+  return [...byCategory.entries()]
+    .map(([key, row]) => ({
+      category: tripCategory(key),
+      ownTwd: row.ownTwd,
+      byMember: [...row.members.entries()]
+        .map(([memberId, twd]) => ({ memberId, twd }))
+        .sort((a, b) => b.twd - a.twd),
+      cardTwd: row.cardTwd,
+      cashTwd: row.cashTwd,
+      otherTwd: row.otherTwd
+    }))
+    .sort((a, b) => b.ownTwd - a.ownTwd);
+}
+
+/** 某分類裡有實際負擔的花費（與分類加總一致：全額幫朋友代墊的不列），維持原順序（新到舊）。 */
+export function expensesInCategory(expenses: TripExpense[], categoryKey: string): TripExpense[] {
+  return expenses.filter((expense) => tripCategory(expense.category).key === categoryKey && ownAmount(expense) > 0);
 }

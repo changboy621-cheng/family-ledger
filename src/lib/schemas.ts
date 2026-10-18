@@ -112,6 +112,14 @@ export const tripSchema = z.object({
   budget_twd: z.coerce.number().positive().nullish().catch(null)
 });
 
+export const friendShareSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  amount: z.coerce.number().positive(),
+  repaid_at: isoDateSchema.nullable().catch(null),
+  repaid_method: z.enum(['cash', 'transfer']).nullable().catch(null)
+});
+
 export const tripExpenseSchema = z.object({
   id: z.string(),
   trip_id: z.string(),
@@ -127,7 +135,9 @@ export const tripExpenseSchema = z.object({
   note: z.string().nullish().catch(null),
   latitude: z.coerce.number().min(-90).max(90).nullish().catch(null),
   longitude: z.coerce.number().min(-180).max(180).nullish().catch(null),
-  place_name: z.string().nullish().catch(null)
+  place_name: z.string().nullish().catch(null),
+  // 代墊資料壞掉時寧可當作沒有代墊，也不要整筆花費消失。
+  friend_shares: z.array(friendShareSchema).catch([]).default([])
 });
 
 export const tripCashExchangeSchema = z.object({

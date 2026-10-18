@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Banknote, Download, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Banknote, ChevronDown, Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTripDetail } from '../hooks/useTrips';
 import { useFamilyMembers } from '../hooks/useFamilyMembers';
 import {
@@ -8,10 +8,18 @@ import {
   formatRate,
   formatTripAmount,
   formatTwd,
+  expensesInCategory,
+  friendDebts,
+  ownAmount,
+  ownTwd,
+  settleByCategory,
+  settleByMember,
   summarizeTrip,
   toTwd,
   tripCategory,
   tripExpensesToCsv,
+  type FriendShareItem,
+  type RepaidMethod,
   type TripCashExchange,
   type TripExpense
 } from '../lib/trips';
@@ -21,6 +29,10 @@ import { useUIStore } from '../store/uiStore';
 import { TripCashExchangeForm } from '../components/trip/TripCashExchangeForm';
 import { TripExpenseForm } from '../components/trip/TripExpenseForm';
 import { TripForm } from '../components/trip/TripForm';
+import { TripFriendDebtsCard } from '../components/trip/TripFriendDebtsCard';
+import { TripSettlementCard } from '../components/trip/TripSettlementCard';
+import { TripCategoryExpenses } from '../components/trip/TripCategoryExpenses';
+import { todayISO } from '../lib/utils';
 
 export function TripDetailPage() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -39,6 +51,7 @@ export function TripDetailPage() {
     addCashExchange,
     updateCashExchange,
     deleteCashExchange,
+    setFriendShareRepaid,
     updateTrip,
     deleteTrip
   } = useTripDetail(tripId);
@@ -48,9 +61,16 @@ export function TripDetailPage() {
   const [showTripForm, setShowTripForm] = useState(false);
   const [showExchangeForm, setShowExchangeForm] = useState(false);
   const [editingExchange, setEditingExchange] = useState<TripCashExchange | null>(null);
+  // 「花在哪」展開中的分類：點分類看裡面每一筆是誰付的。
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   const summary = useMemo(() => (trip ? summarizeTrip(trip, expenses) : null), [trip, expenses]);
   const cash = useMemo(() => cashOnHand(cashExchanges, expenses), [cashExchanges, expenses]);
+  const debts = useMemo(() => friendDebts(expenses), [expenses]);
+  const settlement = useMemo(() => settleByMember(expenses), [expenses]);
+  const categorySettlement = useMemo(() => settleByCategory(expenses), [expenses]);
+  const sharedTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd + debt.repaidTwd, 0);
+  const outstandingTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd, 0);
   const memberName = (id: string | null | undefined) => members.find((member) => member.id === id)?.display_name ?? '';
 
   const grouped = useMemo(() => {
@@ -80,7 +100,9 @@ export function TripDetailPage() {
   }
 
   async function handleDeleteExpense(expense: TripExpense) {
-    if (!window.confirm(`刪除這筆 ${formatTripAmount(expense.amount, expense.currency)}？`)) return;
+    const hasShares = (expense.friend_shares ?? []).length > 0;
+    const message = `刪除這筆 ${formatTripAmount(expense.amount, expense.currency)}？${hasShares ? '\n裡面的朋友代墊紀錄也會一起刪掉。' : ''}`;
+    if (!window.confirm(message)) return;
     try {
       await deleteExpense(expense.id);
       showToast('已刪除');
@@ -96,6 +118,21 @@ export function TripDetailPage() {
       showToast('已刪除');
     } catch (err) {
       showToast(getErrorMessage(err, '刪除失敗，請稍後再試。'), 'error');
+    }
+  }
+
+  async function handleRepaid(item: FriendShareItem, method: RepaidMethod | null) {
+    try {
+      await setFriendShareRepaid(item.expense, item.share.id, method ? { date: todayISO(), method } : null);
+      showToast(
+        method === 'cash'
+          ? `已收到 ${item.share.name} 的現金，加回手邊現金`
+          : method === 'transfer'
+            ? `已收到 ${item.share.name} 的轉帳`
+            : '已改回未還'
+      );
+    } catch (err) {
+      showToast(getErrorMessage(err, '更新失敗，請稍後再試。'), 'error');
     }
   }
 
@@ -153,11 +190,17 @@ export function TripDetailPage() {
       </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-500">總花費（折合新台幣）</p>
+        <p className="text-sm text-slate-500">總花費（折合新台幣{sharedTwd > 0 ? '，不含幫朋友代墊' : ''}）</p>
         <p className="mt-1 text-3xl font-bold text-slate-900">{formatTwd(summary.totalTwd)}</p>
         <p className="mt-1 text-xs text-slate-500">
           共 {summary.count} 筆・平均每天 {formatTwd(summary.perDayTwd)}
         </p>
+        {sharedTwd > 0 ? (
+          <p className="mt-1 text-xs text-amber-600">
+            另外幫朋友代墊 {formatTwd(sharedTwd)}
+            {outstandingTwd > 0 ? `，還有 ${formatTwd(outstandingTwd)} 沒還` : '，都還清了'}
+          </p>
+        ) : null}
         {summary.byCurrency.length > 0 ? (
           <p className="mt-2 text-xs text-slate-500">
             {summary.byCurrency.map((item) => formatTripAmount(item.amount, item.currency)).join('　＋　')}
@@ -214,7 +257,8 @@ export function TripDetailPage() {
                     />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    換了 {formatTripAmount(balance.exchanged, balance.currency)}（{formatTwd(balance.costTwd)}）・現金花了{' '}
+                    換了 {formatTripAmount(balance.exchanged, balance.currency)}（{formatTwd(balance.costTwd)}）
+                    {balance.received > 0 ? `・朋友還 ${formatTripAmount(balance.received, balance.currency)}` : ''}・現金花了{' '}
                     {formatTripAmount(balance.spent, balance.currency)}
                   </p>
                   {negative ? (
@@ -245,27 +289,64 @@ export function TripDetailPage() {
         ) : null}
       </section>
 
+      {debts.length > 0 ? <TripFriendDebtsCard debts={debts} onRepaid={handleRepaid} /> : null}
+
+      {expenses.length > 0 ? (
+        <TripSettlementCard
+          settlement={settlement}
+          categories={categorySettlement}
+          expenses={expenses}
+          onSelectExpense={setEditing}
+          memberIds={members.map((member) => member.id)}
+          memberName={memberName}
+        />
+      ) : null}
+
       {summary.byCategory.length > 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="font-bold text-slate-900">花在哪</h2>
           <ul className="mt-3 grid gap-3">
-            {summary.byCategory.map((item) => (
-              <li key={item.category.key}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-slate-700">
-                    {item.category.icon} {item.category.label}
-                    <span className="ml-2 text-xs font-normal text-slate-400">{item.count} 筆</span>
-                  </span>
-                  <span className="text-slate-900">
-                    {formatTwd(item.twd)}
-                    <span className="ml-2 text-xs text-slate-400">{Math.round(item.ratio * 100)}%</span>
-                  </span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-family" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
-                </div>
-              </li>
-            ))}
+            {summary.byCategory.map((item) => {
+              const open = openCategory === item.category.key;
+              const payers = categorySettlement.find((row) => row.category.key === item.category.key)?.byMember ?? [];
+              return (
+                <li key={item.category.key}>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    className="w-full text-left"
+                    onClick={() => setOpenCategory(open ? null : item.category.key)}
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1 font-semibold text-slate-700">
+                        {item.category.icon} {item.category.label}
+                        <span className="ml-1 text-xs font-normal text-slate-400">{item.count} 筆</span>
+                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                      </span>
+                      <span className="text-slate-900">
+                        {formatTwd(item.twd)}
+                        <span className="ml-2 text-xs text-slate-400">{Math.round(item.ratio * 100)}%</span>
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-family" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
+                    </div>
+                  </button>
+                  {open ? (
+                    <>
+                      <p className="mt-2 text-xs font-semibold text-slate-600">
+                        {payers.map((payer) => `${memberName(payer.memberId) || '未記付款人'} ${formatTwd(payer.twd)}`).join('・')}
+                      </p>
+                      <TripCategoryExpenses
+                        expenses={expensesInCategory(expenses, item.category.key)}
+                        memberName={memberName}
+                        onSelect={setEditing}
+                      />
+                    </>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
@@ -278,7 +359,8 @@ export function TripDetailPage() {
           </p>
         ) : null}
         {grouped.map(([date, rows]) => {
-          const dayTotal = rows.reduce((sum, row) => sum + toTwd(row), 0);
+          // 每日小計同總花費，只算自己負擔的部分。
+          const dayTotal = rows.reduce((sum, row) => sum + ownTwd(row), 0);
           return (
             <div key={date} className="rounded-xl border border-slate-200 bg-white">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
@@ -288,6 +370,7 @@ export function TripDetailPage() {
               <ul>
                 {rows.map((expense) => {
                   const category = tripCategory(expense.category);
+                  const shares = expense.friend_shares ?? [];
                   return (
                     <li key={expense.id} className="flex items-center gap-3 px-4 py-3">
                       <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setEditing(expense)}>
@@ -299,6 +382,12 @@ export function TripDetailPage() {
                               .filter(Boolean)
                               .join('・')}
                           </span>
+                          {shares.length > 0 ? (
+                            <span className="block text-xs text-amber-600">
+                              代墊 {shares.map((share) => `${share.name}${share.repaid_at ? '✓' : ''}`).join('、')}
+                              ・自付 {formatTripAmount(ownAmount(expense), expense.currency)}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                       <span className="shrink-0 text-right">
