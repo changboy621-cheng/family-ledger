@@ -11,6 +11,7 @@ import {
   friendDebts,
   ownAmount,
   ownTwd,
+  settleByCategory,
   settleByMember,
   summarizeTrip,
   toTwd,
@@ -63,6 +64,7 @@ export function TripDetailPage() {
   const cash = useMemo(() => cashOnHand(cashExchanges, expenses), [cashExchanges, expenses]);
   const debts = useMemo(() => friendDebts(expenses), [expenses]);
   const settlement = useMemo(() => settleByMember(expenses), [expenses]);
+  const categorySettlement = useMemo(() => settleByCategory(expenses), [expenses]);
   const sharedTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd + debt.repaidTwd, 0);
   const outstandingTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd, 0);
   const memberName = (id: string | null | undefined) => members.find((member) => member.id === id)?.display_name ?? '';
@@ -288,6 +290,7 @@ export function TripDetailPage() {
       {expenses.length > 0 ? (
         <TripSettlementCard
           settlement={settlement}
+          categories={categorySettlement}
           memberIds={members.map((member) => member.id)}
           memberName={memberName}
         />

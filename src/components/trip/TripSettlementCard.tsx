@@ -1,15 +1,17 @@
 import { Scale } from 'lucide-react';
-import { equalSplitTransfer, formatTwd, type TripSettlement } from '../../lib/trips';
+import { equalSplitTransfer, formatTwd, type CategorySettlement, type TripSettlement } from '../../lib/trips';
 
 interface TripSettlementCardProps {
   settlement: TripSettlement;
+  /** 分類加總（實際負擔，扣掉代墊）。 */
+  categories: CategorySettlement[];
   /** 家庭成員 id（剛好兩位時顯示平分建議）。 */
   memberIds: string[];
   memberName: (id: string | null | undefined) => string;
 }
 
 // 旅行頁「結算」：每個人刷卡、現金各付了多少，扣掉幫朋友代墊後實際負擔多少；兩人時附平分建議。
-export function TripSettlementCard({ settlement, memberIds, memberName }: TripSettlementCardProps) {
+export function TripSettlementCard({ settlement, categories, memberIds, memberName }: TripSettlementCardProps) {
   const transfer = equalSplitTransfer(settlement.members, memberIds);
   const nameOf = (id: string | null) => (id ? memberName(id) || '（已離開的成員）' : '未記付款人');
 
@@ -53,6 +55,37 @@ export function TripSettlementCard({ settlement, memberIds, memberName }: TripSe
         {settlement.friendTwd > 0 ? <Row label="扣掉幫朋友代墊" value={`−${formatTwd(settlement.friendTwd)}`} /> : null}
         <Row label="這趟實際花費" value={formatTwd(settlement.ownTwd)} strong />
       </dl>
+
+      {categories.length > 0 ? (
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <h3 className="text-sm font-semibold text-slate-700">依分類</h3>
+          <p className="text-xs text-slate-400">以實際負擔計，不含幫朋友代墊</p>
+          <ul className="mt-2 divide-y divide-slate-100">
+            {categories.map((row) => (
+              <li key={row.category.key} className="py-2">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="font-semibold text-slate-800">
+                    {row.category.icon} {row.category.label}
+                  </span>
+                  <strong className="text-slate-900">{formatTwd(row.ownTwd)}</strong>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {row.byMember.map((item) => `${nameOf(item.memberId)} ${formatTwd(item.twd)}`).join('・')}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {[
+                    row.cardTwd > 0 ? `💳 ${formatTwd(row.cardTwd)}` : '',
+                    row.cashTwd > 0 ? `💵 ${formatTwd(row.cashTwd)}` : '',
+                    row.otherTwd > 0 ? `未指定 ${formatTwd(row.otherTwd)}` : ''
+                  ]
+                    .filter(Boolean)
+                    .join('・')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {transfer ? (
         <p className="mt-3 rounded-lg bg-familySoft p-3 text-sm text-slate-700">

@@ -549,3 +549,51 @@ export function equalSplitTransfer(
   if (diff === 0) return null;
   return diff > 0 ? { from: b, to: a, twd: diff } : { from: a, to: b, twd: -diff };
 }
+
+export interface CategorySettlement {
+  category: TripCategory;
+  /** 這個分類的實際花費（不含幫朋友代墊）。 */
+  ownTwd: number;
+  /** 依付款人分開（付款人 id → 實際負擔）；付出多的在前。 */
+  byMember: Array<{ memberId: string | null; twd: number }>;
+  cardTwd: number;
+  cashTwd: number;
+  otherTwd: number;
+}
+
+/**
+ * 結算的分類加總：每個分類實際花了多少，各是誰付的、刷卡還是現金。
+ * 一律以「實際負擔」計（扣掉幫朋友代墊），所以各分類加起來等於這趟實際花費。花最多的分類排前面。
+ */
+export function settleByCategory(expenses: TripExpense[]): CategorySettlement[] {
+  const byCategory = new Map<
+    string,
+    { ownTwd: number; members: Map<string | null, number>; cardTwd: number; cashTwd: number; otherTwd: number }
+  >();
+  for (const expense of expenses) {
+    const own = ownTwd(expense);
+    if (own <= 0) continue;
+    const key = tripCategory(expense.category).key;
+    const row = byCategory.get(key) ?? { ownTwd: 0, members: new Map(), cardTwd: 0, cashTwd: 0, otherTwd: 0 };
+    row.ownTwd += own;
+    const memberId = expense.paid_by ?? null;
+    row.members.set(memberId, (row.members.get(memberId) ?? 0) + own);
+    if (expense.payment_method === 'card') row.cardTwd += own;
+    else if (expense.payment_method === 'cash') row.cashTwd += own;
+    else row.otherTwd += own;
+    byCategory.set(key, row);
+  }
+
+  return [...byCategory.entries()]
+    .map(([key, row]) => ({
+      category: tripCategory(key),
+      ownTwd: row.ownTwd,
+      byMember: [...row.members.entries()]
+        .map(([memberId, twd]) => ({ memberId, twd }))
+        .sort((a, b) => b.twd - a.twd),
+      cardTwd: row.cardTwd,
+      cashTwd: row.cashTwd,
+      otherTwd: row.otherTwd
+    }))
+    .sort((a, b) => b.ownTwd - a.ownTwd);
+}

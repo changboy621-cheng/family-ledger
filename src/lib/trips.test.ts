@@ -3,6 +3,7 @@ import {
   cashOnHand,
   equalSplitTransfer,
   settleByMember,
+  settleByCategory,
   friendDebts,
   knownFriendNames,
   ownAmount,
@@ -374,5 +375,44 @@ describe('結算：誰出多少、刷卡現金分開', () => {
     expect(equalSplitTransfer(solo, ['mack'])).toBeNull();
     const unknown = settleByMember([expense({ paid_by: null })]).members;
     expect(equalSplitTransfer(unknown, ['mack', 'mina'])).toBeNull();
+  });
+});
+
+describe('結算：分類加總', () => {
+  const rows = [
+    expense({ id: 'a', category: 'food', paid_by: 'mack', payment_method: 'card', amount: 10000 }),
+    expense({
+      id: 'b',
+      category: 'food',
+      paid_by: 'mina',
+      payment_method: 'cash',
+      amount: 3000,
+      friend_shares: [{ id: 's', name: '阿明', amount: 1000, repaid_at: null, repaid_method: null }]
+    }),
+    expense({ id: 'c', category: 'transport', paid_by: 'mina', payment_method: null, amount: 1000 }),
+    expense({ id: 'd', category: 'souvenir', paid_by: 'mack', amount: 500, friend_shares: [{ id: 't', name: '阿明', amount: 500, repaid_at: null, repaid_method: null }] }),
+    expense({ id: 'e', category: 'mystery', paid_by: null, payment_method: 'card', amount: 100 })
+  ];
+
+  it('每個分類：實際花費、誰付的、刷卡現金分開；扣掉代墊；全額代墊的分類不列', () => {
+    const result = settleByCategory(rows);
+    expect(result.map((row) => row.category.key)).toEqual(['food', 'transport', 'other']);
+    expect(result[0]).toMatchObject({
+      ownTwd: 2520,
+      byMember: [
+        { memberId: 'mack', twd: 2100 },
+        { memberId: 'mina', twd: 420 }
+      ],
+      cardTwd: 2100,
+      cashTwd: 420,
+      otherTwd: 0
+    });
+    expect(result[1]).toMatchObject({ ownTwd: 210, otherTwd: 210 });
+    expect(result[2].byMember).toEqual([{ memberId: null, twd: 21 }]);
+  });
+
+  it('分類加總等於這趟實際花費', () => {
+    const total = settleByCategory(rows).reduce((sum, row) => sum + row.ownTwd, 0);
+    expect(total).toBe(settleByMember(rows).ownTwd);
   });
 });
