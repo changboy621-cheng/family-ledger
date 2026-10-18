@@ -8,10 +8,15 @@ import {
   formatRate,
   formatTripAmount,
   formatTwd,
+  friendDebts,
+  ownAmount,
+  ownTwd,
   summarizeTrip,
   toTwd,
   tripCategory,
   tripExpensesToCsv,
+  type FriendShareItem,
+  type RepaidMethod,
   type TripCashExchange,
   type TripExpense
 } from '../lib/trips';
@@ -21,6 +26,8 @@ import { useUIStore } from '../store/uiStore';
 import { TripCashExchangeForm } from '../components/trip/TripCashExchangeForm';
 import { TripExpenseForm } from '../components/trip/TripExpenseForm';
 import { TripForm } from '../components/trip/TripForm';
+import { TripFriendDebtsCard } from '../components/trip/TripFriendDebtsCard';
+import { todayISO } from '../lib/utils';
 
 export function TripDetailPage() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -39,6 +46,7 @@ export function TripDetailPage() {
     addCashExchange,
     updateCashExchange,
     deleteCashExchange,
+    setFriendShareRepaid,
     updateTrip,
     deleteTrip
   } = useTripDetail(tripId);
@@ -51,6 +59,9 @@ export function TripDetailPage() {
 
   const summary = useMemo(() => (trip ? summarizeTrip(trip, expenses) : null), [trip, expenses]);
   const cash = useMemo(() => cashOnHand(cashExchanges, expenses), [cashExchanges, expenses]);
+  const debts = useMemo(() => friendDebts(expenses), [expenses]);
+  const sharedTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd + debt.repaidTwd, 0);
+  const outstandingTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd, 0);
   const memberName = (id: string | null | undefined) => members.find((member) => member.id === id)?.display_name ?? '';
 
   const grouped = useMemo(() => {
@@ -80,7 +91,9 @@ export function TripDetailPage() {
   }
 
   async function handleDeleteExpense(expense: TripExpense) {
-    if (!window.confirm(`刪除這筆 ${formatTripAmount(expense.amount, expense.currency)}？`)) return;
+    const hasShares = (expense.friend_shares ?? []).length > 0;
+    const message = `刪除這筆 ${formatTripAmount(expense.amount, expense.currency)}？${hasShares ? '\n裡面的朋友代墊紀錄也會一起刪掉。' : ''}`;
+    if (!window.confirm(message)) return;
     try {
       await deleteExpense(expense.id);
       showToast('已刪除');
@@ -96,6 +109,21 @@ export function TripDetailPage() {
       showToast('已刪除');
     } catch (err) {
       showToast(getErrorMessage(err, '刪除失敗，請稍後再試。'), 'error');
+    }
+  }
+
+  async function handleRepaid(item: FriendShareItem, method: RepaidMethod | null) {
+    try {
+      await setFriendShareRepaid(item.expense, item.share.id, method ? { date: todayISO(), method } : null);
+      showToast(
+        method === 'cash'
+          ? `已收到 ${item.share.name} 的現金，加回手邊現金`
+          : method === 'transfer'
+            ? `已收到 ${item.share.name} 的轉帳`
+            : '已改回未還'
+      );
+    } catch (err) {
+      showToast(getErrorMessage(err, '更新失敗，請稍後再試。'), 'error');
     }
   }
 
@@ -153,11 +181,17 @@ export function TripDetailPage() {
       </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-500">總花費（折合新台幣）</p>
+        <p className="text-sm text-slate-500">總花費（折合新台幣{sharedTwd > 0 ? '，不含幫朋友代墊' : ''}）</p>
         <p className="mt-1 text-3xl font-bold text-slate-900">{formatTwd(summary.totalTwd)}</p>
         <p className="mt-1 text-xs text-slate-500">
           共 {summary.count} 筆・平均每天 {formatTwd(summary.perDayTwd)}
         </p>
+        {sharedTwd > 0 ? (
+          <p className="mt-1 text-xs text-amber-600">
+            另外幫朋友代墊 {formatTwd(sharedTwd)}
+            {outstandingTwd > 0 ? `，還有 ${formatTwd(outstandingTwd)} 沒還` : '，都還清了'}
+          </p>
+        ) : null}
         {summary.byCurrency.length > 0 ? (
           <p className="mt-2 text-xs text-slate-500">
             {summary.byCurrency.map((item) => formatTripAmount(item.amount, item.currency)).join('　＋　')}
@@ -214,7 +248,8 @@ export function TripDetailPage() {
                     />
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
-                    換了 {formatTripAmount(balance.exchanged, balance.currency)}（{formatTwd(balance.costTwd)}）・現金花了{' '}
+                    換了 {formatTripAmount(balance.exchanged, balance.currency)}（{formatTwd(balance.costTwd)}）
+                    {balance.received > 0 ? `・朋友還 ${formatTripAmount(balance.received, balance.currency)}` : ''}・現金花了{' '}
                     {formatTripAmount(balance.spent, balance.currency)}
                   </p>
                   {negative ? (
@@ -244,6 +279,8 @@ export function TripDetailPage() {
           </ul>
         ) : null}
       </section>
+
+      {debts.length > 0 ? <TripFriendDebtsCard debts={debts} onRepaid={handleRepaid} /> : null}
 
       {summary.byCategory.length > 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -278,7 +315,8 @@ export function TripDetailPage() {
           </p>
         ) : null}
         {grouped.map(([date, rows]) => {
-          const dayTotal = rows.reduce((sum, row) => sum + toTwd(row), 0);
+          // 每日小計同總花費，只算自己負擔的部分。
+          const dayTotal = rows.reduce((sum, row) => sum + ownTwd(row), 0);
           return (
             <div key={date} className="rounded-xl border border-slate-200 bg-white">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
@@ -288,6 +326,7 @@ export function TripDetailPage() {
               <ul>
                 {rows.map((expense) => {
                   const category = tripCategory(expense.category);
+                  const shares = expense.friend_shares ?? [];
                   return (
                     <li key={expense.id} className="flex items-center gap-3 px-4 py-3">
                       <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setEditing(expense)}>
@@ -299,6 +338,12 @@ export function TripDetailPage() {
                               .filter(Boolean)
                               .join('・')}
                           </span>
+                          {shares.length > 0 ? (
+                            <span className="block text-xs text-amber-600">
+                              代墊 {shares.map((share) => `${share.name}${share.repaid_at ? '✓' : ''}`).join('、')}
+                              ・自付 {formatTripAmount(ownAmount(expense), expense.currency)}
+                            </span>
+                          ) : null}
                         </span>
                       </button>
                       <span className="shrink-0 text-right">

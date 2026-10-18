@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase';
 import { parseTripCashExchanges, parseTripExpenses, parseTrips } from '../lib/schemas';
-import type { Trip, TripCashExchange, TripExpense } from '../lib/trips';
+import { setShareRepaid, type FriendShare, type RepaidMethod, type Trip, type TripCashExchange, type TripExpense } from '../lib/trips';
 import { resolveLocationPatch } from './useTransactions';
 import { useAuthStore } from '../store/authStore';
 
@@ -28,6 +28,8 @@ export interface TripExpenseInput {
   latitude?: number | null;
   longitude?: number | null;
   place_name?: string | null;
+  /** 幫朋友代墊的部分；未提供視為沒有代墊。 */
+  friend_shares?: FriendShare[];
 }
 
 export interface TripCashExchangeInput {
@@ -36,6 +38,16 @@ export interface TripCashExchangeInput {
   amount: number;
   rate: number;
   note?: string;
+}
+
+/**
+ * 代墊欄位只在「有代墊」或「要清掉原有代墊」時才送出：
+ * 尚未跑 013 migration 的資料庫沒有 friend_shares 欄位，一般記帳仍要能正常存。
+ */
+export function friendSharesPatch(input: Pick<TripExpenseInput, 'friend_shares'>, previous?: Pick<TripExpense, 'friend_shares'>) {
+  const shares = input.friend_shares ?? [];
+  const hadShares = (previous?.friend_shares ?? []).length > 0;
+  return shares.length > 0 || hadShares ? { friend_shares: shares } : {};
 }
 
 /** 旅行清單：新到舊。 */
@@ -159,9 +171,12 @@ export function useTripDetail(tripId: string | undefined) {
   const addExpense = useCallback(
     async (input: TripExpenseInput) => {
       if (!familyId || !tripId) throw new Error('找不到這趟旅行。');
+      const fields = { ...input };
+      delete fields.friend_shares;
       const { error: insertError } = await supabase.from('trip_expenses').insert({
-        ...input,
+        ...fields,
         ...resolveLocationPatch(input),
+        ...friendSharesPatch(input),
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null,
         paid_by: input.paid_by ?? profileId ?? null,
@@ -177,11 +192,14 @@ export function useTripDetail(tripId: string | undefined) {
 
   const updateExpense = useCallback(
     async (id: string, input: TripExpenseInput) => {
+      const fields = { ...input };
+      delete fields.friend_shares;
       const { error: updateError } = await supabase
         .from('trip_expenses')
         .update({
-          ...input,
+          ...fields,
           ...resolveLocationPatch(input),
+          ...friendSharesPatch(input, expenses.find((expense) => expense.id === id)),
           note: input.note?.trim() || null,
           payment_method: input.payment_method ?? null,
           paid_by: input.paid_by ?? profileId ?? null
@@ -190,13 +208,26 @@ export function useTripDetail(tripId: string | undefined) {
       if (updateError) throw updateError;
       await load();
     },
-    [load, profileId]
+    [expenses, load, profileId]
   );
 
   const deleteExpense = useCallback(
     async (id: string) => {
       const { error: deleteError } = await supabase.from('trip_expenses').delete().eq('id', id);
       if (deleteError) throw deleteError;
+      await load();
+    },
+    [load]
+  );
+
+  // 朋友還錢（或改回未還）：只改那筆代墊的還款狀態，其餘欄位不動。
+  const setFriendShareRepaid = useCallback(
+    async (expense: TripExpense, shareId: string, repaid: { date: string; method: RepaidMethod } | null) => {
+      const { error: updateError } = await supabase
+        .from('trip_expenses')
+        .update({ friend_shares: setShareRepaid(expense.friend_shares ?? [], shareId, repaid) })
+        .eq('id', expense.id);
+      if (updateError) throw updateError;
       await load();
     },
     [load]
@@ -276,6 +307,7 @@ export function useTripDetail(tripId: string | undefined) {
     addCashExchange,
     updateCashExchange,
     deleteCashExchange,
+    setFriendShareRepaid,
     updateTrip,
     deleteTrip
   };

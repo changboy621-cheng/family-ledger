@@ -9,6 +9,7 @@ import {
   formatRate,
   formatTripAmount,
   formatTwd,
+  knownFriendNames,
   parseRate,
   parseTripAmount,
   tripCurrency,
@@ -24,6 +25,8 @@ import { useFamilyMembers } from '../../hooks/useFamilyMembers';
 import type { Coordinates } from '../../lib/geo';
 import { AmountInput } from '../common/AmountInput';
 import { LocationPicker } from '../common/LocationPicker';
+import { TripFriendSharesField } from './TripFriendSharesField';
+import { finalizeShareDrafts, toShareDrafts, type ShareDraft } from '../../lib/tripShareDrafts';
 import { Modal } from '../common/Modal';
 
 interface TripExpenseFormProps {
@@ -58,6 +61,8 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
       : null
   );
   const [placeName, setPlaceName] = useState(initialExpense?.place_name ?? '');
+  const [shareDrafts, setShareDrafts] = useState<ShareDraft[]>(() => toShareDrafts(initialExpense?.friend_shares));
+  const friendNames = useMemo(() => knownFriendNames(expenses), [expenses]);
   const [saving, setSaving] = useState(false);
 
   // 各幣別在本趟最近用過的匯率（expenses 由新到舊，先看到的就是最近的）。
@@ -101,6 +106,8 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
     event.preventDefault();
     if (parsedAmount <= 0) return showToast('請輸入金額', 'error');
     if (!parsedRate) return showToast('請輸入正確的匯率', 'error');
+    const sharesResult = finalizeShareDrafts(shareDrafts, currency, parsedAmount);
+    if ('error' in sharesResult) return showToast(sharesResult.error, 'error');
 
     setSaving(true);
     try {
@@ -115,7 +122,8 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
         paid_by: paidBy || null,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
-        place_name: coords ? placeName : null
+        place_name: coords ? placeName : null,
+        friend_shares: sharesResult.shares
       });
       onClose();
     } catch (error) {
@@ -243,6 +251,15 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
             付完手邊剩 {formatTripAmount(cashAfter, currency)}
           </p>
         ) : null}
+
+        <TripFriendSharesField
+          drafts={shareDrafts}
+          onChange={setShareDrafts}
+          currency={currency}
+          totalAmount={parsedAmount}
+          rate={parsedRate}
+          knownNames={friendNames}
+        />
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           備註（可選）

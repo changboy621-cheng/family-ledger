@@ -14,7 +14,7 @@ FamilyLedger 是依照 v1.2 規格建立的 PWA，P0 版本包含：
 ## 啟動
 
 1. 複製 `.env.example` 為 `.env.local`，填入 Supabase URL 與 anon key。
-2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 012；旅遊記帳需要 010_trips.sql，旅遊花費上地圖需要 011_trip_expense_location.sql，旅遊「手邊現金」需要 012_trip_cash_exchanges.sql）。之後新增的 migration 也要在上線前補跑。
+2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 013；旅遊記帳需要 010_trips.sql，旅遊花費上地圖需要 011_trip_expense_location.sql，旅遊「手邊現金」需要 012_trip_cash_exchanges.sql，旅遊「幫朋友代墊」需要 013_trip_friend_shares.sql）。之後新增的 migration 也要在上線前補跑。
 3. 執行：
 
 ```bash
