@@ -1,17 +1,37 @@
-import { Scale } from 'lucide-react';
-import { equalSplitTransfer, formatTwd, type CategorySettlement, type TripSettlement } from '../../lib/trips';
+import { useState } from 'react';
+import { ChevronDown, Scale } from 'lucide-react';
+import {
+  equalSplitTransfer,
+  expensesInCategory,
+  formatTwd,
+  type CategorySettlement,
+  type TripExpense,
+  type TripSettlement
+} from '../../lib/trips';
+import { TripCategoryExpenses } from './TripCategoryExpenses';
 
 interface TripSettlementCardProps {
   settlement: TripSettlement;
   /** 分類加總（實際負擔，扣掉代墊）。 */
   categories: CategorySettlement[];
+  /** 全部花費：展開分類時列出該分類每一筆。 */
+  expenses: TripExpense[];
+  onSelectExpense?: (expense: TripExpense) => void;
   /** 家庭成員 id（剛好兩位時顯示平分建議）。 */
   memberIds: string[];
   memberName: (id: string | null | undefined) => string;
 }
 
 // 旅行頁「結算」：每個人刷卡、現金各付了多少，扣掉幫朋友代墊後實際負擔多少；兩人時附平分建議。
-export function TripSettlementCard({ settlement, categories, memberIds, memberName }: TripSettlementCardProps) {
+export function TripSettlementCard({
+  settlement,
+  categories,
+  expenses,
+  onSelectExpense,
+  memberIds,
+  memberName
+}: TripSettlementCardProps) {
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
   const transfer = equalSplitTransfer(settlement.members, memberIds);
   const nameOf = (id: string | null) => (id ? memberName(id) || '（已離開的成員）' : '未記付款人');
 
@@ -63,24 +83,41 @@ export function TripSettlementCard({ settlement, categories, memberIds, memberNa
           <ul className="mt-2 divide-y divide-slate-100">
             {categories.map((row) => (
               <li key={row.category.key} className="py-2">
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-semibold text-slate-800">
-                    {row.category.icon} {row.category.label}
-                  </span>
-                  <strong className="text-slate-900">{formatTwd(row.ownTwd)}</strong>
-                </div>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {row.byMember.map((item) => `${nameOf(item.memberId)} ${formatTwd(item.twd)}`).join('・')}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {[
-                    row.cardTwd > 0 ? `💳 ${formatTwd(row.cardTwd)}` : '',
-                    row.cashTwd > 0 ? `💵 ${formatTwd(row.cashTwd)}` : '',
-                    row.otherTwd > 0 ? `未指定 ${formatTwd(row.otherTwd)}` : ''
-                  ]
-                    .filter(Boolean)
-                    .join('・')}
-                </p>
+                <button
+                  type="button"
+                  aria-expanded={openCategory === row.category.key}
+                  className="w-full text-left"
+                  onClick={() => setOpenCategory(openCategory === row.category.key ? null : row.category.key)}
+                >
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-1 font-semibold text-slate-800">
+                      {row.category.icon} {row.category.label}
+                      <ChevronDown
+                        className={`h-4 w-4 text-slate-400 transition-transform ${openCategory === row.category.key ? 'rotate-180' : ''}`}
+                      />
+                    </span>
+                    <strong className="text-slate-900">{formatTwd(row.ownTwd)}</strong>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {row.byMember.map((item) => `${nameOf(item.memberId)} ${formatTwd(item.twd)}`).join('・')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {[
+                      row.cardTwd > 0 ? `💳 ${formatTwd(row.cardTwd)}` : '',
+                      row.cashTwd > 0 ? `💵 ${formatTwd(row.cashTwd)}` : '',
+                      row.otherTwd > 0 ? `未指定 ${formatTwd(row.otherTwd)}` : ''
+                    ]
+                      .filter(Boolean)
+                      .join('・')}
+                  </p>
+                </button>
+                {openCategory === row.category.key ? (
+                  <TripCategoryExpenses
+                    expenses={expensesInCategory(expenses, row.category.key)}
+                    memberName={memberName}
+                    onSelect={onSelectExpense}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

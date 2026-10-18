@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Banknote, Download, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Banknote, ChevronDown, Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTripDetail } from '../hooks/useTrips';
 import { useFamilyMembers } from '../hooks/useFamilyMembers';
 import {
@@ -8,6 +8,7 @@ import {
   formatRate,
   formatTripAmount,
   formatTwd,
+  expensesInCategory,
   friendDebts,
   ownAmount,
   ownTwd,
@@ -30,6 +31,7 @@ import { TripExpenseForm } from '../components/trip/TripExpenseForm';
 import { TripForm } from '../components/trip/TripForm';
 import { TripFriendDebtsCard } from '../components/trip/TripFriendDebtsCard';
 import { TripSettlementCard } from '../components/trip/TripSettlementCard';
+import { TripCategoryExpenses } from '../components/trip/TripCategoryExpenses';
 import { todayISO } from '../lib/utils';
 
 export function TripDetailPage() {
@@ -59,6 +61,8 @@ export function TripDetailPage() {
   const [showTripForm, setShowTripForm] = useState(false);
   const [showExchangeForm, setShowExchangeForm] = useState(false);
   const [editingExchange, setEditingExchange] = useState<TripCashExchange | null>(null);
+  // 「花在哪」展開中的分類：點分類看裡面每一筆是誰付的。
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   const summary = useMemo(() => (trip ? summarizeTrip(trip, expenses) : null), [trip, expenses]);
   const cash = useMemo(() => cashOnHand(cashExchanges, expenses), [cashExchanges, expenses]);
@@ -291,6 +295,8 @@ export function TripDetailPage() {
         <TripSettlementCard
           settlement={settlement}
           categories={categorySettlement}
+          expenses={expenses}
+          onSelectExpense={setEditing}
           memberIds={members.map((member) => member.id)}
           memberName={memberName}
         />
@@ -300,23 +306,47 @@ export function TripDetailPage() {
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="font-bold text-slate-900">花在哪</h2>
           <ul className="mt-3 grid gap-3">
-            {summary.byCategory.map((item) => (
-              <li key={item.category.key}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-slate-700">
-                    {item.category.icon} {item.category.label}
-                    <span className="ml-2 text-xs font-normal text-slate-400">{item.count} 筆</span>
-                  </span>
-                  <span className="text-slate-900">
-                    {formatTwd(item.twd)}
-                    <span className="ml-2 text-xs text-slate-400">{Math.round(item.ratio * 100)}%</span>
-                  </span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full bg-family" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
-                </div>
-              </li>
-            ))}
+            {summary.byCategory.map((item) => {
+              const open = openCategory === item.category.key;
+              const payers = categorySettlement.find((row) => row.category.key === item.category.key)?.byMember ?? [];
+              return (
+                <li key={item.category.key}>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    className="w-full text-left"
+                    onClick={() => setOpenCategory(open ? null : item.category.key)}
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1 font-semibold text-slate-700">
+                        {item.category.icon} {item.category.label}
+                        <span className="ml-1 text-xs font-normal text-slate-400">{item.count} 筆</span>
+                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                      </span>
+                      <span className="text-slate-900">
+                        {formatTwd(item.twd)}
+                        <span className="ml-2 text-xs text-slate-400">{Math.round(item.ratio * 100)}%</span>
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-family" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
+                    </div>
+                  </button>
+                  {open ? (
+                    <>
+                      <p className="mt-2 text-xs font-semibold text-slate-600">
+                        {payers.map((payer) => `${memberName(payer.memberId) || '未記付款人'} ${formatTwd(payer.twd)}`).join('・')}
+                      </p>
+                      <TripCategoryExpenses
+                        expenses={expensesInCategory(expenses, item.category.key)}
+                        memberName={memberName}
+                        onSelect={setEditing}
+                      />
+                    </>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

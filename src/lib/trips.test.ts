@@ -4,6 +4,7 @@ import {
   equalSplitTransfer,
   settleByMember,
   settleByCategory,
+  expensesInCategory,
   friendDebts,
   knownFriendNames,
   ownAmount,
@@ -414,5 +415,18 @@ describe('結算：分類加總', () => {
   it('分類加總等於這趟實際花費', () => {
     const total = settleByCategory(rows).reduce((sum, row) => sum + row.ownTwd, 0);
     expect(total).toBe(settleByMember(rows).ownTwd);
+  });
+});
+
+describe('expensesInCategory', () => {
+  it('只列該分類且有自付金額的花費；未知分類歸到其他', () => {
+    const rows = [
+      expense({ id: 'a', category: 'food' }),
+      expense({ id: 'b', category: 'transport' }),
+      expense({ id: 'c', category: 'food', amount: 100, friend_shares: [{ id: 's', name: '阿明', amount: 100, repaid_at: null, repaid_method: null }] }),
+      expense({ id: 'd', category: 'mystery' })
+    ];
+    expect(expensesInCategory(rows, 'food').map((row) => row.id)).toEqual(['a']);
+    expect(expensesInCategory(rows, 'other').map((row) => row.id)).toEqual(['d']);
   });
 });

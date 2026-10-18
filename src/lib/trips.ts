@@ -597,3 +597,8 @@ export function settleByCategory(expenses: TripExpense[]): CategorySettlement[] 
     }))
     .sort((a, b) => b.ownTwd - a.ownTwd);
 }
+
+/** 某分類裡有實際負擔的花費（與分類加總一致：全額幫朋友代墊的不列），維持原順序（新到舊）。 */
+export function expensesInCategory(expenses: TripExpense[], categoryKey: string): TripExpense[] {
+  return expenses.filter((expense) => tripCategory(expense.category).key === categoryKey && ownAmount(expense) > 0);
+}

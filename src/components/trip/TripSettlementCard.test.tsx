@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { settleByCategory, settleByMember, type TripExpense } from '../../lib/trips';
 import { TripSettlementCard } from './TripSettlementCard';
 
@@ -40,6 +40,7 @@ describe('TripSettlementCard', () => {
       <TripSettlementCard
         settlement={settleByMember(rows)}
         categories={settleByCategory(rows)}
+        expenses={rows}
         memberIds={['mack', 'mina']}
         memberName={memberName}
       />
@@ -63,11 +64,43 @@ describe('TripSettlementCard', () => {
       <TripSettlementCard
         settlement={settleByMember([expense({ paid_by: null })])}
         categories={settleByCategory([expense({ paid_by: null })])}
+        expenses={[expense({ paid_by: null })]}
         memberIds={['mack', 'mina']}
         memberName={memberName}
       />
     );
     expect(screen.getByText('未記付款人')).toBeInTheDocument();
     expect(screen.queryByText(/如果兩人平分/)).toBeNull();
+  });
+});
+
+describe('TripSettlementCard 分類展開', () => {
+  it('點分類列出該分類每一筆的付款人與付款方式，點一筆可編輯', () => {
+    const rows = [
+      expense({ id: 'a', note: '燒肉', paid_by: 'mack', payment_method: 'card' }),
+      expense({ id: 'b', note: '拉麵', paid_by: 'mina', payment_method: 'cash', amount: 1000 }),
+      expense({ id: 'c', note: '地鐵', category: 'transport', paid_by: 'mina', payment_method: 'cash', amount: 500 })
+    ];
+    const onSelect = vi.fn();
+    render(
+      <TripSettlementCard
+        settlement={settleByMember(rows)}
+        categories={settleByCategory(rows)}
+        expenses={rows}
+        onSelectExpense={onSelect}
+        memberIds={['mack', 'mina']}
+        memberName={memberName}
+      />
+    );
+    expect(screen.queryByText('燒肉')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /🍜 餐飲/ }));
+    expect(screen.getByText('燒肉')).toBeInTheDocument();
+    expect(screen.getByText('11/02・Mack・刷卡')).toBeInTheDocument();
+    expect(screen.getByText('11/02・Mina・現金')).toBeInTheDocument();
+    expect(screen.queryByText('地鐵')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /拉麵/ }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
   });
 });
