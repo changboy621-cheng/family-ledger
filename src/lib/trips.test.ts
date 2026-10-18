@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   cashOnHand,
+  equalSplitTransfer,
+  settleByMember,
   friendDebts,
   knownFriendNames,
   ownAmount,
@@ -329,5 +331,48 @@ describe('幫朋友代墊', () => {
       { ...base, friend_shares: [{ id: 's', name: '阿明', amount: '50', repaid_at: '2026-11-02', repaid_method: 'cash' }] }
     ]);
     expect(row.friend_shares).toEqual([{ id: 's', name: '阿明', amount: 50, repaid_at: '2026-11-02', repaid_method: 'cash' }]);
+  });
+});
+
+describe('結算：誰出多少、刷卡現金分開', () => {
+  const rows = [
+    expense({ id: 'a', paid_by: 'mack', payment_method: 'card', amount: 10000 }),
+    expense({ id: 'b', paid_by: 'mack', payment_method: 'cash', amount: 2000 }),
+    expense({
+      id: 'c',
+      paid_by: 'mina',
+      payment_method: 'cash',
+      amount: 3000,
+      friend_shares: [{ id: 's', name: '阿明', amount: 1000, repaid_at: null, repaid_method: null }]
+    }),
+    expense({ id: 'd', paid_by: 'mina', payment_method: null, amount: 500, currency: 'TWD', rate: 1 })
+  ];
+
+  it('依付款人分開刷卡、現金、未指定；扣掉代墊得到實際負擔', () => {
+    const settlement = settleByMember(rows);
+    expect(settlement.members).toEqual([
+      { memberId: 'mack', cardTwd: 2100, cashTwd: 420, otherTwd: 0, paidTwd: 2520, friendTwd: 0, ownTwd: 2520 },
+      { memberId: 'mina', cardTwd: 0, cashTwd: 630, otherTwd: 500, paidTwd: 1130, friendTwd: 210, ownTwd: 920 }
+    ]);
+    expect(settlement).toMatchObject({ cardTwd: 2100, cashTwd: 1050, otherTwd: 500, paidTwd: 3650, friendTwd: 210, ownTwd: 3440 });
+  });
+
+  it('實際負擔合計等於旅行總花費', () => {
+    expect(settleByMember(rows).ownTwd).toBe(summarizeTrip(trip, rows).totalTwd);
+  });
+
+  it('兩人平分：負擔少的補差額的一半給負擔多的', () => {
+    const { members } = settleByMember(rows);
+    expect(equalSplitTransfer(members, ['mack', 'mina'])).toEqual({ from: 'mina', to: 'mack', twd: 800 });
+  });
+
+  it('只有一人付過錢也能算；差額為 0、成員不是兩位、或有沒記付款人的花費時不算', () => {
+    const solo = settleByMember([expense({ paid_by: 'mack', amount: 1000 })]).members;
+    expect(equalSplitTransfer(solo, ['mack', 'mina'])).toEqual({ from: 'mina', to: 'mack', twd: 105 });
+    const even = settleByMember([expense({ paid_by: 'mack' }), expense({ id: 'x', paid_by: 'mina' })]).members;
+    expect(equalSplitTransfer(even, ['mack', 'mina'])).toBeNull();
+    expect(equalSplitTransfer(solo, ['mack'])).toBeNull();
+    const unknown = settleByMember([expense({ paid_by: null })]).members;
+    expect(equalSplitTransfer(unknown, ['mack', 'mina'])).toBeNull();
   });
 });

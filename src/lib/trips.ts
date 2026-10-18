@@ -464,3 +464,88 @@ export function setShareRepaid(
       : share
   );
 }
+
+export interface MemberSettlement {
+  /** 付款人 id；沒記付款人為 null。 */
+  memberId: string | null;
+  /** 刷卡付出（整筆，含幫朋友代墊的部分），折合新台幣。 */
+  cardTwd: number;
+  /** 現金付出（整筆）。 */
+  cashTwd: number;
+  /** 沒記付款方式的付出（整筆）。 */
+  otherTwd: number;
+  /** 付出合計 = 刷卡 ＋ 現金 ＋ 其他。 */
+  paidTwd: number;
+  /** 其中幫朋友代墊的部分（朋友會還／已還給這個人）。 */
+  friendTwd: number;
+  /** 實際負擔 = 付出 − 代墊。 */
+  ownTwd: number;
+}
+
+export interface TripSettlement {
+  members: MemberSettlement[];
+  cardTwd: number;
+  cashTwd: number;
+  otherTwd: number;
+  paidTwd: number;
+  friendTwd: number;
+  ownTwd: number;
+}
+
+/**
+ * 依付款人結算：每個人刷卡、現金各付了多少，扣掉幫朋友代墊後實際負擔多少。
+ * 代墊以「付款人」歸戶：誰付的那筆，朋友的錢就是還給誰。付出多的排前面。
+ */
+export function settleByMember(expenses: TripExpense[]): TripSettlement {
+  const byMember = new Map<string | null, MemberSettlement>();
+  for (const expense of expenses) {
+    const memberId = expense.paid_by ?? null;
+    const row = byMember.get(memberId) ?? {
+      memberId,
+      cardTwd: 0,
+      cashTwd: 0,
+      otherTwd: 0,
+      paidTwd: 0,
+      friendTwd: 0,
+      ownTwd: 0
+    };
+    const paid = toTwd(expense);
+    const own = ownTwd(expense);
+    if (expense.payment_method === 'card') row.cardTwd += paid;
+    else if (expense.payment_method === 'cash') row.cashTwd += paid;
+    else row.otherTwd += paid;
+    row.paidTwd += paid;
+    row.friendTwd += paid - own;
+    row.ownTwd += own;
+    byMember.set(memberId, row);
+  }
+
+  const members = [...byMember.values()].sort((a, b) => b.paidTwd - a.paidTwd);
+  const sum = (key: keyof Omit<MemberSettlement, 'memberId'>) => members.reduce((total, row) => total + row[key], 0);
+  return {
+    members,
+    cardTwd: sum('cardTwd'),
+    cashTwd: sum('cashTwd'),
+    otherTwd: sum('otherTwd'),
+    paidTwd: sum('paidTwd'),
+    friendTwd: sum('friendTwd'),
+    ownTwd: sum('ownTwd')
+  };
+}
+
+/**
+ * 兩人平分時誰該補給誰多少（以實際負擔計）。家庭剛好兩位成員才有意義；
+ * 有沒記付款人、或付款人不在名單上的花費時無法判斷，回傳 null；差額為 0 也回傳 null。
+ */
+export function equalSplitTransfer(
+  members: MemberSettlement[],
+  memberIds: string[]
+): { from: string; to: string; twd: number } | null {
+  if (memberIds.length !== 2) return null;
+  if (members.some((row) => row.memberId === null || !memberIds.includes(row.memberId))) return null;
+  const [a, b] = memberIds;
+  const own = (id: string) => members.find((row) => row.memberId === id)?.ownTwd ?? 0;
+  const diff = Math.round((own(a) - own(b)) / 2);
+  if (diff === 0) return null;
+  return diff > 0 ? { from: b, to: a, twd: diff } : { from: a, to: b, twd: -diff };
+}

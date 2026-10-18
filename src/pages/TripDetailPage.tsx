@@ -11,6 +11,7 @@ import {
   friendDebts,
   ownAmount,
   ownTwd,
+  settleByMember,
   summarizeTrip,
   toTwd,
   tripCategory,
@@ -27,6 +28,7 @@ import { TripCashExchangeForm } from '../components/trip/TripCashExchangeForm';
 import { TripExpenseForm } from '../components/trip/TripExpenseForm';
 import { TripForm } from '../components/trip/TripForm';
 import { TripFriendDebtsCard } from '../components/trip/TripFriendDebtsCard';
+import { TripSettlementCard } from '../components/trip/TripSettlementCard';
 import { todayISO } from '../lib/utils';
 
 export function TripDetailPage() {
@@ -60,6 +62,7 @@ export function TripDetailPage() {
   const summary = useMemo(() => (trip ? summarizeTrip(trip, expenses) : null), [trip, expenses]);
   const cash = useMemo(() => cashOnHand(cashExchanges, expenses), [cashExchanges, expenses]);
   const debts = useMemo(() => friendDebts(expenses), [expenses]);
+  const settlement = useMemo(() => settleByMember(expenses), [expenses]);
   const sharedTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd + debt.repaidTwd, 0);
   const outstandingTwd = debts.reduce((sum, debt) => sum + debt.outstandingTwd, 0);
   const memberName = (id: string | null | undefined) => members.find((member) => member.id === id)?.display_name ?? '';
@@ -281,6 +284,14 @@ export function TripDetailPage() {
       </section>
 
       {debts.length > 0 ? <TripFriendDebtsCard debts={debts} onRepaid={handleRepaid} /> : null}
+
+      {expenses.length > 0 ? (
+        <TripSettlementCard
+          settlement={settlement}
+          memberIds={members.map((member) => member.id)}
+          memberName={memberName}
+        />
+      ) : null}
 
       {summary.byCategory.length > 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
