@@ -104,7 +104,7 @@ export function MoveToTripModal({ transaction, onDeleteOriginal, onClose, onMove
       <label className="grid gap-2 text-sm font-medium text-slate-700">
         移到哪一趟旅行
         <select
-          className="rounded-lg border border-slate-300 px-3 py-3 text-base"
+          className="w-0 min-w-full rounded-lg border border-slate-300 px-3 py-3 text-base"
           value={trip.id}
           onChange={(event) => setChosenTripId(event.target.value)}
         >

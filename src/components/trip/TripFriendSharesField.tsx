@@ -64,7 +64,7 @@ export function TripFriendSharesField({ drafts, onChange, currency, totalAmount,
         <div key={draft.id} className="flex items-center gap-2">
           <input
             aria-label="朋友名字"
-            className={`${inputClass} flex-1`}
+            className={`${inputClass} w-0 flex-1`}
             list={listId}
             placeholder="朋友名字"
             maxLength={20}
