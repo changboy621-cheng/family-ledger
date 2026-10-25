@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import type { PaymentMethod } from '../../types';
 import { getErrorMessage } from '../../lib/errors';
 import { paymentMethodLabel } from '../../lib/constants';
@@ -36,31 +36,48 @@ interface TripExpenseFormProps {
   /** 各幣別手邊現金：付現金時提示付完還剩多少。 */
   cashBalances?: TripCashBalance[];
   initialExpense?: TripExpense | null;
+  /** 新增時預先帶入的內容（例如從日常帳本移過來的那筆）；有 initialExpense 時不使用。 */
+  prefill?: TripExpenseInput | null;
+  /** 取代預設標題（例如「移到旅遊帳本」）。 */
+  heading?: string;
+  /** 標題下方的額外內容（例如選旅行、提示）。 */
+  children?: ReactNode;
   onSubmit: (input: TripExpenseInput) => Promise<void>;
   onClose: () => void;
 }
 
 const inputClass = 'rounded-lg border border-slate-300 px-3 py-3 text-base';
 
-export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpense, onSubmit, onClose }: TripExpenseFormProps) {
+export function TripExpenseForm({
+  trip,
+  expenses,
+  cashBalances = [],
+  initialExpense,
+  prefill,
+  heading,
+  children,
+  onSubmit,
+  onClose
+}: TripExpenseFormProps) {
   const profile = useAuthStore((state) => state.profile);
   const showToast = useUIStore((state) => state.showToast);
   const { members } = useFamilyMembers();
 
-  const [currency, setCurrency] = useState(initialExpense?.currency ?? trip.local_currency);
-  const [rate, setRate] = useState(formatRate(initialExpense?.rate ?? trip.rate));
-  const [amount, setAmount] = useState(initialExpense ? String(initialExpense.amount) : '');
-  const [category, setCategory] = useState(initialExpense?.category ?? 'food');
-  const [date, setDate] = useState(initialExpense?.expense_date ?? defaultExpenseDate(trip, todayISO()));
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initialExpense?.payment_method ?? 'cash');
-  const [paidBy, setPaidBy] = useState(initialExpense?.paid_by ?? profile?.id ?? '');
-  const [note, setNote] = useState(initialExpense?.note ?? '');
+  const initial = initialExpense ?? prefill;
+  const [currency, setCurrency] = useState(initial?.currency ?? trip.local_currency);
+  const [rate, setRate] = useState(formatRate(initial?.rate ?? trip.rate));
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+  const [category, setCategory] = useState(initial?.category ?? 'food');
+  const [date, setDate] = useState(initial?.expense_date ?? defaultExpenseDate(trip, todayISO()));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(initial?.payment_method ?? 'cash');
+  const [paidBy, setPaidBy] = useState(initial?.paid_by ?? profile?.id ?? '');
+  const [note, setNote] = useState(initial?.note ?? '');
   const [coords, setCoords] = useState<Coordinates | null>(
-    initialExpense?.latitude != null && initialExpense?.longitude != null
-      ? { latitude: initialExpense.latitude, longitude: initialExpense.longitude }
+    initial?.latitude != null && initial?.longitude != null
+      ? { latitude: initial.latitude, longitude: initial.longitude }
       : null
   );
-  const [placeName, setPlaceName] = useState(initialExpense?.place_name ?? '');
+  const [placeName, setPlaceName] = useState(initial?.place_name ?? '');
   const [shareDrafts, setShareDrafts] = useState<ShareDraft[]>(() => toShareDrafts(initialExpense?.friend_shares));
   const friendNames = useMemo(() => knownFriendNames(expenses), [expenses]);
   const [saving, setSaving] = useState(false);
@@ -134,11 +151,12 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
   }
 
   return (
-    <Modal onClose={onClose} title={initialExpense ? '編輯旅行花費' : '新增旅行花費'}>
+    <Modal onClose={onClose} title={heading ?? (initialExpense ? '編輯旅行花費' : '新增旅行花費')}>
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <h2 className="text-lg font-bold text-slate-900">
-          {initialExpense ? '編輯花費' : '記一筆'}・{trip.name}
+          {heading ?? (initialExpense ? '編輯花費' : '記一筆')}・{trip.name}
         </h2>
+        {children}
 
         <div className="flex flex-wrap gap-2" role="group" aria-label="幣別">
           {currencyOptions.slice(0, 6).map((code) => (
@@ -274,7 +292,7 @@ export function TripExpenseForm({ trip, expenses, cashBalances = [], initialExpe
             setPlaceName(nextName);
           }}
           onPhotoDate={setDate}
-          autoLocateOnMount={!initialExpense}
+          autoLocateOnMount={!initial}
         />
 
         <div className="grid grid-cols-2 gap-3">

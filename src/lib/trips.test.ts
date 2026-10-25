@@ -6,6 +6,8 @@ import {
   settleByCategory,
   expensesInCategory,
   friendDebts,
+  guessTripCategory,
+  pickTripForDate,
   knownFriendNames,
   ownAmount,
   ownTwd,
@@ -428,5 +430,31 @@ describe('expensesInCategory', () => {
     ];
     expect(expensesInCategory(rows, 'food').map((row) => row.id)).toEqual(['a']);
     expect(expensesInCategory(rows, 'other').map((row) => row.id)).toEqual(['d']);
+  });
+});
+
+describe('guessTripCategory', () => {
+  it('依日常分類名稱對應旅行分類', () => {
+    expect(guessTripCategory('餐飲食品')).toBe('food');
+    expect(guessTripCategory('飲料')).toBe('snack');
+    expect(guessTripCategory('交通')).toBe('transport');
+    expect(guessTripCategory('伴手禮')).toBe('souvenir');
+    expect(guessTripCategory('醫療')).toBe('other');
+    expect(guessTripCategory(null)).toBe('other');
+  });
+});
+
+describe('pickTripForDate', () => {
+  const trips = [
+    { id: 'new', start_date: '2026-11-01', end_date: '2026-11-05' },
+    { id: 'oita', start_date: '2026-10-18', end_date: '2026-10-22' }
+  ];
+  it('選日期落在期間內的旅行', () => {
+    expect(pickTripForDate(trips, '2026-10-20')?.id).toBe('oita');
+    expect(pickTripForDate(trips, '2026-10-22')?.id).toBe('oita');
+  });
+  it('都不在期間內時選最近的一趟；沒有旅行回傳 null', () => {
+    expect(pickTripForDate(trips, '2026-09-01')?.id).toBe('new');
+    expect(pickTripForDate([], '2026-09-01')).toBeNull();
   });
 });

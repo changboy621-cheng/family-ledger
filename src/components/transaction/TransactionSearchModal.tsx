@@ -363,6 +363,10 @@ export function TransactionSearchModal({
           initialLedgerType={editingTransaction.ledger_type}
           initialTransaction={editingTransaction}
           onSubmit={handleEditSubmit}
+          onDelete={async (transactionId) => {
+            await onDelete(transactionId);
+            await refetch();
+          }}
           onClose={() => setEditingTransaction(null)}
         />
       ) : null}
