@@ -113,7 +113,7 @@ export function LocationPicker({ coords, placeName, onChange, onPhotoDate, autoL
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 shrink-0 text-family" aria-hidden="true" />
           <input
-            className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 w-0 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
             value={placeName}
             onChange={(event) => onChange(coords, event.target.value)}
             placeholder="地點名稱（會自動查詢，可自行修改）"
