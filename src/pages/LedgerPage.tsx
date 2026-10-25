@@ -165,6 +165,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
           initialLedgerType={editingTransaction?.ledger_type ?? ledgerType}
           initialTransaction={editingTransaction}
           onSubmit={editingTransaction ? handleEdit : handleCreate}
+          onDelete={deleteTransaction}
           onClose={() => {
             setShowForm(false);
             setEditingTransaction(null);

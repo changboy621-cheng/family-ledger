@@ -18,15 +18,18 @@ import { CategoryPicker } from '../common/CategoryPicker';
 import { CurrencySelector } from '../common/CurrencySelector';
 import { LocationPicker } from '../common/LocationPicker';
 import { Modal } from '../common/Modal';
+import { MoveToTripModal } from '../trip/MoveToTripModal';
 
 interface TransactionFormProps {
   initialLedgerType: LedgerType;
   onSubmit: (input: TransactionInput) => Promise<void>;
   onClose: () => void;
   initialTransaction?: Transaction | null;
+  /** 有傳入時，編輯支出可「移到旅遊帳本」（搬過去後用它刪掉原本那筆）。 */
+  onDelete?: (transactionId: string) => Promise<void>;
 }
 
-export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialTransaction }: TransactionFormProps) {
+export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialTransaction, onDelete }: TransactionFormProps) {
   const profile = useAuthStore((state) => state.profile);
   const [ledgerType, setLedgerType] = useState<LedgerType>(initialTransaction?.ledger_type ?? initialLedgerType);
   const [type, setType] = useState<TransactionType>(initialTransaction?.type ?? 'expense');
@@ -39,6 +42,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [ownerId, setOwnerId] = useState(initialTransaction?.owner_id ?? profile?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [movingToTrip, setMovingToTrip] = useState(false);
   const { categories, createCategory, updateCategory, deleteCategory } = useCategories(type);
   const { members } = useFamilyMembers();
   const { noteHistory, noteDefaults, notesByCategory, categoryNoteDefaults } = useEntrySuggestions(ledgerType, type);
@@ -190,6 +194,17 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   }
 
   const dialogTitle = initialTransaction ? '編輯交易' : '新增記帳';
+
+  if (movingToTrip && initialTransaction && onDelete) {
+    return (
+      <MoveToTripModal
+        transaction={initialTransaction}
+        onDeleteOriginal={onDelete}
+        onMoved={onClose}
+        onClose={() => setMovingToTrip(false)}
+      />
+    );
+  }
 
   return (
     <Modal title={dialogTitle} onClose={onClose}>
@@ -353,6 +368,16 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
           >
             {saving ? '儲存中...' : initialTransaction ? '更新交易' : '儲存交易'}
           </button>
+
+          {initialTransaction?.type === 'expense' && onDelete ? (
+            <button
+              className="h-12 rounded-lg border border-slate-300 px-4 font-semibold text-slate-700 hover:bg-slate-50"
+              type="button"
+              onClick={() => setMovingToTrip(true)}
+            >
+              ✈️ 記錯了？移到旅遊帳本
+            </button>
+          ) : null}
       </form>
     </Modal>
   );

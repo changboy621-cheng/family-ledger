@@ -602,3 +602,24 @@ export function settleByCategory(expenses: TripExpense[]): CategorySettlement[] 
 export function expensesInCategory(expenses: TripExpense[], categoryKey: string): TripExpense[] {
   return expenses.filter((expense) => tripCategory(expense.category).key === categoryKey && ownAmount(expense) > 0);
 }
+
+// 日常帳本的分類名稱 → 旅行分類。先比對較具體的關鍵字（飲料、伴手禮），比不到就歸「其他」。
+const TRIP_CATEGORY_KEYWORDS: ReadonlyArray<[string, RegExp]> = [
+  ['snack', /飲料|點心|咖啡|甜點|零食|手搖/],
+  ['souvenir', /伴手禮|禮品|紀念/],
+  ['food', /餐|食|飯|吃/],
+  ['transport', /交通|車|油|機票|航空|捷運|計程/],
+  ['lodging', /住宿|飯店|旅館|民宿/],
+  ['sightseeing', /門票|娛樂|景點|休閒/],
+  ['shopping', /購物|衣|日用|生活用品/]
+];
+
+export function guessTripCategory(categoryName: string | null | undefined): string {
+  const name = categoryName ?? '';
+  return TRIP_CATEGORY_KEYWORDS.find(([, pattern]) => pattern.test(name))?.[0] ?? 'other';
+}
+
+/** 移帳時預選的旅行：日期落在旅行期間的那趟；都不在就選最近開始的一趟（trips 由新到舊）。 */
+export function pickTripForDate<T extends Pick<Trip, 'start_date' | 'end_date'>>(trips: readonly T[], date: string): T | null {
+  return trips.find((trip) => trip.start_date <= date && date <= trip.end_date) ?? trips[0] ?? null;
+}
