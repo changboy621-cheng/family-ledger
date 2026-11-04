@@ -153,6 +153,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
             analysis={analysis}
             isFamily={isFamily}
             currencyFilter={currencyFilter}
+            yearMonth={yearMonth}
             onSelectCategory={setCategoryTarget}
           />
         </CollapsibleSection>

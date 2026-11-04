@@ -12,11 +12,13 @@ import { getErrorMessage } from '../../lib/errors';
 import { todayISO } from '../../lib/utils';
 import {
   addRecentSearch,
+  filterByMonth,
   filterByPeriod,
   filterSearchResults,
   groupByMonth,
   loadStringList,
   matchCategoryIds,
+  monthLabel,
   recentSearchKey,
   saveStringList,
   sumByCurrency,
@@ -31,6 +33,11 @@ export interface CategoryDetailTarget {
   categoryId: string;
   categoryName: string;
   categoryIcon: string;
+  /** 從「支出人分析」下鑽時帶入：預設只看這位成員。 */
+  ownerId?: string;
+  ownerName?: string;
+  /** 從某月分析下鑽時帶入（YYYY-MM）：多一個「該月」期間選項並預設選它。 */
+  yearMonth?: string;
 }
 
 interface TransactionSearchModalProps {
@@ -92,8 +99,9 @@ export function TransactionSearchModal({
   );
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'all'>('all');
-  const [ownerFilter, setOwnerFilter] = useState<string>('all');
-  const [period, setPeriod] = useState<Period>('all');
+  const [ownerFilter, setOwnerFilter] = useState<string>(category?.ownerId ?? 'all');
+  // 'month'＝只看下鑽來源的那個月（僅在 category.yearMonth 有值時出現）。
+  const [period, setPeriod] = useState<Period | 'month'>(category?.yearMonth ? 'month' : 'all');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // 輸入 300ms 後才觸發查詢，避免每個字元都打 Supabase。
@@ -148,7 +156,9 @@ export function TransactionSearchModal({
   const filtered = useMemo(() => {
     const filters: SearchFilters = { type: typeFilter, currency: currencyFilter, ownerId: ownerFilter };
     const base = filterSearchResults(results, filters);
-    return category ? filterByPeriod(base, period, todayISO()) : base;
+    if (!category) return base;
+    if (period === 'month') return category.yearMonth ? filterByMonth(base, category.yearMonth) : base;
+    return filterByPeriod(base, period, todayISO());
   }, [results, typeFilter, currencyFilter, ownerFilter, category, period]);
 
   const groups = useMemo(() => groupByMonth(filtered), [filtered]);
@@ -190,7 +200,12 @@ export function TransactionSearchModal({
             <h1 className="flex flex-1 items-center gap-2 text-xl font-bold text-slate-900">
               <span aria-hidden="true">{category.categoryIcon}</span>
               {category.categoryName}
-              <span className="text-sm font-medium text-slate-500">跨全部月份</span>
+              {category.ownerName ? (
+                <span className="text-sm font-medium text-slate-500">· {category.ownerName}</span>
+              ) : null}
+              <span className="text-sm font-medium text-slate-500">
+                {period === 'month' && category.yearMonth ? monthLabel(category.yearMonth) : '跨全部月份'}
+              </span>
             </h1>
           ) : (
             <div className={`flex flex-1 items-center gap-2 ${glassCard}`}>
@@ -238,7 +253,10 @@ export function TransactionSearchModal({
           <section className="grid gap-2">
             {category ? (
               <div className="flex flex-wrap gap-2">
-                {PERIODS.map((option) => (
+                {(category.yearMonth
+                  ? [{ value: 'month' as const, label: monthLabel(category.yearMonth) }, ...PERIODS]
+                  : PERIODS
+                ).map((option) => (
                   <button
                     key={option.value}
                     type="button"

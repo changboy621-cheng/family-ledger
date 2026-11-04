@@ -94,7 +94,7 @@ describe('日期', () => {
 
   it('預設記帳日落在旅行期間內', () => {
     expect(defaultExpenseDate(trip, '2026-11-03')).toBe('2026-11-03');
-    expect(defaultExpenseDate(trip, '2026-10-12')).toBe('2026-11-01');
+    expect(defaultExpenseDate(trip, '2026-10-12')).toBe('2026-10-12'); // 出發前預訂：用今天
     expect(defaultExpenseDate(trip, '2026-12-01')).toBe('2026-11-05');
   });
 
@@ -130,6 +130,16 @@ describe('summarizeTrip', () => {
     expect(summary.byCurrency.map((item) => item.currency)).toEqual(['JPY', 'USD']);
     expect(summary.budgetUsed).toBeCloseTo(0.661);
     expect(summary.budgetLeftTwd).toBe(3390);
+  });
+
+  it('出發前預訂的花費算進總額，但平均每天仍以旅行天數計', () => {
+    const summary = summarizeTrip(trip, [
+      ...['2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01', '2026-10-01', '2026-10-15'].map((date, index) =>
+        expense({ id: `pre${index}`, amount: 1000, rate: 1, expense_date: date })
+      )
+    ]);
+    expect(summary.totalTwd).toBe(6000);
+    expect(summary.perDayTwd).toBe(1200); // 6000 / 5 天，不是 / 6 個日期
   });
 
   it('沒有花費與沒有預算時的邊界', () => {

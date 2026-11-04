@@ -166,4 +166,26 @@ describe('分類模式', () => {
     fireEvent.click(screen.getByRole('button', { name: '近3個月' }));
     expect(screen.getByText(/共 1 筆/)).toBeInTheDocument();
   });
+
+  it('從支出人分析下鑽：預設只看該成員、該月，可切回全部', () => {
+    searchState.results = [
+      tx({ id: 'mine-nov', owner_id: 'u1', transaction_date: '2026-11-03' }),
+      tx({ id: 'mine-oct', owner_id: 'u1', transaction_date: '2026-10-20' }),
+      tx({ id: 'other-nov', owner_id: 'u2', transaction_date: '2026-11-05' })
+    ];
+    renderModal({
+      category: {
+        categoryId: 'c1',
+        categoryName: '旅遊',
+        categoryIcon: '✈️',
+        ownerId: 'u1',
+        ownerName: '美老婆',
+        yearMonth: '2026-11'
+      }
+    });
+    expect(screen.getByRole('heading', { name: /美老婆/ })).toBeInTheDocument();
+    expect(screen.getByText(/共 1 筆/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '全部' }));
+    expect(screen.getByText(/共 2 筆/)).toBeInTheDocument();
+  });
 });
