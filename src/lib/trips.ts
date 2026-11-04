@@ -280,7 +280,8 @@ export function summarizeTrip(trip: Trip, expenses: TripExpense[]): TripSummary 
     totalTwd,
     count: expenses.length,
     days: tripLength,
-    perDayTwd: totalTwd > 0 ? Math.round(totalTwd / Math.max(tripLength, byDay.length)) : 0,
+    // 出發前預訂的花費日期在旅行期間外，平均每天仍以旅行天數計，不被預訂日拉長。
+    perDayTwd: totalTwd > 0 ? Math.round(totalTwd / tripLength) : 0,
     byCategory,
     byDay,
     byCurrency,
@@ -289,9 +290,11 @@ export function summarizeTrip(trip: Trip, expenses: TripExpense[]): TripSummary 
   };
 }
 
-/** 記帳預設日期：旅行期間內就用今天，否則落在最接近的一端（出發前記預訂、回國後補帳）。 */
+/**
+ * 記帳預設日期：出發前（訂機票、住宿等）與旅行期間都用今天＝實際付款日；
+ * 回國後補帳才落在最後一天。
+ */
 export function defaultExpenseDate(trip: Pick<Trip, 'start_date' | 'end_date'>, today: string): string {
-  if (today < trip.start_date) return trip.start_date;
   if (today > trip.end_date) return trip.end_date;
   return today;
 }
