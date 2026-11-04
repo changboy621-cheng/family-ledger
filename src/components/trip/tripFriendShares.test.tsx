@@ -27,9 +27,21 @@ describe('TripFriendSharesField', () => {
     fireEvent.change(screen.getByLabelText('朋友代墊金額'), { target: { value: '1000' } });
     expect(screen.getByText('我們自己負擔 JPY 2,000（≈NT$420）')).toBeInTheDocument();
 
+    // 第一列已填名字，點快捷鈕才會新增第二列
+    fireEvent.change(screen.getByLabelText('朋友名字'), { target: { value: '小華' } });
+
     fireEvent.click(screen.getByRole('button', { name: '＋ 阿明' }));
     expect(screen.getAllByLabelText('朋友名字')[1]).toHaveValue('阿明');
     expect(screen.getByLabelText('阿明代墊金額')).toHaveValue('2000');
+  });
+
+  it('點名字快捷鈕會帶入第一個還沒填名字的列，不另外新增', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: /幫朋友代墊/ }));
+    fireEvent.click(screen.getByRole('button', { name: '＋ 阿明' }));
+    expect(screen.getAllByLabelText('朋友名字')).toHaveLength(1);
+    expect(screen.getByLabelText('朋友名字')).toHaveValue('阿明');
+    expect(screen.getByLabelText('阿明代墊金額')).toHaveValue('3000');
   });
 
   it('代墊超過花費時提示', () => {

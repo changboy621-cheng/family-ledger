@@ -38,6 +38,21 @@ export function TripFriendSharesField({ drafts, onChange, currency, totalAmount,
     onChange(drafts.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
   }
 
+  // 點名字快捷鈕：有還沒填名字的列就帶進第一個空列，沒有才新增一位。
+  function pickFriend(name: string) {
+    const empty = drafts.find((draft) => draft.name.trim() === '');
+    if (!empty) {
+      addFriend(name);
+      return;
+    }
+    const remaining = parseTripAmount(String(totalAmount - sharedSum), currency);
+    update(empty.id, {
+      name,
+      // 空列金額也沒填時，順手帶剩下的金額。
+      ...(empty.amount.trim() === '' && remaining > 0 ? { amount: String(remaining) } : {})
+    });
+  }
+
   if (drafts.length === 0) {
     return (
       <button
@@ -100,7 +115,7 @@ export function TripFriendSharesField({ drafts, onChange, currency, totalAmount,
             key={name}
             type="button"
             className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
-            onClick={() => addFriend(name)}
+            onClick={() => pickFriend(name)}
           >
             ＋ {name}
           </button>
