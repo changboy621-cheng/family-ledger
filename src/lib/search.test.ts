@@ -3,12 +3,14 @@ import type { Category, Transaction } from '../types';
 import {
   addRecentSearch,
   escapeLikePattern,
+  filterByMonth,
   filterByPeriod,
   filterSearchResults,
   groupByMonth,
   loadStringList,
   matchCategoryIds,
   mergeSearchResults,
+  monthLabel,
   periodFrom,
   recentSearchKey,
   saveStringList,
@@ -185,5 +187,20 @@ describe('addRecentSearch / storage helpers', () => {
     expect(loadStringList(storage, 'k')).toEqual(['a', 'b']);
     saveStringList(storage, 'k2', ['x']);
     expect(loadStringList(storage, 'k2')).toEqual(['x']);
+  });
+});
+
+describe('filterByMonth / monthLabel', () => {
+  it('只留該月份的交易', () => {
+    const rows = [
+      tx({ id: 'a', transaction_date: '2026-11-01' }),
+      tx({ id: 'b', transaction_date: '2026-11-30' }),
+      tx({ id: 'c', transaction_date: '2026-10-31' }),
+      tx({ id: 'd', transaction_date: '2026-12-01' })
+    ];
+    expect(filterByMonth(rows, '2026-11').map((t) => t.id)).toEqual(['a', 'b']);
+  });
+  it('月份標籤', () => {
+    expect(monthLabel('2026-03')).toBe('2026年3月');
   });
 });

@@ -120,6 +120,7 @@ export function Dashboard() {
               analysis={familyAnalysis}
               isFamily
               currencyFilter="all"
+              yearMonth={yearMonth}
               onSelectCategory={(target) => openCategoryDrill('family', target)}
             />
           </CollapsibleSection>
@@ -133,6 +134,7 @@ export function Dashboard() {
               analysis={personalAnalysis}
               isFamily={false}
               currencyFilter="all"
+              yearMonth={yearMonth}
               onSelectCategory={(target) => openCategoryDrill('personal', target)}
             />
           </CollapsibleSection>

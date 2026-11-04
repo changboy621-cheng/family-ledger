@@ -1,14 +1,20 @@
 import { memo } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { formatAmount } from '../../lib/currency';
 import { formatRatio, ratioBarWidth, visibleCurrencies } from '../../lib/summaryView';
 import type { Currency, OwnerExpenseSummary } from '../../types';
+import type { CategoryDetailTarget } from './TransactionSearchModal';
 
 interface SpenderAnalysisProps {
   items: OwnerExpenseSummary[];
   currencyFilter: Currency | 'all';
+  /** 分析的月份（YYYY-MM）；下鑽時預設只看這個月。 */
+  yearMonth?: string;
+  /** 傳入時「成員 × 分類」列可點，開啟該成員在該分類的每一筆明細。 */
+  onSelectCategory?: (target: CategoryDetailTarget) => void;
 }
 
-function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
+function SpenderAnalysisBase({ items, currencyFilter, yearMonth, onSelectCategory }: SpenderAnalysisProps) {
   const currencies = visibleCurrencies(currencyFilter);
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
@@ -58,30 +64,56 @@ function SpenderAnalysisBase({ items, currencyFilter }: SpenderAnalysisProps) {
                       <div className="mt-3 grid gap-2">
                         {item.categories
                           .filter((category) => category.totals[currency] > 0)
-                          .map((category) => (
-                            <div
-                              key={`${currency}-${item.ownerId}-${category.categoryId}`}
-                              className="grid gap-1 text-sm"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-slate-600">
-                                  {category.categoryIcon} {category.categoryName}
-                                </span>
-                                <span className="font-medium text-slate-800">
-                                  {formatAmount(category.totals[currency], currency)} · {formatRatio(category.ratios[currency])}
-                                </span>
+                          .map((category) => {
+                            const key = `${currency}-${item.ownerId}-${category.categoryId}`;
+                            const row = (
+                              <div className="grid gap-1 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-slate-600">
+                                    {category.categoryIcon} {category.categoryName}
+                                  </span>
+                                  <span className="font-medium text-slate-800">
+                                    {formatAmount(category.totals[currency], currency)} · {formatRatio(category.ratios[currency])}
+                                    {onSelectCategory ? (
+                                      <ChevronRight className="ml-0.5 inline h-4 w-4 align-[-3px] text-slate-400" aria-hidden="true" />
+                                    ) : null}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                                  <div
+                                    className="h-full rounded-full"
+                                    style={{
+                                      width: `${ratioBarWidth(category.ratios[currency])}%`,
+                                      backgroundColor: item.avatarColor
+                                    }}
+                                  />
+                                </div>
                               </div>
-                              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${ratioBarWidth(category.ratios[currency])}%`,
-                                    backgroundColor: item.avatarColor
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
+                            );
+
+                            return onSelectCategory ? (
+                              <button
+                                key={key}
+                                type="button"
+                                className="-mx-2 w-[calc(100%+1rem)] rounded-md px-2 py-1 text-left transition hover:bg-slate-100 active:opacity-70"
+                                aria-label={`查看${item.ownerName}的${category.categoryName}明細`}
+                                onClick={() =>
+                                  onSelectCategory({
+                                    categoryId: category.categoryId,
+                                    categoryName: category.categoryName,
+                                    categoryIcon: category.categoryIcon,
+                                    ownerId: item.ownerId,
+                                    ownerName: item.ownerName,
+                                    yearMonth
+                                  })
+                                }
+                              >
+                                {row}
+                              </button>
+                            ) : (
+                              <div key={key}>{row}</div>
+                            );
+                          })}
                       </div>
                     </div>
                   ))}

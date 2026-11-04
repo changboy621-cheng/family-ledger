@@ -14,12 +14,14 @@ interface LedgerAnalysisProps {
   analysis: Analysis;
   isFamily: boolean;
   currencyFilter: Currency | 'all';
+  /** 分析的月份（YYYY-MM），支出人分析下鑽時預設只看該月。 */
+  yearMonth?: string;
   onSelectCategory?: (target: CategoryDetailTarget) => void;
 }
 
 // 帳本的整組圖表分析（前 3 大類別、支出分類、付款方式、花費人、每日/近 6 月趨勢）。
 // 由帳本頁與首頁共用，避免兩處重複維護同一套圖表。
-export function LedgerAnalysis({ analysis, isFamily, currencyFilter, onSelectCategory }: LedgerAnalysisProps) {
+export function LedgerAnalysis({ analysis, isFamily, currencyFilter, yearMonth, onSelectCategory }: LedgerAnalysisProps) {
   return (
     <>
       <TopExpenseCategories
@@ -48,7 +50,14 @@ export function LedgerAnalysis({ analysis, isFamily, currencyFilter, onSelectCat
         title={isFamily ? '本月付款方式（現金／刷卡）' : '本月個人付款方式（現金／刷卡）'}
       />
 
-      {isFamily ? <SpenderAnalysis items={analysis.expenseByOwner} currencyFilter={currencyFilter} /> : null}
+      {isFamily ? (
+        <SpenderAnalysis
+          items={analysis.expenseByOwner}
+          currencyFilter={currencyFilter}
+          yearMonth={yearMonth}
+          onSelectCategory={onSelectCategory}
+        />
+      ) : null}
 
       <ExpenseTrendChart
         title="本月每日支出"

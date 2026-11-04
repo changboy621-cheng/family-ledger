@@ -83,6 +83,18 @@ export function filterByPeriod(transactions: Transaction[], period: Period, toda
   return transactions.filter((t) => t.transaction_date >= from);
 }
 
+/** 只留指定月份（YYYY-MM）的交易；用於從某月分析下鑽時只看當月。 */
+export function filterByMonth(transactions: Transaction[], yearMonth: string): Transaction[] {
+  const prefix = `${yearMonth}-`;
+  return transactions.filter((t) => t.transaction_date.startsWith(prefix));
+}
+
+/** YYYY-MM → 「2026年11月」。 */
+export function monthLabel(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  return `${year}年${month}月`;
+}
+
 export interface HighlightSegment {
   text: string;
   hit: boolean;
