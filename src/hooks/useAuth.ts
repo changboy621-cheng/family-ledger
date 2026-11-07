@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Currency } from '../types';
+import type { Currency, Family } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { useReferenceStore } from '../store/referenceStore';
@@ -17,31 +17,32 @@ import { buildFamilyCategoryRows } from '../lib/defaultCategories';
 
 const AVATAR_COLORS = ['#4F46E5', '#0EA5E9', '#15803D', '#B45309', '#EF4444'];
 
-function createInviteCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
-}
-
 function pickAvatarColor(seed: string) {
   const index = seed.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % AVATAR_COLORS.length;
   return AVATAR_COLORS[index];
 }
 
-async function createFamilyWithRetry() {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await supabase
-      .from('families')
-      .insert({ name: '我們的家', invite_code: createInviteCode() })
-      .select()
-      .single();
+interface ProfileInput {
+  displayName: string;
+  defaultCurrency: Currency;
+}
 
-    if (!response.error) return response.data;
-    if (!response.error.message.includes('duplicate key value violates unique constraint')) {
-      throw response.error;
-    }
-  }
+function profileRpcArgs({ displayName, defaultCurrency }: ProfileInput) {
+  return {
+    p_display_name: displayName,
+    p_avatar_color: pickAvatarColor(displayName),
+    p_default_currency: defaultCurrency
+  };
+}
 
-  throw new Error('邀請碼產生失敗，請再試一次。');
+// 建立家庭＋綁定自己的 profile：一律走 SECURITY DEFINER 的 create_family_with_profile RPC，
+// 前端不再直接 insert families 或寫 user_profiles.family_id（見 migration 014）。
+export async function createFamilyViaRpc(input: ProfileInput): Promise<Family> {
+  const { data, error } = await supabase.rpc('create_family_with_profile', profileRpcArgs(input));
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!parseInviteFamily(row)) throw new Error('建立家庭未完成，請稍後再試一次。');
+  return row as Family;
 }
 
 // 家庭建立時植入預設類別（每個家庭各自持有一份，取代過去全域共用的內建類別）。
@@ -54,14 +55,15 @@ export async function seedFamilyCategories(familyId: string) {
   }
 }
 
-// 用邀請碼解析家庭：改走 SECURITY DEFINER 的 find_family_by_invite RPC，
-// 避免前端直接 select families 整表（否則 invite_code 可被列舉）。
-export async function resolveInviteFamily(rawCode: string): Promise<{ id: string; name: string }> {
-  const { data, error } = await supabase.rpc('find_family_by_invite', {
-    code: rawCode?.trim().toUpperCase() ?? ''
+// 用邀請碼加入家庭＋綁定自己的 profile：走 SECURITY DEFINER 的 join_family_with_profile RPC，
+// 必須拿得出正確邀請碼才能加入，無法憑家庭 uuid 直接改 family_id。
+export async function joinFamilyViaRpc(rawCode: string, input: ProfileInput): Promise<{ id: string; name: string }> {
+  const { data, error } = await supabase.rpc('join_family_with_profile', {
+    p_code: rawCode?.trim().toUpperCase() ?? '',
+    ...profileRpcArgs(input)
   });
-  const match = Array.isArray(data) ? data[0] : data;
-  const family = parseInviteFamily(match);
+  const row = (Array.isArray(data) ? data[0] : data) as { family_id?: unknown; family_name?: unknown } | null;
+  const family = parseInviteFamily(row ? { id: row.family_id, name: row.family_name } : null);
   if (error || !family) {
     throw new Error('找不到這組邀請碼，請確認大小寫與數字。');
   }
@@ -85,33 +87,15 @@ export function useAuth() {
       defaultCurrency: Currency;
       inviteCode?: string;
     }) => {
-      let familyId = '';
-      let familyData = null;
-
-      if (mode === 'create') {
-        familyData = await createFamilyWithRetry();
-        familyId = familyData.id;
-      } else {
-        familyData = await resolveInviteFamily(inviteCode ?? '');
-        familyId = familyData.id;
-      }
-
-      const { error: profileError } = await supabase.from('user_profiles').upsert(
-        {
-          id: userId,
-          family_id: familyId,
-          display_name: displayName,
-          avatar_color: pickAvatarColor(displayName),
-          default_currency: defaultCurrency
-        },
-        { onConflict: 'id' }
-      );
-
-      if (profileError) throw profileError;
+      const profileInput = { displayName, defaultCurrency };
+      const familyData =
+        mode === 'create'
+          ? await createFamilyViaRpc(profileInput)
+          : await joinFamilyViaRpc(inviteCode ?? '', profileInput);
 
       // 只有新建家庭需要植入預設類別；加入既有家庭時沿用該家庭已有的類別。
       if (mode === 'create') {
-        await seedFamilyCategories(familyId);
+        await seedFamilyCategories(familyData.id);
       }
 
       await loadProfileIntoStore(userId);
@@ -158,12 +142,13 @@ export function useAuth() {
       return { status: 'pending_verification' as const };
     }
 
-    const family = await createFamilyAndProfile({
+    // mode 'create' 一定回傳完整 Family（含 invite_code，註冊完成頁要顯示）
+    const family = (await createFamilyAndProfile({
       userId: data.user.id,
       mode: 'create',
       displayName,
       defaultCurrency
-    });
+    })) as Family;
 
     return { status: 'completed' as const, family };
   }
