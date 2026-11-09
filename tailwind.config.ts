@@ -6,9 +6,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        family: '#1D9E75',
-        familySoft: '#E1F5EE',
-        personal: '#378ADD',
+        family: '#15805E',
+        familySoft: '#EEF9F5',
+        personal: '#256BB5',
         personalSoft: '#E6F1FB',
         page: '#EEF2F7',
         ink: '#1E293B',

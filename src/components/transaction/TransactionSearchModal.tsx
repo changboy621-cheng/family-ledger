@@ -208,7 +208,7 @@ export function TransactionSearchModal({
               </span>
             </h1>
           ) : (
-            <div className={`flex flex-1 items-center gap-2 ${glassCard}`}>
+            <div className={`flex flex-1 items-center gap-2 focus-within:ring-2 focus-within:ring-family ${glassCard}`}>
               <Search className="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
               <input
                 type="search"

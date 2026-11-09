@@ -36,3 +36,21 @@ textarea {
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
+
+/* 鍵盤焦點：所有可互動元素統一顯示焦點環（滑鼠點擊不受影響）。
+   輸入框已有自己的 focus:ring，故排除。 */
+:focus-visible:not(input):not(select):not(textarea) {
+  outline: 2px solid #15805e;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
