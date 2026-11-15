@@ -36,9 +36,9 @@ export function TripSettlementCard({
   const nameOf = (id: string | null) => (id ? memberName(id) || '（已離開的成員）' : '未記付款人');
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4" aria-label="結算">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4" aria-label="結算">
       <h2 className="flex items-center gap-2 font-bold text-slate-900">
-        <Scale className="h-5 w-5 text-family" />
+        <Scale className="h-5 w-5 text-action" />
         結算
       </h2>
 
@@ -125,9 +125,9 @@ export function TripSettlementCard({
       ) : null}
 
       {transfer ? (
-        <p className="mt-3 rounded-lg bg-familySoft p-3 text-sm text-slate-700">
+        <p className="mt-3 rounded-lg bg-actionSoft p-3 text-sm text-slate-700">
           如果兩人平分：<strong>{memberName(transfer.from)}</strong> 給 <strong>{memberName(transfer.to)}</strong>{' '}
-          <strong className="text-family">{formatTwd(transfer.twd)}</strong>
+          <strong className="text-action">{formatTwd(transfer.twd)}</strong>
         </p>
       ) : null}
     </section>
@@ -136,7 +136,7 @@ export function TripSettlementCard({
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-white px-3 py-2">
+    <div className="rounded-md bg-card px-3 py-2">
       <dt className="text-xs text-slate-500">{label}</dt>
       <dd className="font-semibold text-slate-900">{value}</dd>
     </div>

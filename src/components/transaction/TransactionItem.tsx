@@ -24,7 +24,7 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
     transaction.recorded_by != null && transaction.recorded_by !== transaction.owner_id && Boolean(recorderName);
 
   return (
-    <li className="rounded-xl border border-slate-200 bg-white p-4">
+    <li className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
         </div>
         <div className="grid justify-items-end gap-3">
           <div className="flex items-center gap-2">
-            <CurrencyBadge currency={transaction.currency} />
+            {transaction.currency !== 'TWD' ? <CurrencyBadge currency={transaction.currency} /> : null}
             <strong className={isExpense ? 'text-red-500' : 'text-green-600'}>
               {isExpense ? '-' : '+'}
               {formatAmount(Number(transaction.amount), transaction.currency)}
@@ -102,7 +102,7 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
             <div className="flex items-center gap-2">
               {onEdit ? (
                 <button
-                  className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-family"
+                  className="grid h-10 w-10 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
                   type="button"
                   onClick={() => onEdit(transaction)}
                   aria-label="編輯交易"
@@ -113,7 +113,7 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
               ) : null}
               {onDelete ? (
                 <button
-                  className="grid h-10 w-10 place-items-center rounded-lg border border-red-200 text-red-500 transition hover:bg-red-50"
+                  className="grid h-10 w-10 place-items-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600"
                   type="button"
                   onClick={() => onDelete(transaction.id)}
                   aria-label="刪除交易"

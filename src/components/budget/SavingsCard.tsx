@@ -32,15 +32,19 @@ function SavingsCardBase({ familySummary, personalSummary }: SavingsCardProps) {
   const hasUsd = usd.income !== 0 || usd.expense !== 0;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5" aria-label="本月儲蓄">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5" aria-label="本月儲蓄">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-bold text-slate-900">本月儲蓄</h2>
           <p className="mt-0.5 text-xs text-slate-400">家庭帳本＋我的個人帳本</p>
         </div>
         <div className="text-right">
-          <p className={`text-3xl font-bold ${TONE_TEXT[tone]}`}>{twd.rate === null ? '—' : formatRatio(twd.rate)}</p>
-          <p className="text-xs text-slate-400">儲蓄率</p>
+          {twd.rate === null ? null : (
+            <>
+              <p className={`text-3xl font-bold ${TONE_TEXT[tone]}`}>{formatRatio(twd.rate)}</p>
+              <p className="text-xs text-slate-500">儲蓄率</p>
+            </>
+          )}
         </div>
       </div>
 

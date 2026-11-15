@@ -80,7 +80,7 @@ export function MoveToTripModal({ transaction, onDeleteOriginal, onClose, onMove
             <button type="button" className="rounded-lg bg-slate-100 px-4 py-3 font-semibold text-slate-600" onClick={onClose}>
               取消
             </button>
-            <Link to="/trips" className="rounded-lg bg-family px-4 py-3 text-center font-semibold text-white" onClick={onClose}>
+            <Link to="/trips" className="rounded-lg bg-action px-4 py-3 text-center font-semibold text-white" onClick={onClose}>
               去建立旅行
             </Link>
           </div>

@@ -21,7 +21,7 @@ function PaymentMethodSummaryBase({
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
 
       {!hasData ? (
@@ -52,7 +52,7 @@ function PaymentMethodSummaryBase({
                       </div>
                       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
-                          className="h-full rounded-full bg-family transition-all"
+                          className="h-full rounded-full bg-ledger transition-all"
                           style={{ width: `${ratioBarWidth(item.ratios[currency])}%` }}
                         />
                       </div>

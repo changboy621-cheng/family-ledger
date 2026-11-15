@@ -21,11 +21,11 @@ export function Settings() {
 
   return (
     <div className="grid gap-5">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900">設定</h1>
+      <header className="pt-2">
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">設定</h1>
       </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5">
         <h2 className="font-bold text-slate-900">個人設定</h2>
         <dl className="mt-4 grid gap-3 text-sm">
           <InlineEditField
@@ -43,7 +43,7 @@ export function Settings() {
         </dl>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5">
         <h2 className="font-bold text-slate-900">家庭設定</h2>
         <dl className="mt-4 grid gap-3 text-sm">
           <InlineEditField
@@ -63,7 +63,7 @@ export function Settings() {
 
       <FamilyInvite variant="plain" />
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5">
         <h2 className="font-bold text-slate-900">類別排序</h2>
         <CategoryOrderManager />
       </section>
@@ -72,7 +72,7 @@ export function Settings() {
 
       <SiriShortcut />
 
-      <button className="h-11 rounded-lg border border-red-200 bg-white font-semibold text-red-600" type="button" onClick={() => void signOut()}>
+      <button className="h-11 rounded-lg border border-red-200 bg-card font-semibold text-red-600" type="button" onClick={() => void signOut()}>
         登出
       </button>
 

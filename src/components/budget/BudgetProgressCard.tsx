@@ -46,13 +46,13 @@ function BudgetProgressCardBase({
   const categoryById = new Map(categories.map((category) => [category.id, category]));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5" aria-label="本月預算">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5" aria-label="本月預算">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-bold text-slate-900">本月預算</h2>
           <p className="mt-0.5 text-xs text-slate-400">本月已過 {formatRatio(monthElapsed)}</p>
         </div>
-        <Link to="/settings#budget" className="text-sm font-semibold text-family">
+        <Link to="/settings#budget" className="text-sm font-semibold text-action">
           {hasBudget ? '調整' : '設定'}
         </Link>
       </div>

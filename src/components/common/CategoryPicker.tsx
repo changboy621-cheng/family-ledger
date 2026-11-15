@@ -89,7 +89,7 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
         <span className="text-sm font-medium text-slate-700">類別</span>
         <select
           aria-label="類別"
-          className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+          className="h-11 rounded-lg border border-slate-300 bg-card px-3 text-slate-900 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
           value={value}
           onChange={(event) => onChange(event.target.value)}
         >
@@ -107,7 +107,7 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
             <button
               type="button"
               onClick={openAdd}
-              className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-family hover:text-family"
+              className="inline-flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-action hover:text-action"
             >
               <Plus className="h-4 w-4" /> 新增
             </button>
@@ -117,7 +117,7 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
             <button
               type="button"
               onClick={openEdit}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-family hover:text-family"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-action hover:text-action"
             >
               <Pencil className="h-4 w-4" /> 編輯
             </button>
@@ -166,11 +166,11 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
         <div className="mt-1 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-sm font-semibold text-slate-700">{editor.editId ? '編輯類別' : '新增類別'}</p>
           <div className="flex items-center gap-2">
-            <span className="grid h-11 w-11 place-items-center rounded-lg border border-slate-200 bg-white text-2xl">
+            <span className="grid h-11 w-11 place-items-center rounded-lg border border-slate-200 bg-card text-2xl">
               {editor.icon}
             </span>
             <input
-              className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+              className="h-11 min-w-0 flex-1 rounded-lg border border-slate-300 bg-card px-3 text-slate-900 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
               value={editor.name}
               onChange={(event) => setEditor((prev) => (prev ? { ...prev, name: event.target.value } : prev))}
               placeholder="類別名稱，例如：寵物、孝親"
@@ -189,8 +189,8 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
                   className={cn(
                     'grid h-9 w-9 place-items-center rounded-lg border text-xl transition',
                     editor.icon === option
-                      ? 'border-family bg-familySoft'
-                      : 'border-transparent bg-white hover:border-slate-200'
+                      ? 'border-action bg-actionSoft'
+                      : 'border-transparent bg-card hover:border-slate-200'
                   )}
                   onClick={() => setEditor((prev) => (prev ? { ...prev, icon: option } : prev))}
                   aria-label={`圖示 ${option}`}
@@ -208,7 +208,7 @@ export function CategoryPicker({ categories, value, onChange, onCreate, onUpdate
               type="button"
               onClick={() => void handleSave()}
               disabled={saving}
-              className="h-10 flex-1 rounded-lg bg-family font-semibold text-white disabled:opacity-60"
+              className="h-10 flex-1 rounded-lg bg-action font-semibold text-white disabled:opacity-60"
             >
               {saving ? '儲存中...' : editor.editId ? '儲存變更' : '新增類別'}
             </button>

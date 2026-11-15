@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Lock, MapPin, Search, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Currency, LedgerType, Transaction } from '../types';
 import { currentYearMonth } from '../lib/utils';
 import { CURRENCIES, formatAmount } from '../lib/currency';
-import { useLedgerTransactions } from '../hooks/useTransactions';
+import { createdToastMessage, useLedgerTransactions } from '../hooks/useTransactions';
 import { usePendingDelete } from '../hooks/usePendingDelete';
 import { useLedgerAnalysis } from '../hooks/useLedgerAnalysis';
 import { FAB } from '../components/common/FAB';
@@ -51,8 +52,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
   }, [analysis.summary]);
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
-    await createTransaction(input);
-    showToast('交易已新增');
+    showToast(createdToastMessage(await createTransaction(input)));
   }
 
   const { pendingIds, requestDelete } = usePendingDelete(deleteTransaction);
@@ -76,9 +76,16 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
 
   return (
     <div className="grid gap-5">
-      <header>
-        <p className="text-sm font-semibold text-slate-500">{isFamily ? '共同可見' : '🔒 個人隱私'}</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{isFamily ? '家庭帳本' : '個人帳本'}</h1>
+      <header className="flex flex-wrap items-center gap-3 pt-2">
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{isFamily ? '家庭帳本' : '個人帳本'}</h1>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            isFamily ? 'bg-familySoft text-family' : 'bg-personalSoft text-personal'
+          }`}
+        >
+          {isFamily ? <Users className="h-3.5 w-3.5" aria-hidden="true" /> : <Lock className="h-3.5 w-3.5" aria-hidden="true" />}
+          {isFamily ? '兩人都看得到' : '只有你看得到'}
+        </span>
       </header>
 
       <div className="flex items-stretch gap-2">
@@ -87,24 +94,33 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
         </div>
         <button
           type="button"
-          className="grid w-14 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:text-family"
+          className="grid w-14 place-items-center rounded-lg border border-slate-200 bg-card text-slate-600 transition hover:text-action"
           onClick={() => setSearchOpen(true)}
           aria-label="搜尋交易"
           title="搜尋備註（跨全部月份）"
         >
           <Search className="h-5 w-5" />
         </button>
+        {/* 地圖從底部導覽移到這裡，讓手機導覽列維持 5 格。 */}
+        <Link
+          to="/map"
+          className="grid w-14 place-items-center rounded-lg border border-slate-200 bg-card text-slate-600 transition hover:text-action"
+          aria-label="消費地圖"
+          title="消費地圖"
+        >
+          <MapPin className="h-5 w-5" />
+        </Link>
       </div>
 
       {error ? (
-        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+        <section className="rounded-xl border border-red-200 bg-card p-4 text-sm text-slate-600">
           本月財務資料載入失敗，請至下方交易清單按「重試」。
         </section>
       ) : (
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <section>
         <div className={`grid gap-3 ${activeCurrencies.length > 1 ? 'md:grid-cols-2' : ''}`}>
           {activeCurrencies.map((currency) => (
-            <div key={currency} className={`rounded-lg p-3 ${isFamily ? 'bg-familySoft' : 'bg-personalSoft'}`}>
+            <div key={currency} className={`rounded-xl p-5 ${isFamily ? 'bg-familySoft' : 'bg-personalSoft'}`}>
               <p className="text-xs font-semibold text-slate-500">{currency}</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 結餘 {formatAmount(analysis.summary.balance[currency], currency)}
@@ -124,7 +140,7 @@ export function LedgerPage({ ledgerType }: LedgerPageProps) {
           <button
             key={option}
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+              currencyFilter === option ? 'bg-slate-900 text-white' : 'bg-card text-slate-600'
             }`}
             type="button"
             onClick={() => setCurrencyFilter(option)}

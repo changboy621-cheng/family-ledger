@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import type { LedgerType } from '../../types';
+import { loadLastLedgerType } from '../../lib/lastLedger';
 
 interface FABProps {
   onSelect: (ledgerType: LedgerType) => void;
@@ -13,34 +14,24 @@ export function FAB({ onSelect, ledgerType }: FABProps) {
       <button
         type="button"
         aria-label="新增交易"
-        className={`fixed bottom-24 right-4 z-20 rounded-full px-5 py-4 text-white shadow-lg lg:bottom-6 ${
-          ledgerType === 'family' ? 'bg-family' : 'bg-personal'
-        }`}
+        className="fixed bottom-24 right-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-action px-5 py-4 text-sm font-bold text-white shadow-lg lg:bottom-6"
         onClick={() => onSelect(ledgerType)}
       >
-        <Plus className="h-5 w-5" />
+        <Plus className="h-5 w-5" strokeWidth={2.5} />
+        記一筆
       </button>
     );
   }
 
+  // 首頁只放一顆新增鈕：預設開上次用過的帳本，表單裡仍可切換家庭／個人。
   return (
-    <div className="fixed bottom-24 right-4 z-20 grid gap-2 lg:bottom-6">
-      <button
-        type="button"
-        className="rounded-full bg-family px-4 py-3 text-sm font-semibold text-white shadow-lg"
-        onClick={() => onSelect('family')}
-      >
-        <Plus className="mr-1 inline h-4 w-4" />
-        家庭
-      </button>
-      <button
-        type="button"
-        className="rounded-full bg-personal px-4 py-3 text-sm font-semibold text-white shadow-lg"
-        onClick={() => onSelect('personal')}
-      >
-        <Plus className="mr-1 inline h-4 w-4" />
-        個人
-      </button>
-    </div>
+    <button
+      type="button"
+      className="fixed bottom-24 right-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-action px-5 py-4 text-sm font-bold text-white shadow-lg lg:bottom-6"
+      onClick={() => onSelect(loadLastLedgerType())}
+    >
+      <Plus className="h-5 w-5" strokeWidth={2.5} />
+      記一筆
+    </button>
   );
 }

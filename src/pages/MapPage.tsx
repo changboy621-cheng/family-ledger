@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import type { Currency } from '../types';
 import { formatAmount } from '../lib/currency';
 import { useExpenseMap, type MapPeriod, type MapSourceFilter } from '../hooks/useExpenseMap';
@@ -25,6 +27,7 @@ export function MapPage() {
   const [currency, setCurrency] = useState<Currency>('TWD');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const { places, counts, loading, error, reload } = useExpenseMap(source, period);
+  const navigate = useNavigate();
 
   const visiblePlaces = places.filter((place) => place.totals[currency] > 0);
   const total = visiblePlaces.reduce((sum, place) => sum + place.totals[currency], 0);
@@ -33,8 +36,16 @@ export function MapPage() {
   return (
     <div className="grid gap-5">
       <header>
-        <p className="text-sm font-semibold text-slate-500">足跡</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">消費地圖</h1>
+        {/* 地圖不在手機底部導覽，加到主畫面的 PWA 又沒有瀏覽器返回鍵，這裡給一顆返回。 */}
+        <button
+          type="button"
+          className="-ml-1 mb-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-500 lg:hidden"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          返回
+        </button>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">消費地圖</h1>
         <p className="mt-1 text-sm text-slate-500">記帳時記錄位置，就會在這裡長出你們的消費足跡。</p>
       </header>
 
@@ -44,7 +55,7 @@ export function MapPage() {
             key={option.value}
             type="button"
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              source === option.value ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+              source === option.value ? 'bg-slate-900 text-white' : 'bg-card text-slate-600'
             }`}
             onClick={() => {
               setSource(option.value);
@@ -61,7 +72,7 @@ export function MapPage() {
             key={option.value}
             type="button"
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              period === option.value ? 'bg-family text-white' : 'bg-white text-slate-600'
+              period === option.value ? 'bg-action text-white' : 'bg-card text-slate-600'
             }`}
             onClick={() => setPeriod(option.value)}
           >
@@ -74,7 +85,7 @@ export function MapPage() {
             key={option}
             type="button"
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              currency === option ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'
+              currency === option ? 'bg-slate-900 text-white' : 'bg-card text-slate-600'
             }`}
             onClick={() => setCurrency(option)}
           >
@@ -84,9 +95,9 @@ export function MapPage() {
       </div>
 
       {error ? (
-        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+        <section className="rounded-xl border border-red-200 bg-card p-4 text-sm text-slate-600">
           消費地圖載入失敗。
-          <button type="button" className="ml-2 font-semibold text-family" onClick={() => void reload()}>
+          <button type="button" className="ml-2 font-semibold text-action" onClick={() => void reload()}>
             重試
           </button>
         </section>
@@ -99,7 +110,7 @@ export function MapPage() {
       <ExpenseMap places={visiblePlaces} currency={currency} colorBy={colorBy} selectedKey={selectedKey} onSelect={setSelectedKey} />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-600">
-        <span className="flex overflow-hidden rounded-full bg-white font-semibold">
+        <span className="flex overflow-hidden rounded-full bg-card font-semibold">
           {(['category', 'source'] as const).map((mode) => (
             <button
               key={mode}
@@ -124,13 +135,13 @@ export function MapPage() {
       <p className="-mt-3 text-xs text-slate-400">同一地點有幾種{colorBy === 'category' ? '項目' : '帳本'}，就疊幾個半透明的圓，重疊處會混色；圓的大小依該色的金額。</p>
 
       {!loading && !error && visiblePlaces.length === 0 ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4 text-sm text-slate-500">
           這個範圍還沒有帶位置的{currency}支出。新增記帳時按「記錄目前位置」（或勾選「新增記帳時自動記錄位置」）就會出現在地圖上。
         </section>
       ) : null}
 
       {topPlaces.length > 0 ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
           <h2 className="font-bold text-slate-900">
             花最多的地方 <span className="text-sm font-normal text-slate-400">共 {visiblePlaces.length} 處・{formatAmount(total, currency)}</span>
           </h2>
@@ -140,7 +151,7 @@ export function MapPage() {
                 <button
                   type="button"
                   className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left ${
-                    selectedKey === place.key ? 'border-family bg-familySoft' : 'border-slate-200'
+                    selectedKey === place.key ? 'border-action bg-actionSoft' : 'border-slate-200'
                   }`}
                   onClick={() => setSelectedKey(place.key)}
                 >

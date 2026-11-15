@@ -2,15 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 家帳設計變數：暖米色底、白卡、可可色文字；唯一動作色是深珊瑚橘。
+   數值為「R G B」，供 tailwind.config.ts 以 rgb(var(--x) / 透明度) 使用。 */
 :root {
-  color: #1e293b;
-  background: #f8fafc;
+  --page: 255 244 230;
+  --card: 255 255 255;
+  --on-accent: 255 255 255;
+  --shadow: 92 58 30;
+
+  --n-50: 255 249 242;
+  --n-100: 247 236 223;
+  --n-200: 236 224 208;
+  --n-300: 218 202 183;
+  --n-400: 132 118 107;
+  --n-500: 112 99 90;
+  --n-600: 96 85 77;
+  --n-700: 79 69 62;
+  --n-800: 58 50 44;
+  --n-900: 43 36 31;
+  --n-950: 28 23 20;
+
+  --action: 200 64 26;
+  --action-soft: 253 230 218;
+  --family: 23 127 88;
+  --family-soft: 222 243 233;
+  --personal: 47 111 209;
+  --personal-soft: 228 237 252;
+  --ledger: var(--family);
+
+  --red-50: 254 238 236;
+  --red-200: 248 196 190;
+  --red-400: 232 112 100;
+  --red-500: 214 69 56;
+  --red-600: 186 46 36;
+  --amber-50: 255 245 222;
+  --amber-100: 255 236 196;
+  --amber-200: 248 218 160;
+  --amber-500: 224 146 20;
+  --amber-600: 176 106 6;
+  --amber-700: 140 82 6;
+  --amber-800: 110 64 8;
+  --emerald-100: 214 242 229;
+  --emerald-500: 34 160 108;
+  --emerald-600: 23 127 88;
+  --green-100: 222 243 233;
+  --green-200: 190 230 210;
+  --green-600: 23 127 88;
+  --green-700: 18 102 70;
+  --yellow-200: 254 232 150;
+
+  color-scheme: light;
+  color: rgb(var(--n-900));
+  background: rgb(var(--page));
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Noto Sans TC", sans-serif;
+    "Nunito Variable", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", ui-sans-serif, system-ui,
+    sans-serif;
+  /* 金額欄位對齊：全站數字等寬。 */
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 深色模式：可可棕夜色，不是純黑；跟隨手機系統設定。 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: 24 19 16;
+    --card: 37 30 26;
+    --on-accent: 28 20 15;
+    --shadow: 0 0 0;
+
+    --n-50: 44 36 31;
+    --n-100: 52 43 37;
+    --n-200: 66 55 48;
+    --n-300: 90 77 68;
+    --n-400: 152 138 126;
+    --n-500: 176 162 150;
+    --n-600: 196 184 172;
+    --n-700: 210 199 188;
+    --n-800: 228 219 209;
+    --n-900: 244 237 229;
+    --n-950: 251 247 242;
+
+    --action: 255 138 96;
+    --action-soft: 74 40 28;
+    --family: 92 210 160;
+    --family-soft: 26 56 44;
+    --personal: 128 172 255;
+    --personal-soft: 30 44 72;
+
+    --red-50: 66 30 28;
+    --red-200: 110 48 44;
+    --red-400: 230 120 110;
+    --red-500: 240 120 108;
+    --red-600: 255 150 138;
+    --amber-50: 64 46 18;
+    --amber-100: 78 56 20;
+    --amber-200: 110 80 30;
+    --amber-500: 240 170 60;
+    --amber-600: 248 190 90;
+    --amber-700: 252 205 120;
+    --amber-800: 255 220 150;
+    --emerald-100: 26 56 44;
+    --emerald-500: 80 200 150;
+    --emerald-600: 110 215 170;
+    --green-100: 26 56 44;
+    --green-200: 40 80 62;
+    --green-600: 110 215 170;
+    --green-700: 140 225 185;
+    --yellow-200: 90 76 30;
+
+    color-scheme: dark;
+  }
+}
+
+::selection {
+  background: rgb(var(--action) / 0.22);
+}
+
+input,
+textarea {
+  caret-color: rgb(var(--action));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--action));
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: rgb(var(--n-300)) transparent;
+}
+
+/* 簽名動作：按下回彈。所有可按的東西按下微縮、放開彈回。 */
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  a[href],
+  summary {
+    transition:
+      transform 380ms cubic-bezier(0.34, 1.3, 0.64, 1),
+      background-color 160ms ease-out,
+      color 160ms ease-out,
+      box-shadow 160ms ease-out;
+  }
+  button:not(:disabled):active,
+  a[href]:active,
+  summary:active {
+    transform: scale(0.96);
+    transition-duration: 90ms;
+  }
 }
 
 body {
+  background: rgb(var(--page));
+  -webkit-font-smoothing: antialiased;
   min-width: 320px;
   max-width: 100%;
   min-height: 100vh;

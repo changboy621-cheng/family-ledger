@@ -76,8 +76,8 @@ export function SortableList<T>({ items, getId, renderItem, onReorder, onCommit 
           <li
             key={id}
             data-sortable-id={id}
-            className={`flex items-center gap-2 rounded-lg border bg-white px-2 py-2 transition ${
-              dragging ? 'border-family shadow-lg ring-2 ring-family/30' : 'border-slate-200'
+            className={`flex items-center gap-2 rounded-lg border bg-card px-2 py-2 transition ${
+              dragging ? 'border-action shadow-lg ring-2 ring-action/30' : 'border-slate-200'
             }`}
           >
             <button

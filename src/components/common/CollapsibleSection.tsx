@@ -22,7 +22,7 @@ export function CollapsibleSection({ title, children, defaultOpen = false, subti
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 text-left"
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-card shadow-sm px-5 py-4 text-left"
       >
         <span className="min-w-0">
           <span className="block font-bold text-slate-900">{title}</span>

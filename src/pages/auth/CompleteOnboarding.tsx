@@ -56,7 +56,7 @@ export function CompleteOnboarding() {
           <button
             type="button"
             className={`rounded-md px-3 py-2 text-sm font-semibold ${
-              mode === 'create' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              mode === 'create' ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
             }`}
             onClick={() => setMode('create')}
           >
@@ -65,7 +65,7 @@ export function CompleteOnboarding() {
           <button
             type="button"
             className={`rounded-md px-3 py-2 text-sm font-semibold ${
-              mode === 'join' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              mode === 'join' ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
             }`}
             onClick={() => setMode('join')}
           >
@@ -77,7 +77,7 @@ export function CompleteOnboarding() {
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             邀請碼
             <input
-              className="h-12 rounded-lg border border-slate-300 px-3 text-center text-xl font-bold uppercase tracking-widest outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+              className="h-12 rounded-lg border border-slate-300 px-3 text-center text-xl font-bold uppercase tracking-widest outline-none focus:border-action focus:ring-2 focus:ring-action/30"
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value)}
               maxLength={6}
@@ -89,7 +89,7 @@ export function CompleteOnboarding() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           顯示名稱
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             required
@@ -100,7 +100,7 @@ export function CompleteOnboarding() {
 
         {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
 
-        <button className="h-11 rounded-lg bg-family font-semibold text-white disabled:opacity-60" disabled={loading}>
+        <button className="h-11 rounded-lg bg-action font-semibold text-white disabled:opacity-60" disabled={loading}>
           {loading ? '處理中...' : mode === 'create' ? '建立家庭' : '加入家庭'}
         </button>
       </form>

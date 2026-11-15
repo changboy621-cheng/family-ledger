@@ -46,15 +46,15 @@ export function Register() {
       <div>
         <h1 className="text-xl font-bold text-slate-900">家庭已建立</h1>
         <p className="mt-3 text-sm text-slate-600">把邀請碼分享給另一半，對方就能加入同一個家庭帳本。</p>
-        <div className="mt-5 rounded-lg bg-familySoft p-5 text-center">
+        <div className="mt-5 rounded-lg bg-actionSoft p-5 text-center">
           <p className="text-sm font-medium text-slate-500">邀請碼</p>
-          <p className="mt-2 text-4xl font-bold tracking-widest text-family">{inviteCode}</p>
+          <p className="mt-2 text-4xl font-bold tracking-widest text-action">{inviteCode}</p>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button className="h-11 rounded-lg border border-slate-300 font-semibold" type="button" onClick={() => void copyInviteCode()}>
             複製
           </button>
-          <button className="h-11 rounded-lg bg-family font-semibold text-white" type="button" onClick={() => navigate('/')}>
+          <button className="h-11 rounded-lg bg-action font-semibold text-white" type="button" onClick={() => navigate('/')}>
             進入家帳
           </button>
         </div>
@@ -69,7 +69,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           顯示名稱
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
             placeholder="例如：老公"
@@ -80,7 +80,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Email
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -90,7 +90,7 @@ export function Register() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           密碼
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -102,11 +102,11 @@ export function Register() {
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{verificationNotice}</p>
         ) : null}
         {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
-        <button className="h-11 rounded-lg bg-family font-semibold text-white disabled:opacity-60" disabled={loading}>
+        <button className="h-11 rounded-lg bg-action font-semibold text-white disabled:opacity-60" disabled={loading}>
           {loading ? '建立中...' : '建立家庭並產生邀請碼'}
         </button>
       </form>
-      <Link className="mt-5 block text-sm font-semibold text-family" to="/auth/login">
+      <Link className="mt-5 block text-sm font-semibold text-action" to="/auth/login">
         已有帳號，回登入
       </Link>
     </div>

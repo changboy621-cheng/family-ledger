@@ -84,13 +84,13 @@ export function TripDetailPage() {
   if (error || !trip || !summary) {
     return (
       <div className="grid gap-3">
-        <Link to="/trips" className="text-sm font-semibold text-family">
+        <Link to="/trips" className="text-sm font-semibold text-action">
           ← 回旅行清單
         </Link>
-        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+        <section className="rounded-xl border border-red-200 bg-card p-4 text-sm text-slate-600">
           {error ? '旅行載入失敗。' : '找不到這趟旅行。'}
           {error ? (
-            <button type="button" className="ml-2 font-semibold text-family" onClick={() => void reload()}>
+            <button type="button" className="ml-2 font-semibold text-action" onClick={() => void reload()}>
               重試
             </button>
           ) : null}
@@ -163,33 +163,33 @@ export function TripDetailPage() {
   return (
     <div className="grid gap-5 pb-16">
       <header className="grid gap-2">
-        <Link to="/trips" className="flex items-center gap-1 text-sm font-semibold text-family">
+        <Link to="/trips" className="flex items-center gap-1 text-sm font-semibold text-action">
           <ArrowLeft className="h-4 w-4" />
           旅行清單
         </Link>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold text-slate-900">{trip.name}</h1>
+            <h1 className="truncate text-3xl font-extrabold tracking-tight text-slate-900">{trip.name}</h1>
             <p className="mt-1 text-xs text-slate-500">
               {trip.destination ? `${trip.destination}・` : ''}
               {trip.start_date} ~ {trip.end_date}（{summary.days} 天）・1 {trip.local_currency} ≈ NT${formatRate(trip.rate)}
             </p>
           </div>
           <div className="flex shrink-0 gap-1">
-            <button type="button" aria-label="編輯旅行" className="rounded-lg bg-white p-2 text-slate-500" onClick={() => setShowTripForm(true)}>
+            <button type="button" aria-label="編輯旅行" className="rounded-lg bg-card p-2 text-slate-500" onClick={() => setShowTripForm(true)}>
               <Pencil className="h-4 w-4" />
             </button>
-            <button type="button" aria-label="匯出 CSV" disabled={expenses.length === 0} className="rounded-lg bg-white p-2 text-slate-500 disabled:opacity-40" onClick={handleExport}>
+            <button type="button" aria-label="匯出 CSV" disabled={expenses.length === 0} className="rounded-lg bg-card p-2 text-slate-500 disabled:opacity-40" onClick={handleExport}>
               <Download className="h-4 w-4" />
             </button>
-            <button type="button" aria-label="刪除旅行" className="rounded-lg bg-white p-2 text-red-500" onClick={() => void handleDeleteTrip()}>
+            <button type="button" aria-label="刪除旅行" className="rounded-lg bg-card p-2 text-red-500" onClick={() => void handleDeleteTrip()}>
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
         <p className="text-sm text-slate-500">總花費（折合新台幣{sharedTwd > 0 ? '，不含幫朋友代墊' : ''}）</p>
         <p className="mt-1 text-3xl font-bold text-slate-900">{formatTwd(summary.totalTwd)}</p>
         <p className="mt-1 text-xs text-slate-500">
@@ -210,7 +210,7 @@ export function TripDetailPage() {
           <div className="mt-3">
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
               <div
-                className={`h-full rounded-full ${overBudget ? 'bg-red-500' : 'bg-family'}`}
+                className={`h-full rounded-full ${overBudget ? 'bg-red-500' : 'bg-ledger'}`}
                 style={{ width: `${Math.min(100, Math.round(summary.budgetUsed * 100))}%` }}
               />
             </div>
@@ -221,15 +221,15 @@ export function TripDetailPage() {
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-bold text-slate-900">
-            <Banknote className="h-5 w-5 text-family" />
+            <Banknote className="h-5 w-5 text-action" />
             手邊現金
           </h2>
           <button
             type="button"
-            className="rounded-full bg-familySoft px-3 py-1.5 text-sm font-semibold text-family"
+            className="rounded-full bg-actionSoft px-3 py-1.5 text-sm font-semibold text-action"
             onClick={() => setShowExchangeForm(true)}
           >
             ＋ 換匯
@@ -252,7 +252,7 @@ export function TripDetailPage() {
                   </div>
                   <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className={`h-full rounded-full ${ratio < 0.2 ? 'bg-amber-500' : 'bg-family'}`}
+                      className={`h-full rounded-full ${ratio < 0.2 ? 'bg-amber-500' : 'bg-ledger'}`}
                       style={{ width: `${Math.round(ratio * 100)}%` }}
                     />
                   </div>
@@ -303,7 +303,7 @@ export function TripDetailPage() {
       ) : null}
 
       {summary.byCategory.length > 0 ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
+        <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
           <h2 className="font-bold text-slate-900">花在哪</h2>
           <ul className="mt-3 grid gap-3">
             {summary.byCategory.map((item) => {
@@ -329,7 +329,7 @@ export function TripDetailPage() {
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-family" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
+                      <div className="h-full rounded-full bg-ledger" style={{ width: `${Math.round(item.ratio * 100)}%` }} />
                     </div>
                   </button>
                   {open ? (
@@ -354,7 +354,7 @@ export function TripDetailPage() {
       <section className="grid gap-3">
         <h2 className="font-bold text-slate-900">明細</h2>
         {expenses.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+          <p className="rounded-xl border border-dashed border-slate-300 bg-card p-6 text-center text-sm text-slate-500">
             還沒有花費，按右下角「＋」記第一筆。
           </p>
         ) : null}
@@ -362,7 +362,7 @@ export function TripDetailPage() {
           // 每日小計同總花費，只算自己負擔的部分。
           const dayTotal = rows.reduce((sum, row) => sum + ownTwd(row), 0);
           return (
-            <div key={date} className="rounded-xl border border-slate-200 bg-white">
+            <div key={date} className="rounded-xl border border-slate-200 bg-card shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
                 <span>{date}</span>
                 <span>{formatTwd(dayTotal)}</span>
@@ -409,7 +409,7 @@ export function TripDetailPage() {
       <button
         type="button"
         aria-label="新增旅行花費"
-        className="fixed bottom-24 right-4 z-20 rounded-full bg-family px-5 py-4 text-white shadow-lg lg:bottom-6"
+        className="fixed bottom-24 right-4 z-20 rounded-full bg-action px-5 py-4 text-white shadow-lg lg:bottom-6"
         onClick={() => setShowExpenseForm(true)}
       >
         <Plus className="h-5 w-5" />

@@ -58,10 +58,9 @@ const PERIODS: { value: Period; label: string }[] = [
 
 const DEBOUNCE_MS = 300;
 
-/** 漸層玻璃卡片的共用樣式（U 方案）。 */
-const glassCard = 'rounded-xl border border-white/80 bg-white/70 p-3 backdrop-blur';
+const glassCard = 'rounded-xl border border-slate-200 bg-card shadow-sm p-3';
 const chipBase = 'rounded-full px-3 py-2 text-sm font-semibold transition';
-const chipOff = 'border border-white/80 bg-white/60 text-slate-600 backdrop-blur';
+const chipOff = 'border border-slate-200 bg-card text-slate-600';
 const chipOn = 'bg-slate-900 text-white';
 
 /** 淨額摘要文字：只列非零幣別，收入為正、支出為負。 */
@@ -190,9 +189,7 @@ export function TransactionSearchModal({
       role="dialog"
       aria-modal="true"
       aria-label={category ? `${category.categoryName} 分類明細` : '搜尋交易'}
-      className={`fixed inset-0 z-40 overflow-y-auto bg-gradient-to-br ${
-        isFamily ? 'from-emerald-100 via-teal-50 to-rose-100' : 'from-sky-100 via-indigo-50 to-rose-100'
-      }`}
+      className="fixed inset-0 z-40 overflow-y-auto bg-page"
     >
       <div className="mx-auto grid max-w-3xl gap-4 p-4 pb-24">
         <header className="flex items-center gap-3">
@@ -223,7 +220,7 @@ export function TransactionSearchModal({
           )}
           <button
             type="button"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/80 bg-white/70 text-slate-600 backdrop-blur"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-card shadow-sm text-slate-600 backdrop-blur"
             onClick={onClose}
             aria-label="關閉"
           >

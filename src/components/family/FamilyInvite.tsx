@@ -50,13 +50,13 @@ export function FamilyInvite({ variant = 'card' }: FamilyInviteProps) {
 
   const wrapperClass =
     variant === 'card'
-      ? 'rounded-xl border border-familySoft bg-white p-5'
-      : 'rounded-lg border border-slate-200 bg-white p-5';
+      ? 'rounded-xl border border-actionSoft bg-card p-5'
+      : 'rounded-lg border border-slate-200 bg-card p-5';
 
   return (
     <section className={wrapperClass}>
       <div className="flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-familySoft text-family">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-actionSoft text-action">
           <Users className="h-4 w-4" />
         </span>
         <h2 className="font-bold text-slate-900">邀請家人一起記帳</h2>
@@ -67,7 +67,7 @@ export function FamilyInvite({ variant = 'card' }: FamilyInviteProps) {
       <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500">家庭邀請碼</p>
-          <p className="break-all font-mono text-2xl font-bold tracking-[0.3em] text-family">{code}</p>
+          <p className="break-all font-mono text-2xl font-bold tracking-[0.3em] text-action">{code}</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ export function FamilyInvite({ variant = 'card' }: FamilyInviteProps) {
         <button
           type="button"
           onClick={() => void shareInvite()}
-          className="flex h-12 items-center justify-center gap-2 rounded-lg bg-family font-semibold text-white active:opacity-90"
+          className="flex h-12 items-center justify-center gap-2 rounded-lg bg-action font-semibold text-white active:opacity-90"
         >
           <Share2 className="h-4 w-4" />
           分享邀請

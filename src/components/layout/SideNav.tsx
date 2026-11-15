@@ -13,7 +13,7 @@ const items = [
 
 export function SideNav() {
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 border-r border-slate-200 bg-white p-5 lg:block">
+    <aside className="sticky top-0 hidden h-screen w-64 border-r border-slate-200 bg-card p-5 lg:block">
       <h1 className="text-xl font-bold text-slate-900">家帳 FamilyLedger</h1>
       <nav className="mt-8 grid gap-2">
         {items.map((item) => (
@@ -23,7 +23,7 @@ export function SideNav() {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold',
-                isActive ? 'bg-familySoft text-family' : 'text-slate-600 hover:bg-slate-50'
+                isActive ? 'bg-actionSoft text-action' : 'text-slate-600 hover:bg-slate-50'
               )
             }
           >

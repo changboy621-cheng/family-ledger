@@ -22,7 +22,7 @@ interface RecurringFormProps {
 
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 const inputClass =
-  'h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30';
+  'h-11 rounded-lg border border-slate-300 bg-card px-3 text-slate-900 outline-none focus:border-action focus:ring-2 focus:ring-action/30';
 
 // 新增／編輯固定收支。欄位與記帳表單一致，另加「每月幾號」；新增時若本月記入日已過，可選擇本月是否也記入。
 export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: RecurringFormProps) {
@@ -112,7 +112,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
               type="button"
               aria-pressed={ledgerType === option}
               className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                ledgerType === option ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                ledgerType === option ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
               }`}
               onClick={() => setLedgerType(option)}
             >
@@ -147,7 +147,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
                   type="button"
                   aria-pressed={ownerId === member.id}
                   className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                    ownerId === member.id ? 'border-family bg-familySoft text-family' : 'border-slate-200 bg-white text-slate-600'
+                    ownerId === member.id ? 'border-action bg-actionSoft text-action' : 'border-slate-200 bg-card text-slate-600'
                   }`}
                   onClick={() => setOwnerId(member.id)}
                 >
@@ -190,7 +190,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
           <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-family"
+              className="mt-0.5 h-4 w-4 accent-action"
               checked={includeThisMonth}
               onChange={(event) => setIncludeThisMonth(event.target.checked)}
             />
@@ -209,7 +209,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
                 type="button"
                 aria-pressed={paymentMethod === option}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  paymentMethod === option ? 'bg-family text-white' : 'bg-slate-100 text-slate-600'
+                  paymentMethod === option ? 'bg-action text-white' : 'bg-slate-100 text-slate-600'
                 }`}
                 onClick={() => setPaymentMethod(option)}
               >
@@ -239,7 +239,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
 
         {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
 
-        <button className="h-12 rounded-lg bg-family px-4 font-semibold text-white disabled:opacity-60" type="submit" disabled={saving}>
+        <button className="h-12 rounded-lg bg-action px-4 font-semibold text-white disabled:opacity-60" type="submit" disabled={saving}>
           {saving ? '儲存中...' : initialRule ? '更新' : '建立'}
         </button>
       </form>

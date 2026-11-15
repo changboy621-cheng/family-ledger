@@ -17,8 +17,8 @@ export default defineConfig({
         short_name: '家帳',
         start_url: '/',
         display: 'standalone',
-        background_color: '#F8FAFC',
-        theme_color: '#1D9E75',
+        background_color: '#FFF4E6',
+        theme_color: '#FFF4E6',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

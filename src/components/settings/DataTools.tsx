@@ -147,7 +147,7 @@ export function DataTools() {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5">
       <h2 className="font-bold text-slate-900">資料匯入／匯出</h2>
       <p className="mt-1 text-sm text-slate-500">把交易備份成 CSV，或從別的記帳 App 匯入。</p>
 
@@ -178,7 +178,7 @@ export function DataTools() {
         <div className="mt-4 rounded-lg bg-slate-50 p-4">
           <p className="text-xs text-slate-500">偵測格式：{preview.format}</p>
           <p className="mt-1 text-sm text-slate-700">
-            檔案「{preview.fileName}」：將匯入 <strong className="text-family">{preview.records.length}</strong> 筆
+            檔案「{preview.fileName}」：將匯入 <strong className="text-action">{preview.records.length}</strong> 筆
             {preview.skipped > 0 ? `，略過 ${preview.skipped} 筆（期初/轉帳/資料不全）` : ''}。
           </p>
 
@@ -189,7 +189,7 @@ export function DataTools() {
                 key={option}
                 type="button"
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  ledger === option ? 'bg-family text-white' : 'bg-white text-slate-600 border border-slate-300'
+                  ledger === option ? 'bg-action text-white' : 'bg-card text-slate-600 border border-slate-300'
                 }`}
                 onClick={() => setLedger(option)}
               >
@@ -203,7 +203,7 @@ export function DataTools() {
               type="button"
               onClick={() => void confirmImport()}
               disabled={busy}
-              className="h-10 flex-1 rounded-lg bg-family font-semibold text-white disabled:opacity-60"
+              className="h-10 flex-1 rounded-lg bg-action font-semibold text-white disabled:opacity-60"
             >
               {busy ? '匯入中...' : '確認匯入'}
             </button>

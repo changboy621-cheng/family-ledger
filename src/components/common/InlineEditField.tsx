@@ -54,7 +54,7 @@ export function InlineEditField({
         {editing ? (
           <>
             <input
-              className="h-9 w-40 min-w-0 max-w-full flex-1 rounded-lg border border-slate-300 px-3 text-right outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+              className="h-9 w-40 min-w-0 max-w-full flex-1 rounded-lg border border-slate-300 px-3 text-right outline-none focus:border-action focus:ring-2 focus:ring-action/30"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               maxLength={maxLength}
@@ -62,7 +62,7 @@ export function InlineEditField({
               aria-label={label}
             />
             <button
-              className="grid h-9 w-9 place-items-center rounded-lg bg-family text-white disabled:opacity-60"
+              className="grid h-9 w-9 place-items-center rounded-lg bg-action text-white disabled:opacity-60"
               type="button"
               onClick={() => void save()}
               disabled={saving}
@@ -84,7 +84,7 @@ export function InlineEditField({
           <>
             <span className="font-semibold text-slate-900">{value}</span>
             <button
-              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-family"
+              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-action"
               type="button"
               onClick={startEdit}
               aria-label={`編輯${label}`}

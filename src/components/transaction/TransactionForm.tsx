@@ -193,6 +193,59 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     }
   }
 
+  // 「更多選項」收合時的摘要，讓使用者不用展開也看得到目前的日期／付款／歸屬／地點。
+  const ownerName =
+    ledgerType === 'family' && members.length > 1 ? members.find((member) => member.id === ownerId)?.display_name : undefined;
+  const moreSummary = [
+    transactionDate === todayISO() ? '今天' : transactionDate.slice(5).replace('-', '/'),
+    paymentMethodLabel(paymentMethod),
+    ownerName,
+    coords ? '📍' : undefined
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const noteField = (
+    <label className="grid gap-2 text-sm font-medium text-slate-700">
+      備註
+      <textarea
+        className="min-h-20 rounded-lg border border-slate-300 bg-card px-3 py-2 text-slate-900 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder="晚餐、機票、生活用品..."
+      />
+      {noteSuggestions.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {noteSuggestions.map((suggestion) => {
+            const pinned = pinnedNotes.includes(suggestion);
+            return (
+              <button
+                key={suggestion}
+                type="button"
+                className={`max-w-[14rem] truncate select-none rounded-full border px-3 py-1 text-xs active:bg-slate-50 ${
+                  pinned ? 'border-action bg-actionSoft text-action' : 'border-slate-200 bg-card text-slate-600'
+                }`}
+                style={{ WebkitTouchCallout: 'none' }}
+                onClick={() => handleSuggestionClick(suggestion)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  togglePinned(suggestion);
+                }}
+                onPointerDown={(event) => startLongPress(suggestion, event.pointerType)}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+                title="點一下帶入；長按（或右鍵）釘選"
+              >
+                {pinned ? '📌 ' : ''}
+                {suggestion}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </label>
+  );
+
   const dialogTitle = initialTransaction ? '編輯交易' : '新增記帳';
 
   if (movingToTrip && initialTransaction && onDelete) {
@@ -222,7 +275,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                 key={option}
                 type="button"
                 className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                  ledgerType === option ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                  ledgerType === option ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
                 }`}
                 onClick={() => setLedgerType(option)}
               >
@@ -246,13 +299,32 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             ))}
           </div>
 
+          <CurrencySelector value={currency} onChange={setCurrency} />
+          <AmountInput currency={currency} value={amount} onChange={setAmount} />
+          <CategoryPicker
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+            onCreate={createCategory}
+            onUpdate={updateCategory}
+            onDelete={deleteCategory}
+          />
+
+          {noteField}
+
+          <details className="group rounded-lg border border-slate-200">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm">
+              <span className="font-medium text-slate-700">更多選項</span>
+              <span className="truncate text-slate-500">{moreSummary}</span>
+            </summary>
+            <div className="grid gap-5 border-t border-slate-200 p-4">
           <div className="flex gap-2">
             {(['cash', 'card'] as PaymentMethod[]).map((option) => (
               <button
                 key={option}
                 type="button"
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  paymentMethod === option ? 'bg-family text-white' : 'bg-slate-100 text-slate-600'
+                  paymentMethod === option ? 'bg-action text-white' : 'bg-slate-100 text-slate-600'
                 }`}
                 onClick={() => setPaymentMethod(option)}
               >
@@ -271,8 +343,8 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
                     type="button"
                     className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition ${
                       ownerId === member.id
-                        ? 'border-family bg-familySoft text-family'
-                        : 'border-slate-200 bg-white text-slate-600'
+                        ? 'border-action bg-actionSoft text-action'
+                        : 'border-slate-200 bg-card text-slate-600'
                     }`}
                     onClick={() => setOwnerId(member.id)}
                   >
@@ -288,65 +360,16 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             </div>
           ) : null}
 
-          <CurrencySelector value={currency} onChange={setCurrency} />
-          <AmountInput currency={currency} value={amount} onChange={setAmount} />
-          <CategoryPicker
-            categories={categories}
-            value={categoryId}
-            onChange={setCategoryId}
-            onCreate={createCategory}
-            onUpdate={updateCategory}
-            onDelete={deleteCategory}
-          />
-
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             日期
             <input
-              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+              className="h-11 rounded-lg border border-slate-300 bg-card px-3 text-slate-900 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
               type="date"
               value={transactionDate}
               onChange={(event) => setTransactionDate(event.target.value)}
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            備註
-            <textarea
-              className="min-h-20 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="晚餐、機票、生活用品..."
-            />
-            {noteSuggestions.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {noteSuggestions.map((suggestion) => {
-                  const pinned = pinnedNotes.includes(suggestion);
-                  return (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      className={`max-w-[14rem] truncate select-none rounded-full border px-3 py-1 text-xs active:bg-slate-50 ${
-                        pinned ? 'border-family bg-familySoft text-family' : 'border-slate-200 bg-white text-slate-600'
-                      }`}
-                      style={{ WebkitTouchCallout: 'none' }}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      onContextMenu={(event) => {
-                        event.preventDefault();
-                        togglePinned(suggestion);
-                      }}
-                      onPointerDown={(event) => startLongPress(suggestion, event.pointerType)}
-                      onPointerUp={cancelLongPress}
-                      onPointerLeave={cancelLongPress}
-                      title="點一下帶入；長按（或右鍵）釘選"
-                    >
-                      {pinned ? '📌 ' : ''}
-                      {suggestion}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </label>
 
           <LocationPicker
             coords={coords}
@@ -358,16 +381,8 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             onPhotoDate={setTransactionDate}
             autoLocateOnMount={!initialTransaction}
           />
-
-          {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
-
-          <button
-            className="h-12 rounded-lg bg-family px-4 font-semibold text-white disabled:opacity-60"
-            type="submit"
-            disabled={saving}
-          >
-            {saving ? '儲存中...' : initialTransaction ? '更新交易' : '儲存交易'}
-          </button>
+            </div>
+          </details>
 
           {initialTransaction?.type === 'expense' && onDelete ? (
             <button
@@ -378,6 +393,18 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               ✈️ 記錯了？移到旅遊帳本
             </button>
           ) : null}
+
+          {/* 儲存鈕黏在畫面底部：表單再長也不用捲到最下面才能存。 */}
+          <div className="sticky -bottom-5 -mx-5 -mb-5 grid gap-3 rounded-b-xl border-t border-slate-200 bg-card px-5 py-3 shadow-[0_-10px_24px_-14px_rgb(var(--shadow)/0.35)]">
+            {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
+            <button
+              className="h-12 rounded-lg bg-action px-4 font-semibold text-white disabled:opacity-60"
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? '儲存中...' : initialTransaction ? '更新交易' : '儲存交易'}
+            </button>
+          </div>
       </form>
     </Modal>
   );
