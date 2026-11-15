@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import type { Currency } from '../types';
 import { formatAmount } from '../lib/currency';
@@ -21,7 +21,12 @@ const PERIODS: { value: MapPeriod; label: string }[] = [
 ];
 
 export function MapPage() {
-  const [source, setSource] = useState<MapSourceFilter>('all');
+  const [searchParams] = useSearchParams();
+  // 從旅遊頁進來（?source=trip）時預設只看旅遊；其他來源值一律退回「全部」。
+  const [source, setSource] = useState<MapSourceFilter>(() => {
+    const requested = searchParams.get('source');
+    return SOURCES.some((option) => option.value === requested) ? (requested as MapSourceFilter) : 'all';
+  });
   const [colorBy, setColorBy] = useState<'category' | 'source'>('category');
   const [period, setPeriod] = useState<MapPeriod>('year');
   const [currency, setCurrency] = useState<Currency>('TWD');
@@ -72,7 +77,7 @@ export function MapPage() {
             key={option.value}
             type="button"
             className={`rounded-full px-3 py-2 text-sm font-semibold ${
-              period === option.value ? 'bg-action text-white' : 'bg-card text-slate-600'
+              period === option.value ? 'bg-slate-900 text-white' : 'bg-card text-slate-600'
             }`}
             onClick={() => setPeriod(option.value)}
           >

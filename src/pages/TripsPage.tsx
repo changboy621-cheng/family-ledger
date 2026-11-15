@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plane, Plus } from 'lucide-react';
+import { MapPin, Plane, Plus } from 'lucide-react';
 import { useTrips } from '../hooks/useTrips';
 import { formatRate, tripStatus, type Trip } from '../lib/trips';
 import { todayISO } from '../lib/utils';
@@ -9,7 +9,7 @@ import { TripForm } from '../components/trip/TripForm';
 
 const STATUS_LABEL = { ongoing: '旅行中', upcoming: '即將出發', past: '已結束' } as const;
 const STATUS_STYLE = {
-  ongoing: 'bg-action text-white',
+  ongoing: 'bg-slate-900 text-white',
   upcoming: 'bg-personalSoft text-personal',
   past: 'bg-slate-100 text-slate-500'
 } as const;
@@ -46,19 +46,30 @@ export function TripsPage() {
 
   return (
     <div className="grid gap-5">
-      <header className="flex items-end justify-between gap-3 pt-2">
-        <div>
+      <header className="grid gap-1 pt-2">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">旅遊記帳</h1>
-          <p className="mt-1 text-sm text-slate-500">每趟旅行一本獨立帳，多幣別、記下當時匯率，不會混進日常月報。</p>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* 旅遊最常用到地圖：直接開地圖並只顯示旅遊花費。 */}
+          <Link
+            to="/map?source=trip"
+            className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-card text-slate-600 shadow-sm hover:text-slate-900"
+            aria-label="旅遊消費地圖"
+            title="旅遊消費地圖"
+          >
+            <MapPin className="h-5 w-5" />
+          </Link>
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-full bg-action px-4 py-3 text-sm font-semibold text-white shadow"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-4 w-4" />
+            新旅行
+          </button>
         </div>
-        <button
-          type="button"
-          className="flex shrink-0 items-center gap-1 rounded-full bg-action px-4 py-3 text-sm font-semibold text-white shadow"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="h-4 w-4" />
-          新旅行
-        </button>
+        </div>
+        <p className="text-sm text-slate-500">每趟旅行一本獨立帳，多幣別、記下當時匯率，不會混進日常月報。</p>
       </header>
 
       {error ? (

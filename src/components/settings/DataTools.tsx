@@ -189,7 +189,7 @@ export function DataTools() {
                 key={option}
                 type="button"
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  ledger === option ? 'bg-action text-white' : 'bg-card text-slate-600 border border-slate-300'
+                  ledger === option ? 'bg-slate-900 text-white' : 'bg-card text-slate-600 border border-slate-300'
                 }`}
                 onClick={() => setLedger(option)}
               >

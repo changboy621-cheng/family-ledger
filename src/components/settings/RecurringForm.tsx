@@ -209,7 +209,7 @@ export function RecurringForm({ initialRule, onCreate, onUpdate, onClose }: Recu
                 type="button"
                 aria-pressed={paymentMethod === option}
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  paymentMethod === option ? 'bg-action text-white' : 'bg-slate-100 text-slate-600'
+                  paymentMethod === option ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
                 onClick={() => setPaymentMethod(option)}
               >
