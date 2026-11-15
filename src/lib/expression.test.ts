@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateExpression, sanitizeExpressionInput } from './expression';
+import { appendCalculatorKey, evaluateExpression, sanitizeExpressionInput } from './expression';
 
 describe('evaluateExpression', () => {
   it('計算加減乘除', () => {
@@ -44,5 +44,32 @@ describe('sanitizeExpressionInput', () => {
     expect(sanitizeExpressionInput('12a+3b')).toBe('12+3');
     expect(sanitizeExpressionInput('100×2')).toBe('1002');
     expect(sanitizeExpressionInput('(50+50)/2')).toBe('(50+50)/2');
+  });
+});
+
+describe('appendCalculatorKey', () => {
+  const type = (keys: string) => [...keys].reduce((value, key) => appendCalculatorKey(value, key), '');
+
+  it('開頭的 0 會被下一個數字取代', () => {
+    expect(type('01')).toBe('1');
+    expect(type('001')).toBe('1');
+    expect(type('000')).toBe('0');
+    expect(type('5+03')).toBe('5+3');
+    expect(type('100')).toBe('100');
+    expect(type('5+10')).toBe('5+10');
+  });
+
+  it('小數點：每個數字只能一個，開頭自動補 0', () => {
+    expect(type('.5')).toBe('0.5');
+    expect(type('0.5')).toBe('0.5');
+    expect(type('1.2.3')).toBe('1.23');
+    expect(type('5+.5')).toBe('5+0.5');
+    expect(type('0.05')).toBe('0.05');
+  });
+
+  it('運算符號：開頭不能按，連按以後按的為準', () => {
+    expect(type('+5')).toBe('5');
+    expect(type('5+*3')).toBe('5*3');
+    expect(type('5.+')).toBe('5+');
   });
 });

@@ -1,7 +1,7 @@
 import { Delete } from 'lucide-react';
 import type { Currency } from '../../types';
 import { formatAmount } from '../../lib/currency';
-import { evaluateExpression, sanitizeExpressionInput } from '../../lib/expression';
+import { appendCalculatorKey, evaluateExpression } from '../../lib/expression';
 
 interface AmountInputProps {
   currency: Currency;
@@ -55,7 +55,7 @@ export function AmountInput({ currency, value, onChange, formatResult, hint }: A
       onChange(value.slice(0, -1));
       return;
     }
-    onChange(sanitizeExpressionInput(value + item.key));
+    onChange(appendCalculatorKey(value, item.key));
   }
 
   return (
