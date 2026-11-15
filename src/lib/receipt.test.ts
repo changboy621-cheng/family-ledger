@@ -26,6 +26,21 @@ describe('parseReceiptText', () => {
     expect(parseReceiptText(text)).toEqual({ source: 'ocr', amount: 320, date: '2026-11-03' });
   });
 
+  // 以下為合成的 OCR 文字，重現實際會抓錯金額的版面。
+  it.each([
+    ['總計後面有找零金額', ['總計 486', '收現金額 500', '找零金額 14'], 486],
+    ['總計後面有未稅金額、稅額', ['總計 525', '未稅金額 500', '稅額 25'], 525],
+    ['SUBTOTAL 不當成 TOTAL', ['TOTAL 486', 'SUBTOTAL 450'], 486],
+    ['小計印在總計之後', ['總計 486', '小計 450'], 486],
+    ['金額被拆到下一行', ['總計', '$486'], 486],
+    ['千分位逗號後多了空白', ['總計 1, 486'], 1486],
+    ['同一行後面接統編', ['總計 486 統編 04123456'], 486],
+    ['同一行後面接找零', ['總計 486 找零 14'], 486],
+    ['0 被認成 O', ['總計 4O6'], 406]
+  ])('%s', (_name, lines, expected) => {
+    expect(parseReceiptText(lines.join('\n')).amount).toBe(expected);
+  });
+
   it('看不出來就不回傳欄位', () => {
     expect(parseReceiptText('謝謝光臨')).toEqual({ source: 'ocr' });
   });
