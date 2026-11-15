@@ -6,6 +6,7 @@ interface ErrorLike {
 }
 
 const errorMessageMap: Record<string, string> = {
+  uq_transactions_family_invoice: '這張發票已經記過了（同一個發票號碼）。',
   'duplicate key value violates unique constraint "user_profiles_pkey"':
     '這個帳號的個人設定其實已建立過了。請重新整理頁面，或直接重新登入一次。',
   'duplicate key value violates unique constraint "families_invite_code_key"':

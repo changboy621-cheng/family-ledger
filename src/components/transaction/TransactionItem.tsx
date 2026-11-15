@@ -4,7 +4,21 @@ import { formatAmount } from '../../lib/currency';
 import { DEFAULT_AVATAR_COLOR, paymentMethodLabel } from '../../lib/constants';
 import { splitHighlight } from '../../lib/search';
 import { CurrencyBadge } from '../common/CurrencyBadge';
-import { MapPin, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Pencil, ReceiptText, Trash2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+
+/** 收據照片在私有 bucket：開啟時才換一個 5 分鐘有效的網址。先開空白分頁，避免手機擋彈出視窗。 */
+async function openReceipt(path: string) {
+  const popup = window.open('', '_blank');
+  const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) {
+    popup?.close();
+    window.alert('收據照片打不開，請稍後再試。');
+    return;
+  }
+  if (popup) popup.location.href = data.signedUrl;
+  else window.location.href = data.signedUrl;
+}
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -98,8 +112,19 @@ function TransactionItemBase({ transaction, onDelete, onEdit, recorderName, high
               {formatAmount(Number(transaction.amount), transaction.currency)}
             </strong>
           </div>
-          {onEdit || onDelete ? (
+          {onEdit || onDelete || transaction.receipt_url ? (
             <div className="flex items-center gap-2">
+              {transaction.receipt_url ? (
+                <button
+                  className="grid h-10 w-10 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                  type="button"
+                  onClick={() => void openReceipt(transaction.receipt_url as string)}
+                  aria-label="查看收據照片"
+                  title="查看收據照片"
+                >
+                  <ReceiptText className="h-4 w-4" />
+                </button>
+              ) : null}
               {onEdit ? (
                 <button
                   className="grid h-10 w-10 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"

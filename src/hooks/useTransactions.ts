@@ -31,6 +31,12 @@ export interface TransactionInput {
   place_name?: string | null;
   /** 這筆帳歸屬的成員；未指定時即記帳人本人。家庭帳本可代其他成員記錄。 */
   owner_id?: string;
+  /** 付款帳戶。undefined = 不動這個欄位（尚未建立帳戶功能時不送出，相容未跑 015 migration 的資料庫）。 */
+  account_id?: string | null;
+  /** 電子發票號碼（掃收據帶入）。 */
+  invoice_number?: string | null;
+  /** 收據照片在 storage 的路徑。 */
+  receipt_url?: string | null;
 }
 
 export interface TransactionUpdateInput extends TransactionInput {
@@ -95,6 +101,18 @@ export function resolveUpdateOwnerPatch(
  * 寫入用的位置欄位：經緯度必須成對，缺一就整組清成 null；地點名稱空白視為無。
  * 更新時一律回傳三個欄位，讓使用者在表單移除位置能真的清掉資料庫裡的值。
  */
+/**
+ * 015 migration 新增的欄位（帳戶、發票號碼、收據照片）只在有值或明確要清空時才送出，
+ * 讓前端先上線、資料庫還沒跑 migration 時，一般記帳不會因為「欄位不存在」而失敗。
+ */
+export function optionalColumns(input: Pick<TransactionInput, 'account_id' | 'invoice_number' | 'receipt_url'>) {
+  const patch: Record<string, string | null> = {};
+  if (input.account_id !== undefined) patch.account_id = input.account_id;
+  if (input.invoice_number) patch.invoice_number = input.invoice_number;
+  if (input.receipt_url) patch.receipt_url = input.receipt_url;
+  return patch;
+}
+
 export function resolveLocationPatch(input: Pick<TransactionInput, 'latitude' | 'longitude' | 'place_name'>) {
   const hasCoords = input.latitude != null && input.longitude != null;
   return {
@@ -194,7 +212,8 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
         recorded_by: profile.id,
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null,
-        ...resolveLocationPatch(input)
+        ...resolveLocationPatch(input),
+        ...optionalColumns(input)
       };
 
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -238,6 +257,7 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
           note: input.note?.trim() || null,
           payment_method: input.payment_method ?? null,
           ...resolveLocationPatch(input),
+          ...optionalColumns(input),
           ...resolveUpdateOwnerPatch(input.ledger_type, input.owner_id)
         })
         .eq('id', id);

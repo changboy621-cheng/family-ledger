@@ -46,6 +46,10 @@ export interface Transaction {
   payment_method?: PaymentMethod | null;
   transaction_date: string;
   receipt_url?: string | null;
+  /** 付款／入帳的帳戶（資產管理）；null = 未指定。 */
+  account_id?: string | null;
+  /** 電子發票號碼（載具匯入、掃收據時填入，用來避免重複）。 */
+  invoice_number?: string | null;
   /** 消費地點（可選）：經緯度與使用者可編輯的地點名稱。 */
   latitude?: number | null;
   longitude?: number | null;
@@ -147,4 +151,37 @@ export interface LedgerAnalysis {
   expenseByPayment: PaymentExpenseSummary[];
   dailyExpenseTrend: DailyExpensePoint[];
   monthlyExpenseTrend: MonthlyExpensePoint[];
+}
+
+export type AccountKind = 'cash' | 'bank' | 'credit' | 'other';
+
+export interface Account {
+  id: string;
+  family_id: string;
+  /** null = 家庭共同帳戶；有值 = 個人帳戶。 */
+  owner_id: string | null;
+  name: string;
+  kind: AccountKind;
+  currency: Currency;
+  opening_balance: number;
+  sort_order: number;
+  archived: boolean;
+}
+
+export interface AccountTransfer {
+  id: string;
+  family_id: string;
+  from_account_id: string;
+  to_account_id: string;
+  amount: number;
+  transfer_date: string;
+  note?: string | null;
+  created_by?: string | null;
+}
+
+/** 帳戶每月淨流量（資料庫端加總，不含明細）。 */
+export interface AccountMonthlyFlow {
+  account_id: string;
+  month: string;
+  net: number;
 }
