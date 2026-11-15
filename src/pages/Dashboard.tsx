@@ -21,6 +21,7 @@ import { monthElapsedRatio } from '../lib/budget';
 import { SavingsCard } from '../components/budget/SavingsCard';
 import { BudgetProgressCard } from '../components/budget/BudgetProgressCard';
 import { DashboardShortcuts } from '../components/budget/DashboardShortcuts';
+import { SettlementCard } from '../components/budget/SettlementCard';
 
 interface CategoryDrillTarget {
   ledgerType: LedgerType;
@@ -88,6 +89,8 @@ export function Dashboard() {
       </section>
 
       <DashboardShortcuts />
+
+      <SettlementCard />
 
       {ledgersReady && profile ? (
         <section className="grid gap-3 md:grid-cols-2">
