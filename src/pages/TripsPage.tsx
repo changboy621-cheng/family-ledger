@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plane, Plus } from 'lucide-react';
+import { MapPin, Plane, Plus } from 'lucide-react';
 import { useTrips } from '../hooks/useTrips';
 import { formatRate, tripStatus, type Trip } from '../lib/trips';
 import { todayISO } from '../lib/utils';
@@ -9,7 +9,7 @@ import { TripForm } from '../components/trip/TripForm';
 
 const STATUS_LABEL = { ongoing: '旅行中', upcoming: '即將出發', past: '已結束' } as const;
 const STATUS_STYLE = {
-  ongoing: 'bg-family text-white',
+  ongoing: 'bg-slate-900 text-white',
   upcoming: 'bg-personalSoft text-personal',
   past: 'bg-slate-100 text-slate-500'
 } as const;
@@ -19,7 +19,7 @@ function TripCard({ trip, today }: { trip: Trip; today: string }) {
   return (
     <Link
       to={`/trips/${trip.id}`}
-      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-card p-4 shadow-sm"
     >
       <div className="min-w-0">
         <p className="truncate font-bold text-slate-900">{trip.name}</p>
@@ -46,26 +46,36 @@ export function TripsPage() {
 
   return (
     <div className="grid gap-5">
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-500">出國專用</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">旅遊記帳</h1>
-          <p className="mt-1 text-sm text-slate-500">每趟旅行一本獨立帳，多幣別、記下當時匯率，不會混進日常月報。</p>
+      <header className="grid gap-1 pt-2">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">旅遊記帳</h1>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* 旅遊最常用到地圖：直接開地圖並只顯示旅遊花費。 */}
+          <Link
+            to="/map?source=trip"
+            className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-card text-slate-600 shadow-sm hover:text-slate-900"
+            aria-label="旅遊消費地圖"
+            title="旅遊消費地圖"
+          >
+            <MapPin className="h-5 w-5" />
+          </Link>
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-full bg-action px-4 py-3 text-sm font-semibold text-white shadow"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-4 w-4" />
+            新旅行
+          </button>
         </div>
-        <button
-          type="button"
-          className="flex shrink-0 items-center gap-1 rounded-full bg-family px-4 py-3 text-sm font-semibold text-white shadow"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="h-4 w-4" />
-          新旅行
-        </button>
+        </div>
+        <p className="text-sm text-slate-500">每趟旅行一本獨立帳，多幣別、記下當時匯率，不會混進日常月報。</p>
       </header>
 
       {error ? (
-        <section className="rounded-xl border border-red-200 bg-white p-4 text-sm text-slate-600">
+        <section className="rounded-xl border border-red-200 bg-card p-4 text-sm text-slate-600">
           旅行載入失敗，請確認已在 Supabase 執行 010_trips.sql。
-          <button type="button" className="ml-2 font-semibold text-family" onClick={() => void reload()}>
+          <button type="button" className="ml-2 font-semibold text-action" onClick={() => void reload()}>
             重試
           </button>
         </section>
@@ -74,8 +84,8 @@ export function TripsPage() {
       {loading ? <p className="text-sm text-slate-400">載入中…</p> : null}
 
       {!loading && !error && trips.length === 0 ? (
-        <section className="grid justify-items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <Plane className="h-8 w-8 text-family" />
+        <section className="grid justify-items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-card p-8 text-center">
+          <Plane className="h-8 w-8 text-action" />
           <p className="font-semibold text-slate-900">還沒有旅行</p>
           <p className="text-sm text-slate-500">出發前先建一趟旅行、設好匯率，到了當地一鍵記帳。</p>
         </section>

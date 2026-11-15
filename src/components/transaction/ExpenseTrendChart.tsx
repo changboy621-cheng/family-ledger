@@ -26,7 +26,7 @@ function ExpenseTrendChartBase({ title, points, currencyFilter, labelKey }: Expe
   const hasData = points.some((point) => currencies.some((currency) => point.totals[currency] > 0));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
 
       {!hasData ? (
@@ -54,7 +54,7 @@ function ExpenseTrendChartBase({ title, points, currencyFilter, labelKey }: Expe
                         style={{ height: '100%' }}
                       >
                         <div
-                          className={`w-full rounded-t ${value > 0 ? 'bg-family' : 'bg-slate-200'}`}
+                          className={`w-full rounded-t ${value > 0 ? 'bg-ledger' : 'bg-slate-200'}`}
                           style={{ height: `${height}%` }}
                           title={formatAmount(value, currency)}
                         />

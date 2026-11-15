@@ -44,7 +44,7 @@ export function Login() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Email
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             type="email"
             autoComplete="email"
             value={email}
@@ -55,7 +55,7 @@ export function Login() {
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           密碼
           <input
-            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+            className="h-11 rounded-lg border border-slate-300 px-3 outline-none focus:border-action focus:ring-2 focus:ring-action/30"
             type="password"
             autoComplete="current-password"
             value={password}
@@ -64,7 +64,7 @@ export function Login() {
           />
         </label>
         {error ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p> : null}
-        <button className="h-11 rounded-lg bg-family font-semibold text-white disabled:opacity-60" disabled={loading}>
+        <button className="h-11 rounded-lg bg-action font-semibold text-white disabled:opacity-60" disabled={loading}>
           {loading ? '登入中...' : '登入'}
         </button>
       </form>
@@ -77,10 +77,10 @@ export function Login() {
         使用 Google 登入
       </button>
       <div className="mt-5 grid gap-2 text-sm text-slate-600">
-        <Link className="font-semibold text-family" to="/auth/register">
+        <Link className="font-semibold text-action" to="/auth/register">
           第一次使用，建立家庭
         </Link>
-        <Link className="font-semibold text-personal" to="/auth/join">
+        <Link className="font-semibold text-slate-700 underline underline-offset-4" to="/auth/join">
           我有邀請碼，加入家庭
         </Link>
       </div>

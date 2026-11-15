@@ -38,7 +38,7 @@ export function BudgetManager() {
   }
 
   return (
-    <section id="budget" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-5">
+    <section id="budget" className="scroll-mt-4 rounded-xl border border-slate-200 bg-card shadow-sm p-5">
       <h2 className="font-bold text-slate-900">每月預算</h2>
       <p className="mt-1 text-sm text-slate-500">自本月起生效，之後每個月自動沿用。清空後儲存即取消。</p>
 
@@ -106,7 +106,7 @@ function Segmented<T extends string>({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={`h-8 rounded-md px-3 text-sm font-semibold ${
-            value === option.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+            value === option.value ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
           }`}
         >
           {option.label}
@@ -158,7 +158,7 @@ function BudgetField({
 
   return (
     <form
-      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${emphasized ? 'bg-familySoft' : 'bg-slate-50'}`}
+      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${emphasized ? 'bg-slate-100' : 'bg-slate-50'}`}
       onSubmit={(event) => {
         event.preventDefault();
         if (dirty) void save();
@@ -168,7 +168,7 @@ function BudgetField({
         {label}
       </span>
       <input
-        className="h-9 w-28 rounded-lg border border-slate-300 bg-white px-3 text-right text-sm outline-none focus:border-family focus:ring-2 focus:ring-family/30"
+        className="h-9 w-28 rounded-lg border border-slate-300 bg-card px-3 text-right text-sm outline-none focus:border-action focus:ring-2 focus:ring-action/30"
         inputMode={currency === 'TWD' ? 'numeric' : 'decimal'}
         placeholder="未設定"
         aria-label={`${label}預算`}
@@ -178,7 +178,7 @@ function BudgetField({
       <button
         type="submit"
         disabled={!dirty || saving}
-        className="h-9 shrink-0 rounded-lg bg-family px-3 text-sm font-semibold text-white disabled:bg-slate-200 disabled:text-slate-400"
+        className="h-9 shrink-0 rounded-lg bg-action px-3 text-sm font-semibold text-white disabled:bg-slate-200 disabled:text-slate-400"
       >
         {saving ? '儲存中' : '儲存'}
       </button>

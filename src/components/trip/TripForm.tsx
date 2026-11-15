@@ -114,7 +114,7 @@ export function TripForm({ initialTrip, onSubmit, onClose }: TripFormProps) {
           <button type="button" className="rounded-lg bg-slate-100 px-4 py-3 font-semibold text-slate-600" onClick={onClose}>
             取消
           </button>
-          <button type="submit" disabled={saving} className="rounded-lg bg-family px-4 py-3 font-semibold text-white disabled:opacity-60">
+          <button type="submit" disabled={saving} className="rounded-lg bg-action px-4 py-3 font-semibold text-white disabled:opacity-60">
             {saving ? '儲存中…' : '儲存'}
           </button>
         </div>

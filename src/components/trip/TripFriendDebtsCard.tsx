@@ -27,13 +27,13 @@ export function TripFriendDebtsCard({ debts, onRepaid }: TripFriendDebtsCardProp
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4" aria-label="朋友代墊">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4" aria-label="朋友代墊">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="flex items-center gap-2 font-bold text-slate-900">
           <HandCoins className="h-5 w-5 text-amber-500" />
           朋友代墊
         </h2>
-        <span className={`text-sm font-semibold ${outstandingTwd > 0 ? 'text-amber-600' : 'text-family'}`}>
+        <span className={`text-sm font-semibold ${outstandingTwd > 0 ? 'text-amber-600' : 'text-action'}`}>
           {outstandingTwd > 0 ? `還沒還 ${formatTwd(outstandingTwd)}` : '都還清了 🎉'}
         </span>
       </div>
@@ -66,7 +66,7 @@ export function TripFriendDebtsCard({ debts, onRepaid }: TripFriendDebtsCardProp
                         <button
                           type="button"
                           disabled={busyId === item.share.id}
-                          className="rounded-full bg-family px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                          className="rounded-full bg-action px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
                           onClick={() => void mark(item, 'cash')}
                         >
                           現金
@@ -74,7 +74,7 @@ export function TripFriendDebtsCard({ debts, onRepaid }: TripFriendDebtsCardProp
                         <button
                           type="button"
                           disabled={busyId === item.share.id}
-                          className="rounded-full bg-family px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                          className="rounded-full bg-action px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
                           onClick={() => void mark(item, 'transfer')}
                         >
                           轉帳
@@ -83,7 +83,7 @@ export function TripFriendDebtsCard({ debts, onRepaid }: TripFriendDebtsCardProp
                     ) : (
                       <button
                         type="button"
-                        className="shrink-0 rounded-full bg-familySoft px-3 py-1 text-xs font-semibold text-family"
+                        className="shrink-0 rounded-full bg-actionSoft px-3 py-1 text-xs font-semibold text-action"
                         onClick={() => setChoosingId(item.share.id)}
                       >
                         收到了

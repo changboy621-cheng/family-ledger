@@ -22,8 +22,10 @@ interface LedgerAnalysisProps {
 // 帳本的整組圖表分析（前 3 大類別、支出分類、付款方式、花費人、每日/近 6 月趨勢）。
 // 由帳本頁與首頁共用，避免兩處重複維護同一套圖表。
 export function LedgerAnalysis({ analysis, isFamily, currencyFilter, yearMonth, onSelectCategory }: LedgerAnalysisProps) {
+  // 圖表長條跟著帳本色：家庭綠、個人藍（子元件用 bg-ledger）。
+  const ledgerStyle = { '--ledger': isFamily ? 'var(--family)' : 'var(--personal)' } as React.CSSProperties;
   return (
-    <>
+    <div className="contents" style={ledgerStyle}>
       <TopExpenseCategories
         items={analysis.topCategories}
         currencyFilter={currencyFilter}
@@ -72,6 +74,6 @@ export function LedgerAnalysis({ analysis, isFamily, currencyFilter, yearMonth, 
         currencyFilter={currencyFilter}
         labelKey="label"
       />
-    </>
+    </div>
   );
 }

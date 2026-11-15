@@ -110,18 +110,18 @@ export function TripCashExchangeForm({ trip, exchanges, initialExchange, onSubmi
           hint={`換到的 ${currency} 金額，可輸入 10000+5000`}
         />
 
-        <div className="grid gap-2 rounded-lg bg-familySoft p-3">
+        <div className="grid gap-2 rounded-lg bg-actionSoft p-3">
           <label className="flex items-center justify-between gap-3 text-sm font-medium text-slate-700">
             匯率（1 {currency} = ? 台幣）
             <input
               aria-label="匯率"
-              className="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-base"
+              className="w-32 rounded-lg border border-slate-300 bg-card px-3 py-2 text-right text-base"
               inputMode="decimal"
               value={rate}
               onChange={(e) => setRate(e.target.value)}
             />
           </label>
-          <p className="text-right text-sm font-semibold text-family">
+          <p className="text-right text-sm font-semibold text-action">
             花了 ≈ {twdPreview === null ? '—' : formatTwd(twdPreview)}
           </p>
         </div>
@@ -141,7 +141,7 @@ export function TripCashExchangeForm({ trip, exchanges, initialExchange, onSubmi
           <button type="button" className="rounded-lg bg-slate-100 px-4 py-3 font-semibold text-slate-600" onClick={onClose}>
             取消
           </button>
-          <button type="submit" disabled={saving} className="rounded-lg bg-family px-4 py-3 font-semibold text-white disabled:opacity-60">
+          <button type="submit" disabled={saving} className="rounded-lg bg-action px-4 py-3 font-semibold text-white disabled:opacity-60">
             {saving ? '儲存中…' : '儲存'}
           </button>
         </div>

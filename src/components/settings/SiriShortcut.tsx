@@ -17,7 +17,7 @@ export function SiriShortcut() {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-5">
       <h2 className="font-bold text-slate-900">用 Siri 快速記帳</h2>
       <p className="mt-1 text-sm text-slate-500">設定一個 iPhone「捷徑」，對 Siri 說一句就記帳。</p>
 

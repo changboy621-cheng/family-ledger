@@ -70,7 +70,7 @@ export function RecurringManager() {
   }
 
   return (
-    <section id="recurring" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-5">
+    <section id="recurring" className="scroll-mt-4 rounded-xl border border-slate-200 bg-card shadow-sm p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-bold text-slate-900">固定收支</h2>
@@ -79,7 +79,7 @@ export function RecurringManager() {
         <button
           type="button"
           onClick={() => setForm({ rule: null })}
-          className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-family px-3 text-sm font-semibold text-white"
+          className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-action px-3 text-sm font-semibold text-white"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           新增
@@ -192,7 +192,7 @@ function IconButton({
       onClick={onClick}
       disabled={disabled}
       className={`grid h-8 w-8 place-items-center rounded-lg text-slate-400 disabled:opacity-50 ${
-        danger ? 'hover:bg-red-50 hover:text-red-600' : 'hover:bg-slate-100 hover:text-family'
+        danger ? 'hover:bg-red-50 hover:text-red-600' : 'hover:bg-slate-100 hover:text-action'
       }`}
     >
       {children}

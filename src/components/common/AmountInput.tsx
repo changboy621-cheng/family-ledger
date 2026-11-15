@@ -1,7 +1,7 @@
 import { Delete } from 'lucide-react';
 import type { Currency } from '../../types';
 import { formatAmount } from '../../lib/currency';
-import { evaluateExpression, sanitizeExpressionInput } from '../../lib/expression';
+import { appendCalculatorKey, evaluateExpression } from '../../lib/expression';
 
 interface AmountInputProps {
   currency: Currency;
@@ -55,16 +55,16 @@ export function AmountInput({ currency, value, onChange, formatResult, hint }: A
       onChange(value.slice(0, -1));
       return;
     }
-    onChange(sanitizeExpressionInput(value + item.key));
+    onChange(appendCalculatorKey(value, item.key));
   }
 
   return (
     <div className="grid gap-2 text-sm font-medium text-slate-700">
       金額
-      <div className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-right">
+      <div className="rounded-lg border border-slate-300 bg-card px-4 py-3 text-right">
         <p className="min-h-9 text-3xl font-semibold text-slate-900">{value ? prettyExpression(value).trim() : '0'}</p>
         {hasOperator ? (
-          <p className="text-sm font-semibold text-family">= {result !== null ? (formatResult ?? ((amount) => formatAmount(amount, currency)))(result) : '—'}</p>
+          <p className="text-sm font-semibold text-action">= {result !== null ? (formatResult ?? ((amount) => formatAmount(amount, currency)))(result) : '—'}</p>
         ) : (
           <p className="text-xs font-normal text-slate-400">{hint ?? (currency === 'TWD' ? '新台幣自動取整數' : '美金兩位小數')}</p>
         )}
@@ -79,7 +79,7 @@ export function AmountInput({ currency, value, onChange, formatResult, hint }: A
             aria-label={item.kind === 'back' ? '刪除一個字' : item.label}
             className={`grid h-14 place-items-center rounded-lg text-2xl font-semibold active:scale-95 ${
               item.kind === 'op'
-                ? 'bg-familySoft text-family'
+                ? 'bg-actionSoft text-action'
                 : item.kind === 'back'
                   ? 'bg-slate-100 text-slate-500'
                   : 'bg-slate-50 text-slate-900'

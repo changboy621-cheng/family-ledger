@@ -87,7 +87,7 @@ export function CategoryOrderManager() {
 
 function StatusHint({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
   if (status === 'saving') return <span className="text-xs text-slate-400">儲存中…</span>;
-  if (status === 'saved') return <span className="text-xs text-family">已儲存</span>;
+  if (status === 'saved') return <span className="text-xs text-action">已儲存</span>;
   if (status === 'error') return <span className="text-xs text-red-600">儲存失敗，請稍後再試</span>;
   return null;
 }

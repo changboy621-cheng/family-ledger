@@ -93,14 +93,14 @@ export function Modal({ onClose, title, children }: ModalProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-900/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-40 bg-black/40 p-4" onClick={onClose}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="mx-auto max-w-3xl rounded-xl bg-white p-5 shadow-xl outline-none"
+        className="mx-auto max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto overscroll-contain rounded-xl bg-card p-5 shadow-xl outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         {children}

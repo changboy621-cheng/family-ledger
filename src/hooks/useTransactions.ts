@@ -7,6 +7,14 @@ import { monthRange, rollingMonthRange } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import { useRealtimeSync } from './useRealtimeSync';
+import { enqueueRow, isNetworkError, newClientId } from '../lib/offlineQueue';
+
+/** 新增交易的結果：已存到雲端，或因離線暫存在本機、連線後自動補送。 */
+export type CreateResult = 'saved' | 'queued';
+
+export function createdToastMessage(result: CreateResult) {
+  return result === 'queued' ? '目前離線，已暫存在手機，連上網路會自動上傳' : '交易已新增';
+}
 
 export interface TransactionInput {
   ledger_type: LedgerType;
@@ -177,18 +185,31 @@ function useTransactionsCore(ledgerType: LedgerType, range: DateRange) {
       if (!profile?.family_id) throw new Error('尚未加入家庭，無法新增交易。');
 
       const { owner_id, ...rest } = input;
-      const { error } = await supabase.from('transactions').insert({
+      // 用戶端先給 id：離線暫存後重送時，可用主鍵判斷伺服器是否已收過，避免重複記帳。
+      const row = {
         ...rest,
+        id: newClientId(),
         family_id: profile.family_id,
         owner_id: resolveInsertOwnerId(input.ledger_type, owner_id, profile.id),
         recorded_by: profile.id,
         note: input.note?.trim() || null,
         payment_method: input.payment_method ?? null,
         ...resolveLocationPatch(input)
-      });
+      };
 
-      if (error) throw error;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        enqueueRow(row);
+        return 'queued';
+      }
+
+      const { error } = await supabase.from('transactions').insert(row);
+      if (error) {
+        if (!isNetworkError(error)) throw error;
+        enqueueRow(row);
+        return 'queued';
+      }
       await refreshTransactions();
+      return 'saved';
     },
     [refreshTransactions, profile?.family_id, profile?.id]
   );

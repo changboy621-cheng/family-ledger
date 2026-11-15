@@ -10,6 +10,38 @@ export function sanitizeExpressionInput(value: string): string {
   return value.replace(/[^0-9.+\-*/() ]/g, '');
 }
 
+const OPERATORS = '+-*/';
+
+/**
+ * 計算機按鍵的輸入規則（取代單純把字元接在後面）：
+ * - 開頭的 0 會被下一個數字取代：0→1 得 1、5+0→3 得 5+3；連按 0 仍是 0。
+ * - 小數點：一個數字只能有一個；數字開頭按小數點自動補 0（. → 0.）。
+ * - 運算符號：算式開頭不能是運算符號；連按兩個運算符號時以後按的取代前一個。
+ */
+export function appendCalculatorKey(value: string, key: string): string {
+  const last = value.slice(-1);
+  const currentNumber = value.match(/[0-9.]*$/)?.[0] ?? '';
+
+  if (OPERATORS.includes(key)) {
+    if (value === '') return value;
+    if (OPERATORS.includes(last)) return value.slice(0, -1) + key;
+    if (last === '.') return value.slice(0, -1) + key;
+    return value + key;
+  }
+
+  if (key === '.') {
+    if (currentNumber.includes('.')) return value;
+    return value + (currentNumber === '' ? '0.' : '.');
+  }
+
+  if (/^[0-9]$/.test(key)) {
+    if (currentNumber === '0') return value.slice(0, -1) + key;
+    return value + key;
+  }
+
+  return value;
+}
+
 function tokenize(input: string): Token[] | null {
   const source = input.replace(/\s+/g, '');
   const tokens: Token[] = [];

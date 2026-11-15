@@ -15,7 +15,7 @@ interface TripFriendSharesFieldProps {
   knownNames: string[];
 }
 
-const inputClass = 'min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
+const inputClass = 'min-w-0 rounded-lg border border-slate-300 bg-card px-3 py-2 text-base';
 
 // 記帳表單的「幫朋友代墊」：這筆裡有多少是替誰付的，之後朋友會還。旅行總花費只算自己負擔的部分。
 export function TripFriendSharesField({ drafts, onChange, currency, totalAmount, rate, knownNames }: TripFriendSharesFieldProps) {
@@ -94,7 +94,7 @@ export function TripFriendSharesField({ drafts, onChange, currency, totalAmount,
             value={draft.amount}
             onChange={(event) => update(draft.id, { amount: event.target.value })}
           />
-          {draft.repaid_at ? <span className="shrink-0 text-xs font-semibold text-family">已還</span> : null}
+          {draft.repaid_at ? <span className="shrink-0 text-xs font-semibold text-action">已還</span> : null}
           <button
             type="button"
             aria-label={`移除${draft.name || '這位朋友'}`}
@@ -107,14 +107,14 @@ export function TripFriendSharesField({ drafts, onChange, currency, totalAmount,
       ))}
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600" onClick={() => addFriend()}>
+        <button type="button" className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-slate-600" onClick={() => addFriend()}>
           ＋ 再加一位
         </button>
         {unusedNames.slice(0, 5).map((name) => (
           <button
             key={name}
             type="button"
-            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+            className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-slate-600"
             onClick={() => pickFriend(name)}
           >
             ＋ {name}

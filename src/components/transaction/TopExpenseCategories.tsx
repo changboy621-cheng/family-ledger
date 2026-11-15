@@ -14,7 +14,7 @@ function TopExpenseCategoriesBase({ items, currencyFilter, title }: TopExpenseCa
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
 
       {!hasData ? (
@@ -33,7 +33,7 @@ function TopExpenseCategoriesBase({ items, currencyFilter, title }: TopExpenseCa
                     <div key={`${currency}-${item.categoryId}`} className="rounded-lg bg-slate-50 px-3 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-xs font-bold text-slate-500">
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-card text-xs font-bold text-slate-500">
                             {index + 1}
                           </span>
                           <span className="text-lg" aria-hidden="true">

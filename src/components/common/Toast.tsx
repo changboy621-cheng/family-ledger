@@ -34,7 +34,7 @@ function ToastRow({ toast }: { toast: ToastItem }) {
         <button
           type="button"
           onClick={handleAction}
-          className="shrink-0 rounded-lg bg-white/15 px-3 py-1 text-sm font-semibold hover:bg-white/25"
+          className="shrink-0 rounded-lg bg-card/15 px-3 py-1 text-sm font-semibold hover:bg-card/25"
         >
           {toast.actionLabel}
         </button>

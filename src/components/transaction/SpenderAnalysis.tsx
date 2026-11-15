@@ -19,7 +19,7 @@ function SpenderAnalysisBase({ items, currencyFilter, yearMonth, onSelectCategor
   const hasData = items.some((item) => currencies.some((currency) => item.totals[currency] > 0));
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="rounded-xl border border-slate-200 bg-card shadow-sm p-4">
       <h2 className="text-lg font-bold text-slate-900">支出人分析</h2>
 
       {!hasData ? (

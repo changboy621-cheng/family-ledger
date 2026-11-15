@@ -81,20 +81,20 @@ export function QuickAdd() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 place-items-center bg-page p-6">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center">
+      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-card shadow-sm p-6 text-center">
         {state.status === 'working' ? (
           <>
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-family" />
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-action" />
             <p className="mt-4 text-slate-600">記帳中…</p>
           </>
         ) : null}
 
         {state.status === 'done' ? (
           <>
-            <CheckCircle2 className="mx-auto h-12 w-12 text-family" />
+            <CheckCircle2 className="mx-auto h-12 w-12 text-action" />
             <h1 className="mt-3 text-lg font-bold text-slate-900">已記一筆</h1>
             <p className="mt-2 break-words text-slate-700">{state.summary}</p>
-            <Link to="/" className="mt-5 block h-11 rounded-lg bg-family pt-2.5 font-semibold text-white">
+            <Link to="/" className="mt-5 block h-11 rounded-lg bg-action pt-2.5 font-semibold text-white">
               回首頁
             </Link>
           </>
@@ -107,7 +107,7 @@ export function QuickAdd() {
             <p className="mt-2 text-sm text-slate-600">{state.message}</p>
             <Link
               to={state.needLogin ? '/auth/login' : '/'}
-              className="mt-5 block h-11 rounded-lg bg-family pt-2.5 font-semibold text-white"
+              className="mt-5 block h-11 rounded-lg bg-action pt-2.5 font-semibold text-white"
             >
               {state.needLogin ? '前往登入' : '回首頁'}
             </Link>
