@@ -20,6 +20,7 @@ import { useCategories } from '../hooks/useCategories';
 import { monthElapsedRatio } from '../lib/budget';
 import { SavingsCard } from '../components/budget/SavingsCard';
 import { BudgetProgressCard } from '../components/budget/BudgetProgressCard';
+import { DashboardShortcuts } from '../components/budget/DashboardShortcuts';
 
 interface CategoryDrillTarget {
   ledgerType: LedgerType;
@@ -85,6 +86,8 @@ export function Dashboard() {
           <DualCurrencyDisplay title="我的個人支出" values={personalSummary.expense} tone="personal" />
         )}
       </section>
+
+      <DashboardShortcuts />
 
       {ledgersReady && profile ? (
         <section className="grid gap-3 md:grid-cols-2">

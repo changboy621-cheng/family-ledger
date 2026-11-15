@@ -9,12 +9,15 @@ FamilyLedger 是依照 v1.2 規格建立的 PWA，P0 版本包含：
 - TWD / USD 幣別選擇與格式化
 - 家庭帳本清單與個人帳本清單
 - 旅遊記帳：每趟旅行一本獨立帳，多幣別、每筆記下當時匯率並折合新台幣
+- 資產管理：家庭共同／個人帳戶（現金、銀行、信用卡），記帳選付款帳戶自動算餘額、帳戶間轉帳、淨資產走勢
+- 自動化輸入：匯入財政部載具消費明細、拍收據（電子發票 QR Code 優先，掃不到才本機文字辨識）
+- 報表：年度收支、分類佔比、最大筆支出、月對月（上月／去年同月）比較
 - PWA manifest 與 service worker 設定
 
 ## 啟動
 
 1. 複製 `.env.example` 為 `.env.local`，填入 Supabase URL 與 anon key。
-2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 014；014_lock_family_membership.sql 鎖住加入家庭權限，**要先跑這支再部署前端**；旅遊記帳需要 010_trips.sql，旅遊花費上地圖需要 011_trip_expense_location.sql，旅遊「手邊現金」需要 012_trip_cash_exchanges.sql，旅遊「幫朋友代墊」需要 013_trip_friend_shares.sql）。之後新增的 migration 也要在上線前補跑。
+2. 在 Supabase SQL Editor 依檔名順序執行 `supabase/migrations/` 下所有檔案（001 → 015；015_accounts.sql 啟用資產管理、發票載具匯入去重複與收據照片儲存空間，沒跑之前這些功能會提示尚未啟用、一般記帳不受影響；014_lock_family_membership.sql 鎖住加入家庭權限，**要先跑這支再部署前端**；旅遊記帳需要 010_trips.sql，旅遊花費上地圖需要 011_trip_expense_location.sql，旅遊「手邊現金」需要 012_trip_cash_exchanges.sql，旅遊「幫朋友代墊」需要 013_trip_friend_shares.sql）。之後新增的 migration 也要在上線前補跑。
 3. 執行：
 
 ```bash

@@ -20,6 +20,8 @@ const TripsPage = lazy(() => import('./pages/TripsPage').then((m) => ({ default:
 const TripDetailPage = lazy(() =>
   import('./pages/TripDetailPage').then((m) => ({ default: m.TripDetailPage }))
 );
+const AssetsPage = lazy(() => import('./pages/AssetsPage').then((m) => ({ default: m.AssetsPage })));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })));
 const QuickAdd = lazy(() => import('./pages/QuickAdd').then((m) => ({ default: m.QuickAdd })));
 
@@ -68,6 +70,8 @@ export default function App() {
             <Route path="map" element={<MapPage />} />
             <Route path="trips" element={<TripsPage />} />
             <Route path="trips/:tripId" element={<TripDetailPage />} />
+            <Route path="assets" element={<AssetsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

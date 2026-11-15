@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 import type { Family, UserProfile } from '../types';
 import { useReferenceStore } from './referenceStore';
+import { useAccountStore } from './accountStore';
 
 interface AuthState {
   session: Session | null;
@@ -29,5 +30,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     // 避免同一個 SPA session 內下一位使用者短暫讀到上一位家庭的資料。
     set({ session: null, profile: null, family: null, loading: false });
     useReferenceStore.getState().clear();
+    useAccountStore.getState().clear();
   }
 }));

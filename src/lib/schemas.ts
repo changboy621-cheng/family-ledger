@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Budget, Category, RecurringTransaction, Transaction, UserProfile } from '../types';
+import type { Account, AccountMonthlyFlow, AccountTransfer, Budget, Category, RecurringTransaction, Transaction, UserProfile } from '../types';
 import type { Trip, TripCashExchange, TripExpense } from './trips';
 import type { EntryRow } from './suggestions';
 import type { OnboardingDraft } from './onboarding';
@@ -47,6 +47,8 @@ export const transactionSchema = z.object({
   payment_method: paymentMethodSchema.nullish(),
   transaction_date: z.string(),
   receipt_url: z.string().nullish(),
+  account_id: z.string().nullish().catch(null),
+  invoice_number: z.string().nullish().catch(null),
   // numeric 欄位經 PostgREST 可能以字串回傳；壞值退回 null（不整列丟棄）。
   latitude: z.coerce.number().min(-90).max(90).nullish().catch(null),
   longitude: z.coerce.number().min(-180).max(180).nullish().catch(null),
@@ -211,3 +213,38 @@ export function parseInviteFamily(raw: unknown): { id: string; name: string } | 
   const result = inviteFamilySchema.safeParse(raw);
   return result.success ? result.data : null;
 }
+
+export const accountSchema = z.object({
+  id: z.string(),
+  family_id: z.string(),
+  owner_id: z.string().nullable(),
+  name: z.string(),
+  kind: z.enum(['cash', 'bank', 'credit', 'other']).catch('other'),
+  currency: currencySchema,
+  opening_balance: z.coerce.number().catch(0),
+  sort_order: z.coerce.number().catch(0),
+  archived: z.boolean().catch(false)
+});
+
+export const accountTransferSchema = z.object({
+  id: z.string(),
+  family_id: z.string(),
+  from_account_id: z.string(),
+  to_account_id: z.string(),
+  amount: z.coerce.number(),
+  transfer_date: z.string().transform((value) => value.slice(0, 10)),
+  note: z.string().nullish(),
+  created_by: z.string().nullish()
+});
+
+export const accountFlowSchema = z.object({
+  account_id: z.string(),
+  month: z.string(),
+  net: z.coerce.number()
+});
+
+export const parseAccounts = (data: unknown): Account[] => safeParseRows<Account>(accountSchema, data, '帳戶');
+export const parseAccountTransfers = (data: unknown): AccountTransfer[] =>
+  safeParseRows<AccountTransfer>(accountTransferSchema, data, '轉帳');
+export const parseAccountFlows = (data: unknown): AccountMonthlyFlow[] =>
+  safeParseRows<AccountMonthlyFlow>(accountFlowSchema, data, '帳戶流量');

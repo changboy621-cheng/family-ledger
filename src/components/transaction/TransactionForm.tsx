@@ -19,6 +19,14 @@ import { CurrencySelector } from '../common/CurrencySelector';
 import { LocationPicker } from '../common/LocationPicker';
 import { Modal } from '../common/Modal';
 import { MoveToTripModal } from '../trip/MoveToTripModal';
+import { AccountIcon } from '../assets/AccountIcon';
+import { ReceiptScanner } from './ReceiptScanner';
+import { supabase } from '../../lib/supabase';
+import { newClientId } from '../../lib/offlineQueue';
+import type { ReceiptScan } from '../../lib/receipt';
+import { useAccounts } from '../../hooks/useAccounts';
+import { paymentMethodForKind } from '../../lib/accounts';
+import { loadLastAccountId, saveLastAccountId } from '../../lib/lastLedger';
 
 interface TransactionFormProps {
   initialLedgerType: LedgerType;
@@ -43,6 +51,10 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [movingToTrip, setMovingToTrip] = useState(false);
+  // 拍收據：辨識結果帶入表單，照片勾選保存時才上傳。
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [keepPhoto, setKeepPhoto] = useState(true);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(initialTransaction?.invoice_number ?? null);
   const { categories, createCategory, updateCategory, deleteCategory } = useCategories(type);
   const { members } = useFamilyMembers();
   const { noteHistory, noteDefaults, notesByCategory, categoryNoteDefaults } = useEntrySuggestions(ledgerType, type);
@@ -54,6 +66,27 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
       : null
   );
   const [placeName, setPlaceName] = useState(initialTransaction?.place_name ?? '');
+  // 資產管理：付款帳戶。新增時預設上次用的帳戶（同幣別才帶入）。
+  const { activeAccounts, status: accountStatus } = useAccounts();
+  const accountChoices = activeAccounts.filter((account) => account.currency === currency);
+  const accountsEnabled = accountStatus === 'ready' && activeAccounts.length > 0;
+  const [accountId, setAccountId] = useState<string | null>(initialTransaction ? initialTransaction.account_id ?? null : null);
+  const [accountTouched, setAccountTouched] = useState(Boolean(initialTransaction));
+  const lastAccountId = loadLastAccountId();
+  const effectiveAccountId =
+    accountTouched || !lastAccountId
+      ? accountId
+      : accountChoices.some((account) => account.id === lastAccountId)
+        ? lastAccountId
+        : null;
+  const selectedAccount = accountChoices.find((account) => account.id === effectiveAccountId) ?? null;
+
+  function chooseAccount(id: string | null) {
+    setAccountTouched(true);
+    setAccountId(id);
+    const account = activeAccounts.find((item) => item.id === id);
+    if (account) setPaymentMethod(paymentMethodForKind(account.kind));
+  }
 
   // 釘選清單依帳本／收支型別分開存；切換時重讀。
   useEffect(() => {
@@ -148,6 +181,36 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     }
   }, [categories, categoryId]);
 
+  function applyReceiptScan(scan: ReceiptScan, file: File) {
+    setReceiptFile(file);
+    // 電子發票一定是新台幣。
+    if (scan.source === 'qr') setCurrency('TWD');
+    if (scan.amount) setAmount(String(scan.amount));
+    if (scan.date) setTransactionDate(scan.date);
+    if (scan.invoiceNumber) setInvoiceNumber(scan.invoiceNumber);
+  }
+
+  /** 勾選保存照片時，壓縮後上傳到 receipts/{家庭}/{自己}/；失敗或離線就不存照片，帳照記。 */
+  async function uploadReceiptIfNeeded(): Promise<string | null | undefined> {
+    if (!receiptFile || !keepPhoto || !profile) return undefined;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      showToast('目前離線，這次不保存收據照片', 'error');
+      return undefined;
+    }
+    try {
+      const { compressReceipt } = await import('../../lib/receiptImage');
+      const blob = await compressReceipt(receiptFile);
+      const path = `${profile.family_id}/${profile.id}/${newClientId()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from('receipts').upload(path, blob, { contentType: 'image/jpeg' });
+      if (uploadError) throw uploadError;
+      return path;
+    } catch (uploadError) {
+      console.error('收據照片上傳失敗', uploadError);
+      showToast('收據照片沒有存成功，帳已照常記下', 'error');
+      return undefined;
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
@@ -165,6 +228,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
 
     setSaving(true);
     try {
+      const receiptPath = await uploadReceiptIfNeeded();
       await onSubmit({
         ledger_type: ledgerType,
         type,
@@ -172,13 +236,18 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
         currency,
         category_id: categoryId,
         transaction_date: transactionDate,
-        payment_method: paymentMethod,
+        payment_method: selectedAccount ? paymentMethodForKind(selectedAccount.kind) : paymentMethod,
+        invoice_number: invoiceNumber,
+        receipt_url: receiptPath,
+        // 帳戶：沒有啟用資產功能、這筆原本也沒帳戶時不送此欄位（相容尚未跑 015 migration 的資料庫）。
+        account_id: accountsEnabled || initialTransaction?.account_id ? (selectedAccount?.id ?? null) : undefined,
         note,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         place_name: coords ? placeName : null,
         owner_id: ledgerType === 'family' ? ownerId || profile?.id : undefined
       });
+      if (selectedAccount) saveLastAccountId(selectedAccount.id);
       setAmount('');
       setNote('');
       onClose();
@@ -198,7 +267,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     ledgerType === 'family' && members.length > 1 ? members.find((member) => member.id === ownerId)?.display_name : undefined;
   const moreSummary = [
     transactionDate === todayISO() ? '今天' : transactionDate.slice(5).replace('-', '/'),
-    paymentMethodLabel(paymentMethod),
+    selectedAccount ? selectedAccount.name : paymentMethodLabel(paymentMethod),
     ownerName,
     coords ? '📍' : undefined
   ]
@@ -299,6 +368,19 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
             ))}
           </div>
 
+          {type === 'expense' ? (
+            <ReceiptScanner
+              file={receiptFile}
+              keepPhoto={keepPhoto}
+              onKeepPhotoChange={setKeepPhoto}
+              onScanned={applyReceiptScan}
+              onClear={() => {
+                setReceiptFile(null);
+                setInvoiceNumber(initialTransaction?.invoice_number ?? null);
+              }}
+            />
+          ) : null}
+
           <CurrencySelector value={currency} onChange={setCurrency} />
           <AmountInput currency={currency} value={amount} onChange={setAmount} />
           <CategoryPicker
@@ -318,6 +400,37 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               <span className="truncate text-slate-500">{moreSummary}</span>
             </summary>
             <div className="grid gap-5 border-t border-slate-200 p-4">
+          {accountsEnabled ? (
+            <div className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">{type === 'expense' ? '從哪個帳戶付' : '存進哪個帳戶'}</span>
+              <div className="flex flex-wrap gap-2">
+                {accountChoices.map((account) => (
+                  <button
+                    key={account.id}
+                    type="button"
+                    className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm font-semibold ${
+                      selectedAccount?.id === account.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-card text-slate-600'
+                    }`}
+                    onClick={() => chooseAccount(account.id)}
+                  >
+                    <AccountIcon kind={account.kind} shared={account.owner_id === null} size="sm" />
+                    {account.name}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                    !selectedAccount ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                  onClick={() => chooseAccount(null)}
+                >
+                  不指定
+                </button>
+              </div>
+              {accountChoices.length === 0 ? <p className="text-xs text-slate-500">沒有 {currency} 的帳戶。</p> : null}
+            </div>
+          ) : null}
+          {!selectedAccount ? (
           <div className="flex gap-2">
             {(['cash', 'card'] as PaymentMethod[]).map((option) => (
               <button
@@ -332,6 +445,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               </button>
             ))}
           </div>
+          ) : null}
 
           {ledgerType === 'family' && members.length > 1 ? (
             <div className="grid gap-2">

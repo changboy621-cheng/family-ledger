@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { FamilyInvite } from '../components/family/FamilyInvite';
 import { DataTools } from '../components/settings/DataTools';
+import { EInvoiceImport } from '../components/settings/EInvoiceImport';
 import { CategoryOrderManager } from '../components/settings/CategoryOrderManager';
 import { BudgetManager } from '../components/settings/BudgetManager';
 import { RecurringManager } from '../components/settings/RecurringManager';
@@ -67,6 +68,8 @@ export function Settings() {
         <h2 className="font-bold text-slate-900">類別排序</h2>
         <CategoryOrderManager />
       </section>
+
+      <EInvoiceImport />
 
       <DataTools />
 

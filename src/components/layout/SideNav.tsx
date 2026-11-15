@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Lock, MapPin, Plane, Settings, Users } from 'lucide-react';
+import { Home, LineChart, Lock, MapPin, Plane, Settings, Users, Wallet } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const items = [
@@ -8,6 +8,8 @@ const items = [
   { to: '/personal', label: '個人帳本', icon: Lock },
   { to: '/map', label: '地圖', icon: MapPin },
   { to: '/trips', label: '旅遊', icon: Plane },
+  { to: '/assets', label: '資產', icon: Wallet },
+  { to: '/reports', label: '報表', icon: LineChart },
   { to: '/settings', label: '設定', icon: Settings }
 ];
 
