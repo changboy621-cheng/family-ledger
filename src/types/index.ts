@@ -9,6 +9,8 @@ export interface Family {
   invite_code: string;
   /** 家庭自訂的類別顯示順序（依序排列的 category id）；未列到者退回各類別的 sort_order。 */
   category_order?: string[] | null;
+  /** 分帳從哪天開始算（YYYY-MM-DD）；null = 預設本月 1 號。 */
+  split_since?: string | null;
   created_at?: string;
 }
 
