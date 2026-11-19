@@ -267,7 +267,7 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
     ledgerType === 'family' && members.length > 1 ? members.find((member) => member.id === ownerId)?.display_name : undefined;
   const moreSummary = [
     transactionDate === todayISO() ? '今天' : transactionDate.slice(5).replace('-', '/'),
-    selectedAccount ? selectedAccount.name : paymentMethodLabel(paymentMethod),
+    selectedAccount?.name,
     ownerName,
     coords ? '📍' : undefined
   ]
@@ -343,11 +343,15 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               <button
                 key={option}
                 type="button"
-                className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                  ledgerType === option ? 'bg-card text-slate-900 shadow-sm' : 'text-slate-500'
+                aria-pressed={ledgerType === option}
+                className={`rounded-md px-3 py-2.5 text-sm font-bold transition ${
+                  ledgerType === option
+                    ? `${option === 'family' ? 'bg-family' : 'bg-personal'} text-white shadow-sm`
+                    : 'text-slate-500'
                 }`}
                 onClick={() => setLedgerType(option)}
               >
+                {ledgerType === option ? '✓ ' : ''}
                 {option === 'family' ? '家庭帳本' : '個人帳本'}
               </button>
             ))}
@@ -367,6 +371,23 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               </button>
             ))}
           </div>
+
+          {!selectedAccount ? (
+            <div className="flex gap-2">
+              {(['cash', 'card'] as PaymentMethod[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                    paymentMethod === option ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                  onClick={() => setPaymentMethod(option)}
+                >
+                  {paymentMethodLabel(option)}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           {type === 'expense' ? (
             <ReceiptScanner
@@ -430,23 +451,6 @@ export function TransactionForm({ initialLedgerType, onSubmit, onClose, initialT
               {accountChoices.length === 0 ? <p className="text-xs text-slate-500">沒有 {currency} 的帳戶。</p> : null}
             </div>
           ) : null}
-          {!selectedAccount ? (
-          <div className="flex gap-2">
-            {(['cash', 'card'] as PaymentMethod[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                  paymentMethod === option ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-                onClick={() => setPaymentMethod(option)}
-              >
-                {paymentMethodLabel(option)}
-              </button>
-            ))}
-          </div>
-          ) : null}
-
           {ledgerType === 'family' && members.length > 1 ? (
             <div className="grid gap-2">
               <span className="text-sm font-medium text-slate-700">這筆是誰花的</span>
